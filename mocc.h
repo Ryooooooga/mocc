@@ -1,6 +1,10 @@
 #ifndef INCLUDE_mocc_h
 #define INCLUDE_mocc_h
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>

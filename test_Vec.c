@@ -28,6 +28,10 @@ void test_Vec(void) {
     int x1 = Vec_pop(Test)(v);
     int x0 = Vec_pop(Test)(v);
 
+    (void)x2;
+    (void)x1;
+    (void)x0;
+
     assert(Vec_len(Test)(v) == 0);
     assert(x0 == 1);
     assert(x1 == -1);

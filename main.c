@@ -11,21 +11,21 @@ int main(int argc, char *argv[]) {
     }
 
     if (strcmp(argv[1], "--test") == 0) {
+        test_Vec();
         test_Lexer();
+        test_Preprocessor();
         exit(0);
     }
 
     const char *filename = "<input>";
     const char *text = argv[1]; // TODO: Read from file
 
-    Lexer *l = Lexer_new(filename, text);
+    Vec(Token) *tokens = Preprocessor_read(filename, text);
 
-    Token *t;
-    do {
-        t = Lexer_read(l);
-
+    for (size_t i = 0; i < Vec_len(Token)(tokens); i++) {
+        Token *t = Vec_get(Token)(tokens, i);
         fprintf(stderr, "token(%d, %s)\n", t->kind, t->text);
-    } while (t->kind != '\0');
+    }
 
     return 0;
 }

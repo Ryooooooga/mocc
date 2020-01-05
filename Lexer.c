@@ -58,7 +58,7 @@ Token *Lexer_read(Lexer *l) {
             t->kind = TokenKind_number;
             break;
         } else {
-            t->kind = Lexer_consume(l);
+            t->kind = buffer[len++] = Lexer_consume(l);
             break;
         }
     }

@@ -7,8 +7,12 @@ LDFLAGS ?=
 
 SRCS = \
 	main.c \
+	Vec.c \
 	Lexer.c \
+	Preprocessor.c \
+	test_Vec.c \
 	test_Lexer.c \
+	test_Preprocessor.c \
 	# -- SRCS
 
 OBJS = ${SRCS:%=%.o}

@@ -5,7 +5,7 @@ typedef struct {
     const char *text;
 } TestToken;
 
-static void check_lexer(
+static void check_pp(
     const char *test_name,
     const char *text,
     const TestToken expected_tokens[]) {
@@ -13,21 +13,19 @@ static void check_lexer(
     assert(text);
     assert(expected_tokens);
 
-    Lexer *l = Lexer_new(test_name, text);
-    if (l == NULL) {
-        ERROR("%s: Lexer_new() == NULL\n", test_name);
+    Vec(Token) *tokens = Preprocessor_read(test_name, text);
+    if (tokens == NULL) {
+        ERROR("%s: Preprocessor_read() == NULL\n", test_name);
     }
 
-    Token *t;
-    int i = 0;
-    do {
-        t = Lexer_read(l);
+    for (size_t i = 0; i < Vec_len(Token)(tokens); i++) {
+        const Token *t = Vec_get(Token)(tokens, i);
         if (t == NULL) {
-            ERROR("%s: Lexer_read() == NULL\n", test_name);
+            ERROR("%s: tokens[%zu] == NULL\n", test_name, i);
         }
         if (t->kind != expected_tokens[i].kind) {
             ERROR(
-                "%s[%d]: t->kind != %d, actual %d\n",
+                "%s: tokens[%zu]->kind != %d, actual %d\n",
                 test_name,
                 i,
                 expected_tokens[i].kind,
@@ -35,24 +33,24 @@ static void check_lexer(
         }
         if (strcmp(t->text, expected_tokens[i].text) != 0) {
             ERROR(
-                "%s[%d]: t->text != %s, actual %s\n",
+                "%s: tokens[%zu]->text != %s, actual %s\n",
                 test_name,
                 i,
                 expected_tokens[i].text,
                 t->text);
         }
-    } while (expected_tokens[i++].kind != '\0');
+    }
 }
 
-void test_Lexer(void) {
-    check_lexer(
+void test_Preprocessor(void) {
+    check_pp(
         "empty",
         "",
         (TestToken[]){
             {.kind = '\0', ""},
         });
 
-    check_lexer(
+    check_pp(
         "number",
         "0 1 2 42 100",
         (TestToken[]){
@@ -64,7 +62,7 @@ void test_Lexer(void) {
             {.kind = '\0', ""},
         });
 
-    check_lexer(
+    check_pp(
         "operators",
         "+ -",
         (TestToken[]){

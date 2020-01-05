@@ -1,0 +1,22 @@
+name: macOS
+
+on: [push]
+
+jobs:
+  build-debug:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type:
+          - debug
+          - release
+
+    name: macOS - Build ${{ matrix.build-type }}
+    runs-on: macOS-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: make BUILD_TYPE=${{ matrix.build-type }}
+        run: make BUILD_TYPE=${{ matrix.build-type }}
+      - name: make test BUILD_TYPE=${{ matrix.build-type }}
+        run: make test BUILD_TYPE=${{ matrix.build-type }}

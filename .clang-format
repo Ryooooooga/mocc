@@ -1,5 +1,8 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
+AlignAfterOpenBracket: AlwaysBreak
 AllowShortFunctionsOnASingleLine: None
 AlwaysBreakBeforeMultilineStrings: true
+BinPackArguments: false
+BinPackParameters: false
 CommentPragmas: ^

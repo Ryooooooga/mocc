@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "mocc.h"
 
 void display_usage(const char *program) {
     fprintf(stderr, "%s <INPUT>\n", program);
@@ -11,7 +10,22 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    printf("Hello, world!\n");
+    if (strcmp(argv[1], "--test") == 0) {
+        test_Lexer();
+        exit(0);
+    }
+
+    const char *filename = "<input>";
+    const char *text = argv[1]; // TODO: Read from file
+
+    Lexer *l = Lexer_new(filename, text);
+
+    Token *t;
+    do {
+        t = Lexer_read(l);
+
+        fprintf(stderr, "token(%d, %s)\n", t->kind, t->text);
+    } while (t->kind != '\0');
 
     return 0;
 }

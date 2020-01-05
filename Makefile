@@ -15,20 +15,24 @@ SRCS = \
 	test_Preprocessor.c \
 	# -- SRCS
 
-OBJS = ${SRCS:%=%.o}
+BUILD_DIR = build
+OBJS = ${SRCS:%=${BUILD_DIR}/${BUILD_TYPE}/%.o}
+TARGET = ${BUILD_DIR}/${BUILD_TYPE}/mocc
 
-all: mocc
+all: ${TARGET}
 
-test: mocc
-	./mocc --test
+test: ${TARGET}
+	./${TARGET} --test
 
 clean:
-	${RM} *.o *.d mocc
+	${RM} ${BUILD_DIR}
 
-mocc: ${OBJS}
+${TARGET}: ${OBJS}
+	@mkdir -p ${@D}
 	${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 
-%.c.o: %.c
+${BUILD_DIR}/${BUILD_TYPE}/%.c.o: %.c
+	@mkdir -p ${@D}
 	${CC} ${CFLAGS} -MMD -MP -o $@ -c $<
 
 .PHONY: all test clean

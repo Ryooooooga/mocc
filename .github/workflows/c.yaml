@@ -1,18 +1,21 @@
-name: Ubuntu
+name: C
 
 on: [push]
 
 jobs:
-  build-debug:
+  build:
     strategy:
       fail-fast: false
       matrix:
+        os:
+          - ubuntu-latest
+          - macOS-latest
         build-type:
           - debug
           - release
 
-    name: Ubuntu - Build ${{ matrix.build-type }}
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.build-type }} - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v1

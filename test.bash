@@ -42,5 +42,26 @@ try() {
     rm "$asm" "$bin"
 }
 
-try "c$LINENO" 'int main(void) { return 0; }' 0
-try "c$LINENO" 'int main(void) { return 42; }' 42
+try "c$LINENO" '
+    int main(void) {
+        return 0;
+    }' 0
+
+try "c$LINENO" '
+    int main(void) {
+        return 42;
+    }' 42
+
+try "c$LINENO" '
+    int main(void) {
+        int a;
+        a = 2;
+        return a;
+    }' 2
+
+try "c$LINENO" '
+    int main(void) {
+        int a = 3;
+        int b = a;
+        return b;
+    }' 3

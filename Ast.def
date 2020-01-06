@@ -22,13 +22,26 @@
 #define STMT_NODE(name) NODE(name, Stmt)
 #endif
 
+#ifndef DECLARATOR_NODE
+#define DECLARATOR_NODE(name) NODE(name, Declarator)
+#endif
+
 #ifndef DECL_NODE
 #define DECL_NODE(name) NODE(name, Decl)
 #endif
 
 // Expressions
+EXPR_NODE(Identifier)
+    NODE_MEMBER_F(const char *, name, id)
+NODE_END()
+
 EXPR_NODE(Integer)
     NODE_MEMBER_F(long long, value, int)
+NODE_END()
+
+EXPR_NODE(Assign)
+    NODE_MEMBER_F(ExprNode *, lhs, Expr)
+    NODE_MEMBER_F(ExprNode *, rhs, Expr)
 NODE_END()
 
 // Statements
@@ -38,6 +51,19 @@ NODE_END()
 
 STMT_NODE(Return)
     NODE_MEMBER_F(ExprNode *, return_value, Expr)
+NODE_END()
+
+STMT_NODE(Decl)
+    NODE_MEMBER_F(Vec(DeclaratorNode) *, declarators, Declarators)
+NODE_END()
+
+STMT_NODE(Expr)
+    NODE_MEMBER_F(ExprNode *, expression, Expr)
+NODE_END()
+
+// Declarator
+DECLARATOR_NODE(Direct)
+    NODE_MEMBER_F(const char *, name, id)
 NODE_END()
 
 // Declarations
@@ -57,4 +83,5 @@ NODE_END()
 #undef NODE_MEMBER_F
 #undef EXPR_NODE
 #undef STMT_NODE
+#undef DECLARATOR_NODE
 #undef DECL_NODE

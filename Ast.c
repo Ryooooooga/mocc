@@ -46,9 +46,29 @@
 #include "Ast.def"
 
 // Expressions
+IdentifierExprNode *IdentifierExprNode_new(const char *name) {
+    assert(name);
+
+    IdentifierExprNode *p = IdentifierExprNode_alloc();
+    p->name = name;
+
+    return p;
+}
+
 IntegerExprNode *IntegerExprNode_new(long long value) {
     IntegerExprNode *p = IntegerExprNode_alloc();
     p->value = value;
+
+    return p;
+}
+
+AssignExprNode *AssignExprNode_new(ExprNode *lhs, ExprNode *rhs) {
+    assert(lhs);
+    assert(rhs);
+
+    AssignExprNode *p = AssignExprNode_alloc();
+    p->lhs = lhs;
+    p->rhs = rhs;
 
     return p;
 }
@@ -66,6 +86,34 @@ CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements) {
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value) {
     ReturnStmtNode *p = ReturnStmtNode_alloc();
     p->return_value = return_value;
+
+    return p;
+}
+
+DeclStmtNode *DeclStmtNode_new(Vec(DeclaratorNode) * declarators) {
+    assert(declarators);
+
+    DeclStmtNode *p = DeclStmtNode_alloc();
+    p->declarators = declarators;
+
+    return p;
+}
+
+ExprStmtNode *ExprStmtNode_new(ExprNode *expression) {
+    assert(expression);
+
+    ExprStmtNode *p = ExprStmtNode_alloc();
+    p->expression = expression;
+
+    return p;
+}
+
+// Declarators
+DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name) {
+    assert(name);
+
+    DirectDeclaratorNode *p = DirectDeclaratorNode_alloc();
+    p->name = name;
 
     return p;
 }
@@ -133,6 +181,21 @@ static void Node_dump_Stmts(const Vec(StmtNode) * x, FILE *fp, size_t depth) {
 
     for (size_t i = 0; i < Vec_len(StmtNode)(x); i++) {
         Node_dump_Stmt(Vec_get(StmtNode)(x, i), fp, depth);
+    }
+}
+
+static void
+Node_dump_Declarator(const DeclaratorNode *x, FILE *fp, size_t depth) {
+    assert(fp);
+    Node_dump_impl((const Node *)x, fp, depth);
+}
+
+static void
+Node_dump_Declarators(const Vec(DeclaratorNode) * x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(x); i++) {
+        Node_dump_Declarator(Vec_get(DeclaratorNode)(x, i), fp, depth);
     }
 }
 

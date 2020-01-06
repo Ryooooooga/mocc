@@ -39,8 +39,37 @@ static const Token *Parser_expect(Parser *p, TokenKind kind) {
     return Parser_consume(p);
 }
 
-static ExprNode *Parser_parse_expr(Parser *p);
+static bool Parser_is_decl_spec(Parser *p, const Token *t) {
+    assert(p);
+    assert(t);
+
+    switch (t->kind) {
+    case TokenKind_kw_void:
+    case TokenKind_kw_int:
+        return true;
+
+    case TokenKind_identifier:
+        (void)p; // TODO: typedef name
+        return false;
+
+    default:
+        return false;
+    }
+}
+
+static ExprNode *Parser_parse_comma_expr(Parser *p);
 static StmtNode *Parser_parse_stmt(Parser *p);
+
+// identifier_expr:
+//  identifier
+static ExprNode *Parser_parse_identifier_expr(Parser *p) {
+    assert(p);
+
+    // identifier
+    const Token *ident = Parser_expect(p, TokenKind_identifier);
+
+    return IdentifierExprNode_base(IdentifierExprNode_new(ident->text));
+}
 
 // number_expr:
 //  number
@@ -55,21 +84,65 @@ static ExprNode *Parser_parse_number_expr(Parser *p) {
 }
 
 // primary_expr:
-//  TODO: primary_expr rule
+//  identifier_expr
+//  number_expr
 static ExprNode *Parser_parse_primary_expr(Parser *p) {
     assert(p);
 
-    // TODO: primary_expr rule
-    return Parser_parse_number_expr(p);
+    const Token *t = Parser_peek(p);
+    switch (t->kind) {
+    case TokenKind_identifier:
+        // identifier_expr
+        return Parser_parse_identifier_expr(p);
+
+    case TokenKind_number:
+        // number_expr
+        return Parser_parse_number_expr(p);
+
+    default:
+        ERROR("unexpected token %s, expected expression\n", t->text);
+    }
 }
 
-// expr:
-//  TODO: expr rule
-static ExprNode *Parser_parse_expr(Parser *p) {
+// conditional_expr:
+//  TODO: conditional_expr rule
+static ExprNode *Parser_parse_conditional_expr(Parser *p) {
     assert(p);
 
-    // TODO: expr rule
+    // TODO: conditional_expr rule
     return Parser_parse_primary_expr(p);
+}
+
+// assign_expr:
+//  conditional_expr '=' assign_expr
+//  conditional_expr
+static ExprNode *Parser_parse_assign_expr(Parser *p) {
+    assert(p);
+
+    // conditional_expr
+    ExprNode *lhs = Parser_parse_conditional_expr(p);
+
+    if (Parser_peek(p)->kind != '=') {
+        return lhs;
+    }
+
+    // '='
+    Parser_expect(p, '=');
+
+    // assign_expr
+    ExprNode *rhs = Parser_parse_assign_expr(p);
+
+    return AssignExprNode_base(AssignExprNode_new(lhs, rhs));
+}
+
+// comma_expr:
+//  comma_expr ',' assign_expr
+//  assign_expr
+static ExprNode *Parser_parse_comma_expr(Parser *p) {
+    assert(p);
+
+    // TODO: comma_expr
+    return Parser_parse_assign_expr(p);
 }
 
 // compound_stmt:
@@ -96,18 +169,18 @@ static StmtNode *Parser_parse_compound_stmt(Parser *p) {
 }
 
 // return_stmt:
-//  'return' expr? ';'
+//  'return' [comma_expr] ';'
 static StmtNode *Parser_parse_return_stmt(Parser *p) {
     assert(p);
 
     // 'return'
     Parser_expect(p, TokenKind_kw_return);
 
-    // expr?
+    // [expr]
     ExprNode *return_value = NULL;
 
     if (Parser_peek(p)->kind != ';') {
-        return_value = Parser_parse_expr(p);
+        return_value = Parser_parse_comma_expr(p);
     }
 
     // ';'
@@ -116,9 +189,78 @@ static StmtNode *Parser_parse_return_stmt(Parser *p) {
     return ReturnStmtNode_base(ReturnStmtNode_new(return_value));
 }
 
+// declarator:
+//  TODO: declarator rule
+static DeclaratorNode *Parser_parse_declarator(Parser *p) {
+    assert(p);
+
+    // TODO: declarator rule
+    const Token *ident = Parser_expect(p, TokenKind_identifier);
+
+    return DirectDeclaratorNode_base(DirectDeclaratorNode_new(ident->text));
+}
+
+// init_declarator:
+//  declarator '=' assign_expr
+//  declarator
+static DeclaratorNode *Parser_parse_init_declarator(Parser *p) {
+    assert(p);
+
+    // declarator
+    DeclaratorNode *declarator = Parser_parse_declarator(p);
+
+    // ['=' assign_expr]
+    if (Parser_peek(p)->kind != '=') {
+        return declarator;
+    }
+
+    // '='
+    Parser_expect(p, '=');
+
+    UNIMPLEMENTED();
+}
+
+// decl_stmt:
+//  type [init_declarator (',' init_declarator)*] ';'
+static StmtNode *Parser_parse_decl_stmt(Parser *p) {
+    assert(p);
+
+    // type
+    Parser_expect(p, TokenKind_kw_int); // TODO: type
+
+    // [init_declarator (',' init_declarator)*]
+    Vec(DeclaratorNode) *declarators = Vec_new(DeclaratorNode)();
+
+    if (Parser_peek(p)->kind != ';') {
+        DeclaratorNode *declarator = Parser_parse_init_declarator(p);
+
+        Vec_push(DeclaratorNode)(declarators, declarator);
+    }
+
+    // ';'
+    Parser_expect(p, ';');
+
+    return DeclStmtNode_base(DeclStmtNode_new(declarators));
+}
+
+// expr_stmt:
+//  comma_expr ';'
+static StmtNode *Parser_parse_expr_stmt(Parser *p) {
+    assert(p);
+
+    // comma_expr
+    ExprNode *expression = Parser_parse_comma_expr(p);
+
+    // ';'
+    Parser_expect(p, ';');
+
+    return ExprStmtNode_base(ExprStmtNode_new(expression));
+}
+
 // stmt:
 //  compound_stmt
 //  return_stmt
+//  decl_stmt
 //  expr_stmt
 static StmtNode *Parser_parse_stmt(Parser *p) {
     assert(p);
@@ -133,8 +275,13 @@ static StmtNode *Parser_parse_stmt(Parser *p) {
         return Parser_parse_return_stmt(p);
 
     default:
+        if (Parser_is_decl_spec(p, Parser_peek(p))) {
+            // decl_stmt
+            return Parser_parse_decl_stmt(p);
+        }
+
         // expr_stmt
-        TODO("expr_stmt");
+        return Parser_parse_expr_stmt(p);
     }
 }
 

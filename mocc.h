@@ -123,6 +123,7 @@
 VEC_DECL(Token, struct Token *)
 VEC_DECL(ExprNode, struct ExprNode *)
 VEC_DECL(StmtNode, struct StmtNode *)
+VEC_DECL(DeclaratorNode, struct DeclaratorNode *)
 VEC_DECL(DeclNode, struct DeclNode *)
 
 // File
@@ -151,6 +152,7 @@ typedef enum NodeKind {
 typedef struct Node Node;
 typedef struct ExprNode ExprNode;
 typedef struct StmtNode StmtNode;
+typedef struct DeclaratorNode DeclaratorNode;
 typedef struct DeclNode DeclNode;
 
 #define NODE(name, base) typedef struct name##base##Node name##base##Node;
@@ -163,6 +165,9 @@ struct ExprNode {
     NodeKind kind;
 };
 struct StmtNode {
+    NodeKind kind;
+};
+struct DeclaratorNode {
     NodeKind kind;
 };
 struct DeclNode {
@@ -187,10 +192,16 @@ struct DeclNode {
     ;
 #include "Ast.def"
 
+IdentifierExprNode *IdentifierExprNode_new(const char *name);
 IntegerExprNode *IntegerExprNode_new(long long value);
+AssignExprNode *AssignExprNode_new(ExprNode *lhs, ExprNode *rhs);
 
 CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements);
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value);
+DeclStmtNode *DeclStmtNode_new(Vec(DeclaratorNode) * declarators);
+ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
+
+DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name);
 
 FunctionDeclNode *FunctionDeclNode_new(const char *name, StmtNode *body);
 

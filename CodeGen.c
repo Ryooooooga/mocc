@@ -21,11 +21,29 @@ static int CodeGen_next_label(CodeGen *g) {
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p);
 static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p);
 
+static void CodeGen_gen_IdentifierExpr(CodeGen *g, IdentifierExprNode *p) {
+    assert(g);
+    assert(p);
+
+    (void)g;
+    (void)p;
+    UNIMPLEMENTED();
+}
+
 static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
     assert(g);
     assert(p);
 
     fprintf(g->fp, "  push %lld\n", p->value);
+}
+
+static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
+    assert(g);
+    assert(p);
+
+    (void)g;
+    (void)p;
+    UNIMPLEMENTED();
 }
 
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p) {
@@ -64,6 +82,24 @@ static void CodeGen_gen_ReturnStmt(CodeGen *g, ReturnStmtNode *p) {
     }
 
     fprintf(g->fp, "  jmp .L%d\n", g->return_label);
+}
+
+static void CodeGen_gen_DeclStmt(CodeGen *g, DeclStmtNode *p) {
+    assert(g);
+    assert(p);
+
+    (void)g;
+    (void)p;
+    UNIMPLEMENTED();
+}
+
+static void CodeGen_gen_ExprStmt(CodeGen *g, ExprStmtNode *p) {
+    assert(g);
+    assert(p);
+
+    (void)g;
+    (void)p;
+    UNIMPLEMENTED();
 }
 
 static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p) {

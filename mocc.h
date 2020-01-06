@@ -118,6 +118,42 @@
 
 VEC_DECL(Token, struct Token *)
 
+// File
+char *File_read(const char *path);
+
+// Ast
+typedef enum NodeKind {
+#define NODE(name) NodeKind_##name,
+#include "Ast.def"
+} NodeKind;
+
+typedef struct Node Node;
+typedef struct ExprNode ExprNode;
+typedef struct StmtNode StmtNode;
+typedef struct DeclNode DeclNode;
+
+#define NODE(name) typedef struct name##Node name##Node;
+#include "Ast.def"
+
+struct Node {
+    NodeKind kind;
+};
+
+#define NODE(name)                                                             \
+    struct name##Node {                                                        \
+        NODE_MEMBER(NodeKind, kind)
+#define NODE_MEMBER(T, x) T x;
+#define NODE_END()                                                             \
+    }                                                                          \
+    ;
+#include "Ast.def"
+
+IntegerExprNode *IntegerExprNode_new(long long value);
+
+ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value);
+
+void Node_dump(const Node *p, FILE *fp);
+
 // Token
 typedef int TokenKind;
 
@@ -144,6 +180,8 @@ Vec(Token) * Preprocessor_read(const char *filename, const char *text);
 #define ERROR(...) (fprintf(stderr, __VA_ARGS__), exit(1))
 
 void test_Vec(void);
+void test_File(void);
+void test_Ast(void);
 void test_Lexer(void);
 void test_Preprocessor(void);
 

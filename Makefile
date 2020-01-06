@@ -8,9 +8,13 @@ LDFLAGS ?=
 SRCS = \
 	main.c \
 	Vec.c \
+	File.c \
+	Ast.c \
 	Lexer.c \
 	Preprocessor.c \
 	test_Vec.c \
+	test_File.c \
+	test_Ast.c \
 	test_Lexer.c \
 	test_Preprocessor.c \
 	# -- SRCS

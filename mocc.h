@@ -14,9 +14,12 @@
 #include <string.h>
 
 // Macros
-#define UNREACHABLE() assert(!"unreachable")
-#define UNIMPLEMENTED() assert(!"unimplemented")
-#define TODO(s) assert(!"todo: " s)
+#define UNREACHABLE()                                                          \
+    (fprintf(stderr, "unreachable\nat %s(%d)\n", __FILE__, __LINE__), exit(1))
+#define UNIMPLEMENTED()                                                        \
+    (fprintf(stderr, "unimplemented\nat %s(%d)\n", __FILE__, __LINE__), exit(1))
+#define TODO(s)                                                                \
+    (fprintf(stderr, "todo: " s "\nat %s(%d)\n", __FILE__, __LINE__), exit(1))
 
 // Vec
 #define Vec(T) Vec_##T

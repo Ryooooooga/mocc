@@ -3,6 +3,7 @@
 void test_File(void) {
     {
         char *s = File_read("test/hello.c");
+        (void)s;
 
         assert(s != NULL);
         assert(strcmp(
@@ -15,6 +16,7 @@ void test_File(void) {
     }
     {
         char *s = File_read("NO_SUCH_FILE");
+        (void)s;
 
         assert(s == NULL);
     }

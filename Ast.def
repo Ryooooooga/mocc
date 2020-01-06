@@ -1,5 +1,5 @@
 #ifndef NODE
-#define NODE(name)
+#define NODE(name, base)
 #endif
 
 #ifndef NODE_END
@@ -11,24 +11,24 @@
 #endif
 
 #ifndef NODE_MEMBER_F
-#define NODE_MEMBER_F(T, x) NODE_MEMBER(T, x)
+#define NODE_MEMBER_F(T, x, f) NODE_MEMBER(T, x)
 #endif
 
 #ifndef EXPR_NODE
-#define EXPR_NODE(name) NODE(name##Expr)
+#define EXPR_NODE(name) NODE(name, Expr)
 #endif
 
 #ifndef STMT_NODE
-#define STMT_NODE(name) NODE(name##Stmt)
+#define STMT_NODE(name) NODE(name, Stmt)
 #endif
 
 #ifndef DECL_NODE
-#define DECL_NODE(name) NODE(name##Decl)
+#define DECL_NODE(name) NODE(name, Decl)
 #endif
 
 // Expressions
 EXPR_NODE(Integer)
-    NODE_MEMBER(long long, value)
+    NODE_MEMBER_F(long long, value, int)
 NODE_END()
 
 // Statements
@@ -36,7 +36,7 @@ STMT_NODE(Compound)
 NODE_END()
 
 STMT_NODE(Return)
-    NODE_MEMBER_F(ExprNode *, return_value)
+    NODE_MEMBER_F(ExprNode *, return_value, Expr)
 NODE_END()
 
 // Declarations
@@ -44,7 +44,7 @@ DECL_NODE(Function)
 NODE_END()
 
 // Misc
-NODE(TranslationUnit)
+NODE(TranslationUnit, )
 NODE_END()
 
 #undef NODE

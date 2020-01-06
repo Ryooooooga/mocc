@@ -42,4 +42,35 @@ check_dump(const char *test_name, const Node *p, const char *expected) {
 
 void test_Ast(void) {
     check_dump("null", NULL, "(null)\n");
+
+    check_dump(
+        "integer_expr1",
+        IntegerExprNode_cbase_node(IntegerExprNode_new(0)),
+        "(IntegerExpr\n"
+        "  (int 0)\n"
+        ")\n");
+
+    check_dump(
+        "integer_expr2",
+        IntegerExprNode_cbase_node(IntegerExprNode_new(42)),
+        "(IntegerExpr\n"
+        "  (int 42)\n"
+        ")\n");
+
+    check_dump(
+        "return_stmt1",
+        ReturnStmtNode_cbase_node(ReturnStmtNode_new(NULL)),
+        "(ReturnStmt\n"
+        "  (null)\n"
+        ")\n");
+
+    check_dump(
+        "return_stmt2s",
+        ReturnStmtNode_cbase_node(
+            ReturnStmtNode_new(IntegerExprNode_base(IntegerExprNode_new(42)))),
+        "(ReturnStmt\n"
+        "  (IntegerExpr\n"
+        "    (int 42)\n"
+        "  )\n"
+        ")\n");
 }

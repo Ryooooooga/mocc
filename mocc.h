@@ -14,6 +14,7 @@
 #include <string.h>
 
 // Macros
+#define UNREACHABLE() assert(!"unreachable")
 #define UNIMPLEMENTED() assert(!"unimplemented")
 #define TODO(s) assert(!"todo: " s)
 
@@ -123,7 +124,7 @@ char *File_read(const char *path);
 
 // Ast
 typedef enum NodeKind {
-#define NODE(name) NodeKind_##name,
+#define NODE(name, base) NodeKind_##name##base,
 #include "Ast.def"
 } NodeKind;
 
@@ -132,15 +133,33 @@ typedef struct ExprNode ExprNode;
 typedef struct StmtNode StmtNode;
 typedef struct DeclNode DeclNode;
 
-#define NODE(name) typedef struct name##Node name##Node;
+#define NODE(name, base) typedef struct name##base##Node name##base##Node;
 #include "Ast.def"
 
 struct Node {
     NodeKind kind;
 };
+struct ExprNode {
+    NodeKind kind;
+};
+struct StmtNode {
+    NodeKind kind;
+};
+struct DeclNode {
+    NodeKind kind;
+};
 
-#define NODE(name)                                                             \
-    struct name##Node {                                                        \
+#define NODE(name, base)                                                       \
+    Node *name##base##Node_base_node(name##base##Node *p);                     \
+    const Node *name##base##Node_cbase_node(name##base##Node *p);              \
+    base##Node *name##base##Node_base(name##base##Node *p);                    \
+    const base##Node *name##base##Node_cbase(const name##base##Node *p);       \
+    name##base##Node *name##base##Node_cast_node(Node *p);                     \
+    const name##base##Node *name##base##Node_ccast_node(const Node *p);        \
+    name##base##Node *name##base##Node_cast(base##Node *p);                    \
+    const name##base##Node *name##base##Node_ccast(const base##Node *p);       \
+                                                                               \
+    struct name##base##Node {                                                  \
         NODE_MEMBER(NodeKind, kind)
 #define NODE_MEMBER(T, x) T x;
 #define NODE_END()                                                             \

@@ -16,6 +16,7 @@ int main(int argc, char *argv[]) {
         test_Ast();
         test_Lexer();
         test_Preprocessor();
+        test_Parser();
         exit(0);
     }
 

@@ -65,6 +65,19 @@ void test_Lexer(void) {
         });
 
     check_lexer(
+        "identifier",
+        "a bc Xyz if else if0",
+        (TestToken[]){
+            {.kind = TokenKind_identifier, "a"},
+            {.kind = TokenKind_identifier, "bc"},
+            {.kind = TokenKind_identifier, "Xyz"},
+            {.kind = TokenKind_identifier, "if"},
+            {.kind = TokenKind_identifier, "else"},
+            {.kind = TokenKind_identifier, "if0"},
+            {.kind = '\0', ""},
+        });
+
+    check_lexer(
         "operators",
         "+ -",
         (TestToken[]){

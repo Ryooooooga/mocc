@@ -33,6 +33,7 @@ NODE_END()
 
 // Statements
 STMT_NODE(Compound)
+    NODE_MEMBER_F(Vec(StmtNode) *, statements, Stmts)
 NODE_END()
 
 STMT_NODE(Return)
@@ -41,10 +42,13 @@ NODE_END()
 
 // Declarations
 DECL_NODE(Function)
+    NODE_MEMBER_F(const char *, name, id)
+    NODE_MEMBER_F(StmtNode *, body, Stmt)
 NODE_END()
 
 // Misc
 NODE(TranslationUnit, )
+    NODE_MEMBER_F(Vec(DeclNode) *, declarations, Decls)
 NODE_END()
 
 #undef NODE

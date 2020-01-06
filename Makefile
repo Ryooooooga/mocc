@@ -12,11 +12,13 @@ SRCS = \
 	Ast.c \
 	Lexer.c \
 	Preprocessor.c \
+	Parser.c \
 	test_Vec.c \
 	test_File.c \
 	test_Ast.c \
 	test_Lexer.c \
 	test_Preprocessor.c \
+	test_Parser.c \
 	# -- SRCS
 
 BUILD_DIR = build

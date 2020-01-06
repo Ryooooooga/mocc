@@ -63,6 +63,19 @@ void test_Preprocessor(void) {
         });
 
     check_pp(
+        "identifier",
+        "a bc Xyz if else if0",
+        (TestToken[]){
+            {.kind = TokenKind_identifier, "a"},
+            {.kind = TokenKind_identifier, "bc"},
+            {.kind = TokenKind_identifier, "Xyz"},
+            {.kind = TokenKind_kw_if, "if"},
+            {.kind = TokenKind_kw_else, "else"},
+            {.kind = TokenKind_identifier, "if0"},
+            {.kind = '\0', ""},
+        });
+
+    check_pp(
         "operators",
         "+ -",
         (TestToken[]){

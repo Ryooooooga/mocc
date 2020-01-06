@@ -57,6 +57,13 @@ Token *Lexer_read(Lexer *l) {
 
             t->kind = TokenKind_number;
             break;
+        } else if (isalpha(c)) {
+            while (isalnum(Lexer_peek(l))) {
+                buffer[len++] = Lexer_consume(l);
+            }
+
+            t->kind = TokenKind_identifier;
+            break;
         } else {
             t->kind = buffer[len++] = Lexer_consume(l);
             break;

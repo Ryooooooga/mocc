@@ -54,8 +54,11 @@ IntegerExprNode *IntegerExprNode_new(long long value) {
 }
 
 // Statements
-CompoundStmtNode *CompoundStmtNode_new(void) {
+CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements) {
+    assert(statements);
+
     CompoundStmtNode *p = CompoundStmtNode_alloc();
+    p->statements = statements;
 
     return p;
 }
@@ -68,15 +71,23 @@ ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value) {
 }
 
 // Declarations
-FunctionDeclNode *FunctionDeclNode_new(void) {
+FunctionDeclNode *FunctionDeclNode_new(const char *name, StmtNode *body) {
+    assert(name);
+    assert(body);
+
     FunctionDeclNode *p = FunctionDeclNode_alloc();
+    p->name = name;
+    p->body = body;
 
     return p;
 }
 
 // Misc
-TranslationUnitNode *TranslationUnitNode_new(void) {
+TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations) {
+    assert(declarations);
+
     TranslationUnitNode *p = TranslationUnitNode_alloc();
+    p->declarations = declarations;
 
     return p;
 }
@@ -92,6 +103,14 @@ static void Node_dump_indent(FILE *fp, size_t depth) {
     }
 }
 
+static void Node_dump_id(const char *x, FILE *fp, size_t depth) {
+    assert(x);
+    assert(fp);
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(id %s)\n", x);
+}
+
 static void Node_dump_int(long long x, FILE *fp, size_t depth) {
     assert(fp);
 
@@ -101,8 +120,33 @@ static void Node_dump_int(long long x, FILE *fp, size_t depth) {
 
 static void Node_dump_Expr(const ExprNode *x, FILE *fp, size_t depth) {
     assert(fp);
-
     Node_dump_impl((const Node *)x, fp, depth);
+}
+
+static void Node_dump_Stmt(const StmtNode *x, FILE *fp, size_t depth) {
+    assert(fp);
+    Node_dump_impl((const Node *)x, fp, depth);
+}
+
+static void Node_dump_Stmts(const Vec(StmtNode) * x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    for (size_t i = 0; i < Vec_len(StmtNode)(x); i++) {
+        Node_dump_Stmt(Vec_get(StmtNode)(x, i), fp, depth);
+    }
+}
+
+static void Node_dump_Decl(const DeclNode *x, FILE *fp, size_t depth) {
+    assert(fp);
+    Node_dump_impl((const Node *)x, fp, depth);
+}
+
+static void Node_dump_Decls(const Vec(DeclNode) * x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    for (size_t i = 0; i < Vec_len(DeclNode)(x); i++) {
+        Node_dump_Decl(Vec_get(DeclNode)(x, i), fp, depth);
+    }
 }
 
 static void Node_dump_impl(const Node *p, FILE *fp, size_t depth) {

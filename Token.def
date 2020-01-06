@@ -1,0 +1,30 @@
+#ifndef TOKEN
+#define TOKEN(name, text)
+#endif
+
+#ifndef TOKEN_KW
+#define TOKEN_KW(name, text) TOKEN(name, text)
+#endif
+
+#ifndef TOKEN_KW1
+#define TOKEN_KW1(w) TOKEN_KW(kw_##w, #w)
+#endif
+
+#ifndef TOKEN_DELIM
+#define TOKEN_DELIM(name, text) TOKEN(name, text)
+#endif
+
+TOKEN(identifier, "identifier")
+TOKEN(number, "number")
+
+TOKEN_KW1(int)
+TOKEN_KW1(void)
+TOKEN_KW1(if)
+TOKEN_KW1(else)
+TOKEN_KW1(while)
+TOKEN_KW1(return)
+
+#undef TOKEN
+#undef TOKEN_KW
+#undef TOKEN_KW1
+#undef TOKEN_DELIM

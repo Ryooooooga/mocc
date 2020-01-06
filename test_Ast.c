@@ -1,7 +1,7 @@
 #include "mocc.h"
 
-static void
-check_dump(const char *test_name, const Node *p, const char *expected) {
+void check_Node_dump(
+    const char *test_name, const Node *p, const char *expected) {
     assert(test_name);
     assert(expected);
 
@@ -41,31 +41,31 @@ check_dump(const char *test_name, const Node *p, const char *expected) {
 }
 
 void test_Ast(void) {
-    check_dump("null", NULL, "(null)\n");
+    check_Node_dump("ast_null", NULL, "(null)\n");
 
-    check_dump(
-        "integer_expr1",
+    check_Node_dump(
+        "ast_integer_expr1",
         IntegerExprNode_cbase_node(IntegerExprNode_new(0)),
         "(IntegerExpr\n"
         "  (int 0)\n"
         ")\n");
 
-    check_dump(
-        "integer_expr2",
+    check_Node_dump(
+        "ast_integer_expr2",
         IntegerExprNode_cbase_node(IntegerExprNode_new(42)),
         "(IntegerExpr\n"
         "  (int 42)\n"
         ")\n");
 
-    check_dump(
-        "return_stmt1",
+    check_Node_dump(
+        "ast_return_stmt1",
         ReturnStmtNode_cbase_node(ReturnStmtNode_new(NULL)),
         "(ReturnStmt\n"
         "  (null)\n"
         ")\n");
 
-    check_dump(
-        "return_stmt2s",
+    check_Node_dump(
+        "ast_return_stmt2s",
         ReturnStmtNode_cbase_node(
             ReturnStmtNode_new(IntegerExprNode_base(IntegerExprNode_new(42)))),
         "(ReturnStmt\n"

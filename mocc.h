@@ -118,9 +118,26 @@
     }
 
 VEC_DECL(Token, struct Token *)
+VEC_DECL(ExprNode, struct ExprNode *)
+VEC_DECL(StmtNode, struct StmtNode *)
+VEC_DECL(DeclNode, struct DeclNode *)
 
 // File
 char *File_read(const char *path);
+
+// Token
+typedef int TokenKind;
+
+enum {
+    TokenKind_unused = 256,
+#define TOKEN(name, text) TokenKind_##name,
+#include "Token.def"
+};
+
+typedef struct Token {
+    TokenKind kind;
+    char *text; // For identifer and number
+} Token;
 
 // Ast
 typedef enum NodeKind {
@@ -169,22 +186,14 @@ struct DeclNode {
 
 IntegerExprNode *IntegerExprNode_new(long long value);
 
+CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements);
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value);
 
+FunctionDeclNode *FunctionDeclNode_new(const char *name, StmtNode *body);
+
+TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations);
+
 void Node_dump(const Node *p, FILE *fp);
-
-// Token
-typedef int TokenKind;
-
-enum {
-    TokenKind_identifier = 256,
-    TokenKind_number,
-};
-
-typedef struct Token {
-    TokenKind kind;
-    char *text; // For identifer and number
-} Token;
 
 // Lexer
 typedef struct Lexer Lexer;
@@ -195,6 +204,12 @@ Token *Lexer_read(Lexer *l);
 // Preprocessor
 Vec(Token) * Preprocessor_read(const char *filename, const char *text);
 
+// Parser
+typedef struct Parser Parser;
+
+Parser *Parser_new(const Vec(Token) * tokens);
+TranslationUnitNode *Parser_parse(Parser *p);
+
 // Tests
 #define ERROR(...) (fprintf(stderr, __VA_ARGS__), exit(1))
 
@@ -203,5 +218,9 @@ void test_File(void);
 void test_Ast(void);
 void test_Lexer(void);
 void test_Preprocessor(void);
+void test_Parser(void);
+
+void check_Node_dump(
+    const char *test_name, const Node *p, const char *expected);
 
 #endif // INCLUDE_mocc_h

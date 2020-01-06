@@ -13,6 +13,7 @@ SRCS = \
 	Lexer.c \
 	Preprocessor.c \
 	Parser.c \
+	CodeGen.c \
 	test_Vec.c \
 	test_File.c \
 	test_Ast.c \
@@ -29,6 +30,7 @@ all: ${TARGET}
 
 test: ${TARGET}
 	./${TARGET} --test
+	./test.bash
 
 clean:
 	${RM} ${BUILD_DIR}

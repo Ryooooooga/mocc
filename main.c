@@ -24,11 +24,10 @@ int main(int argc, char *argv[]) {
     const char *text = argv[1]; // TODO: Read from file
 
     Vec(Token) *tokens = Preprocessor_read(filename, text);
+    Parser *p = Parser_new(tokens);
 
-    for (size_t i = 0; i < Vec_len(Token)(tokens); i++) {
-        Token *t = Vec_get(Token)(tokens, i);
-        fprintf(stderr, "token(%d, %s)\n", t->kind, t->text);
-    }
+    TranslationUnitNode *node = Parser_parse(p);
+    CodeGen_gen(node, stdout);
 
     return 0;
 }

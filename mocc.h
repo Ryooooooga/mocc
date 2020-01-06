@@ -213,6 +213,9 @@ typedef struct Parser Parser;
 Parser *Parser_new(const Vec(Token) * tokens);
 TranslationUnitNode *Parser_parse(Parser *p);
 
+// CodeGen
+void CodeGen_gen(TranslationUnitNode *p, FILE *fp);
+
 // Tests
 #define ERROR(...) (fprintf(stderr, __VA_ARGS__), exit(1))
 

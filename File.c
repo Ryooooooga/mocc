@@ -9,16 +9,21 @@ char *File_read(const char *path) {
     }
 
     fseek(fp, 0, SEEK_END);
-    long size = ftell(fp);
+    long ssize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
-    if (size < 0) {
+    if (ssize < 0) {
         fclose(fp);
         return NULL;
     }
 
+    size_t size = (size_t)ssize;
     char *s = malloc(sizeof(char) * (size + 1));
-    fread(s, 1, size, fp);
+    if (fread(s, 1, size, fp) != size) {
+        fclose(fp);
+        return NULL;
+    }
+
     s[size] = '\0';
 
     fclose(fp);

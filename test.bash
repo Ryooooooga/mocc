@@ -2,7 +2,7 @@
 BUILD_TYPE=${BUILD_TYPE:-debug}
 
 if [ ! -f "./build/$BUILD_TYPE/mocc" ]; then
-    echo "type 'make test BUILD_TYPE=\"$BUILD_TYPE\"' before run test"
+    echo "type 'make BUILD_TYPE=\"$BUILD_TYPE\"' before run test"
     exit 1
 fi
 

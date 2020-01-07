@@ -153,6 +153,8 @@ static NativeAddress *CodeGen_alloca_object(CodeGen *g, int *stack_top) {
     assert(g);
     assert(stack_top);
 
+    (void)g;
+
     *stack_top -= sizeof(int); // TODO: size of type
     return NativeAddress_new(NativeAddressType_stack, *stack_top);
 }

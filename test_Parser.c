@@ -29,7 +29,9 @@ void test_Parser(void) {
         "}\n",
         "(TranslationUnit\n"
         "  (FunctionDecl\n"
-        "    (id main)\n"
+        "    (DirectDeclarator\n"
+        "      (symbol main)\n"
+        "    )\n"
         "    (CompoundStmt\n"
         "      (ReturnStmt\n"
         "        (IntegerExpr\n"

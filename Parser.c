@@ -242,7 +242,7 @@ static StmtNode *Parser_parse_decl_stmt(Parser *p) {
     // ';'
     Parser_expect(p, ';');
 
-    return DeclStmtNode_base(DeclStmtNode_new(declarators));
+    return Sema_act_on_decl_stmt(p->sema, declarators);
 }
 
 // expr_stmt:
@@ -291,25 +291,28 @@ static StmtNode *Parser_parse_stmt(Parser *p) {
 //  function_decl
 //
 // function_decl:
-//  type identifier params compound_stmt
+//  type declarator compound_stmt
 static DeclNode *Parser_parse_top_level_decl(Parser *p) {
     assert(p);
 
     // type
     Parser_expect(p, TokenKind_kw_int);
 
-    // identifier
-    const Token *ident = Parser_expect(p, TokenKind_identifier);
+    // declarator
+    DeclaratorNode *declarator = Parser_parse_declarator(p);
 
+    // TODO: function declarator
     // params
     Parser_expect(p, '(');
     Parser_expect(p, TokenKind_kw_void);
     Parser_expect(p, ')');
 
+    Sema_act_on_function_decl_start_of_body(p->sema, declarator);
+
     // compound_stmt
     StmtNode *body = Parser_parse_compound_stmt(p);
 
-    return FunctionDeclNode_base(FunctionDeclNode_new(ident->text, body));
+    return Sema_act_on_function_decl_end_of_body(p->sema, declarator, body);
 }
 
 // top_level_decls:

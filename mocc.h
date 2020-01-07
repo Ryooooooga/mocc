@@ -147,6 +147,9 @@ typedef struct Token {
 // Symbol
 typedef struct Symbol {
     const char *name;
+
+    // For CodeGen
+    struct NativeAddress *address;
 } Symbol;
 
 Symbol *Symbol_new(const char *name);
@@ -224,10 +227,12 @@ ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 
 DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
 
-FunctionDeclNode *FunctionDeclNode_new(const char *name, StmtNode *body);
+FunctionDeclNode *FunctionDeclNode_new(
+    DeclaratorNode *declarator, StmtNode *body, Vec(Symbol) * local_variables);
 
 TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations);
 
+Symbol *DeclaratorNode_symbol(const DeclaratorNode *p);
 void Node_dump(const Node *p, FILE *fp);
 
 // Lexer
@@ -252,7 +257,14 @@ Sema *Sema_new(void);
 
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
+StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
+
 DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
+
+void Sema_act_on_function_decl_start_of_body(
+    Sema *s, DeclaratorNode *declarator);
+DeclNode *Sema_act_on_function_decl_end_of_body(
+    Sema *s, DeclaratorNode *declarator, StmtNode *body);
 
 // CodeGen
 void CodeGen_gen(TranslationUnitNode *p, FILE *fp);

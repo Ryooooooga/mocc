@@ -68,8 +68,9 @@ NODE_END()
 
 // Declarations
 DECL_NODE(Function)
-    NODE_MEMBER_F(const char *, name, id)
+    NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)
     NODE_MEMBER_F(StmtNode *, body, Stmt)
+    NODE_MEMBER(Vec(Symbol) *, local_variables)
 NODE_END()
 
 // Misc

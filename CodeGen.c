@@ -6,6 +6,25 @@
 #define FUNC_PREFIX ""
 #endif
 
+enum NativeAddressType {
+    NativeAddressType_global,
+    NativeAddressType_stack,
+};
+
+typedef struct NativeAddress {
+    enum NativeAddressType type;
+    int offset;
+} NativeAddress;
+
+static NativeAddress *
+NativeAddress_new(enum NativeAddressType type, int offset) {
+    NativeAddress *a = malloc(sizeof(NativeAddress));
+    a->type = type;
+    a->offset = offset;
+
+    return a;
+}
+
 typedef struct CodeGen {
     FILE *fp;
     int next_label;
@@ -25,9 +44,12 @@ static void CodeGen_gen_IdentifierExpr(CodeGen *g, IdentifierExprNode *p) {
     assert(g);
     assert(p);
 
-    (void)g;
-    (void)p;
-    UNIMPLEMENTED();
+    assert(
+        p->symbol->address->type ==
+        NativeAddressType_stack); // TODO: temporary constraint
+
+    fprintf(g->fp, "  mov eax, [rbp%+d]\n", p->symbol->address->offset);
+    fprintf(g->fp, "  push rax\n");
 }
 
 static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
@@ -41,9 +63,17 @@ static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
     assert(g);
     assert(p);
 
-    (void)g;
-    (void)p;
-    UNIMPLEMENTED();
+    CodeGen_gen_expr(g, p->rhs);
+
+    // TODO: left hand side
+    IdentifierExprNode *lhs = IdentifierExprNode_cast(p->lhs);
+    assert(
+        lhs->symbol->address->type ==
+        NativeAddressType_stack); // TODO: temporary constraint
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  mov [rbp%+d], eax\n", lhs->symbol->address->offset);
+    fprintf(g->fp, "  push rax\n");
 }
 
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p) {
@@ -90,16 +120,17 @@ static void CodeGen_gen_DeclStmt(CodeGen *g, DeclStmtNode *p) {
 
     (void)g;
     (void)p;
-    UNIMPLEMENTED();
+
+    // TODO: initializer
 }
 
 static void CodeGen_gen_ExprStmt(CodeGen *g, ExprStmtNode *p) {
     assert(g);
     assert(p);
 
-    (void)g;
-    (void)p;
-    UNIMPLEMENTED();
+    CodeGen_gen_expr(g, p->expression);
+
+    fprintf(g->fp, "  pop rax\n");
 }
 
 static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p) {
@@ -118,21 +149,49 @@ static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p) {
     }
 }
 
+static NativeAddress *CodeGen_alloca_object(CodeGen *g, int *stack_top) {
+    assert(g);
+    assert(stack_top);
+
+    *stack_top -= sizeof(int); // TODO: size of type
+    return NativeAddress_new(NativeAddressType_stack, *stack_top);
+}
+
+static void
+CodeGen_allocate_local_variables(CodeGen *g, Vec(Symbol) * local_variables) {
+    assert(g);
+    assert(local_variables);
+
+    int stack_top = 0;
+
+    for (size_t i = 0; i < Vec_len(Symbol)(local_variables); i++) {
+        Symbol *symbol = Vec_get(Symbol)(local_variables, i);
+
+        symbol->address = CodeGen_alloca_object(g, &stack_top);
+    }
+
+    fprintf(g->fp, "  sub rsp, %d\n", -stack_top);
+}
+
 static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     assert(g);
     assert(p);
 
     // Function label
-    fprintf(g->fp, "  .global %s%s\n", FUNC_PREFIX, p->name);
-    fprintf(g->fp, "%s%s:\n", FUNC_PREFIX, p->name);
+    Symbol *symbol = DeclaratorNode_symbol(p->declarator);
+
+    fprintf(g->fp, "  .global %s%s\n", FUNC_PREFIX, symbol->name);
+    fprintf(g->fp, "%s%s:\n", FUNC_PREFIX, symbol->name);
 
     // Prolog
     fprintf(g->fp, "  push rbp\n");
     fprintf(g->fp, "  mov rbp, rsp\n");
 
-    g->return_label = CodeGen_next_label(g);
+    CodeGen_allocate_local_variables(g, p->local_variables);
 
     // Body
+    g->return_label = CodeGen_next_label(g);
+
     CodeGen_gen_stmt(g, p->body);
 
     // Epilog

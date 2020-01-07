@@ -118,14 +118,37 @@ DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol) {
     return p;
 }
 
+static Symbol *DirectDeclaratorNode_symbol(const DirectDeclaratorNode *p) {
+    assert(p);
+
+    return p->symbol;
+}
+
+Symbol *DeclaratorNode_symbol(const DeclaratorNode *p) {
+    assert(p);
+
+    switch (p->kind) {
+#define DECLARATOR_NODE(name)                                                  \
+    case NodeKind_##name##Declarator:                                          \
+        return name##DeclaratorNode_symbol(name##DeclaratorNode_ccast(p));
+#include "Ast.def"
+
+    default:
+        UNREACHABLE();
+    }
+}
+
 // Declarations
-FunctionDeclNode *FunctionDeclNode_new(const char *name, StmtNode *body) {
-    assert(name);
+FunctionDeclNode *FunctionDeclNode_new(
+    DeclaratorNode *declarator, StmtNode *body, Vec(Symbol) * local_variables) {
+    assert(declarator);
     assert(body);
+    assert(local_variables);
 
     FunctionDeclNode *p = FunctionDeclNode_alloc();
-    p->name = name;
+    p->declarator = declarator;
     p->body = body;
+    p->local_variables = local_variables;
 
     return p;
 }
@@ -157,14 +180,6 @@ static void Node_dump_symbol(const Symbol *x, FILE *fp, size_t depth) {
 
     Node_dump_indent(fp, depth);
     fprintf(fp, "(symbol %s)\n", x->name);
-}
-
-static void Node_dump_id(const char *x, FILE *fp, size_t depth) {
-    assert(x);
-    assert(fp);
-
-    Node_dump_indent(fp, depth);
-    fprintf(fp, "(id %s)\n", x);
 }
 
 static void Node_dump_int(long long x, FILE *fp, size_t depth) {

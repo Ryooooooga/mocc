@@ -59,9 +59,9 @@ try "c$LINENO" '
         return a;
     }' 2
 
-# try "c$LINENO" '
-#     int main(void) {
-#         int a = 3;
-#         int b = a;
-#         return b;
-#     }' 3
+try "c$LINENO" '
+    int main(void) {
+        int a = 3;
+        int b = a;
+        return b;
+    }' 3

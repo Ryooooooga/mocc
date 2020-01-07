@@ -202,8 +202,23 @@ static DeclaratorNode *Parser_parse_declarator(Parser *p) {
     return Sema_act_on_direct_declarator(p->sema, identifier);
 }
 
+// initializer:
+//  compound_initializer
+//  assign_expr
+static ExprNode *Parser_parse_initializer(Parser *p) {
+    assert(p);
+
+    if (Parser_peek(p)->kind == '{') {
+        // compound_initializer
+        TODO("compound_initializer");
+    } else {
+        // assign_expr
+        return Parser_parse_assign_expr(p);
+    }
+}
+
 // init_declarator:
-//  declarator '=' assign_expr
+//  declarator '=' initializer
 //  declarator
 static DeclaratorNode *Parser_parse_init_declarator(Parser *p) {
     assert(p);
@@ -211,7 +226,6 @@ static DeclaratorNode *Parser_parse_init_declarator(Parser *p) {
     // declarator
     DeclaratorNode *declarator = Parser_parse_declarator(p);
 
-    // ['=' assign_expr]
     if (Parser_peek(p)->kind != '=') {
         return declarator;
     }
@@ -219,7 +233,10 @@ static DeclaratorNode *Parser_parse_init_declarator(Parser *p) {
     // '='
     Parser_expect(p, '=');
 
-    UNIMPLEMENTED();
+    // initializer
+    ExprNode *initializer = Parser_parse_initializer(p);
+
+    return Sema_act_on_init_declarator(p->sema, declarator, initializer);
 }
 
 // decl_stmt:

@@ -53,8 +53,8 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
         ERROR("undeclared identifier %s\n", identifier->text);
     }
 
-    IdentifierExprNode *expr = IdentifierExprNode_new(symbol);
-    return IdentifierExprNode_base(expr);
+    IdentifierExprNode *node = IdentifierExprNode_new(symbol);
+    return IdentifierExprNode_base(node);
 }
 
 // Statements
@@ -68,8 +68,8 @@ StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators) {
         Vec_push(Symbol)(s->local_variables, symbol);
     }
 
-    DeclStmtNode *stmt = DeclStmtNode_new(declarators);
-    return DeclStmtNode_base(stmt);
+    DeclStmtNode *node = DeclStmtNode_new(declarators);
+    return DeclStmtNode_base(node);
 }
 
 // Declarators
@@ -84,8 +84,20 @@ Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
         ERROR("%s is already declared in this scope\n", identifier->text);
     }
 
-    DirectDeclaratorNode *declarator = DirectDeclaratorNode_new(symbol);
-    return DirectDeclaratorNode_base(declarator);
+    DirectDeclaratorNode *node = DirectDeclaratorNode_new(symbol);
+    return DirectDeclaratorNode_base(node);
+}
+
+DeclaratorNode *Sema_act_on_init_declarator(
+    Sema *s, DeclaratorNode *declarator, ExprNode *initializer) {
+    assert(s);
+    assert(declarator);
+    assert(initializer);
+
+    // TODO: Type check
+
+    InitDeclaratorNode *node = InitDeclaratorNode_new(declarator, initializer);
+    return InitDeclaratorNode_base(node);
 }
 
 // Declarations
@@ -115,7 +127,7 @@ DeclNode *Sema_act_on_function_decl_end_of_body(
     Vec(Symbol) *local_variables = s->local_variables;
     s->local_variables = NULL;
 
-    FunctionDeclNode *decl =
+    FunctionDeclNode *node =
         FunctionDeclNode_new(declarator, body, local_variables);
-    return FunctionDeclNode_base(decl);
+    return FunctionDeclNode_base(node);
 }

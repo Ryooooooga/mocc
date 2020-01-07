@@ -124,6 +124,24 @@ static Symbol *DirectDeclaratorNode_symbol(const DirectDeclaratorNode *p) {
     return p->symbol;
 }
 
+InitDeclaratorNode *
+InitDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *initializer) {
+    assert(declarator);
+    assert(initializer);
+
+    InitDeclaratorNode *p = InitDeclaratorNode_alloc();
+    p->declarator = declarator;
+    p->initializer = initializer;
+
+    return p;
+}
+
+static Symbol *InitDeclaratorNode_symbol(const InitDeclaratorNode *p) {
+    assert(p);
+
+    return DeclaratorNode_symbol(p->declarator);
+}
+
 Symbol *DeclaratorNode_symbol(const DeclaratorNode *p) {
     assert(p);
 

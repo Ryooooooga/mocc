@@ -226,6 +226,8 @@ DeclStmtNode *DeclStmtNode_new(Vec(DeclaratorNode) * declarators);
 ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 
 DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
+InitDeclaratorNode *
+InitDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *initializer);
 
 FunctionDeclNode *FunctionDeclNode_new(
     DeclaratorNode *declarator, StmtNode *body, Vec(Symbol) * local_variables);
@@ -260,6 +262,8 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
 
 DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
+DeclaratorNode *Sema_act_on_init_declarator(
+    Sema *s, DeclaratorNode *declarator, ExprNode *initializer);
 
 void Sema_act_on_function_decl_start_of_body(
     Sema *s, DeclaratorNode *declarator);

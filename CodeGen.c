@@ -37,6 +37,24 @@ static int CodeGen_next_label(CodeGen *g) {
     return g->next_label++;
 }
 
+static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
+    assert(address);
+    assert(
+        address->type == NativeAddressType_stack); // TODO: temporary constraint
+
+    fprintf(g->fp, "  lea rax, [rbp%+d]\n", address->offset);
+    fprintf(g->fp, "  push rax\n");
+}
+
+static void CodeGen_store(CodeGen *g, const NativeAddress *address) {
+    assert(address);
+    assert(
+        address->type == NativeAddressType_stack); // TODO: temporary constraint
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  mov [rbp%+d], rax\n", address->offset);
+}
+
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p);
 static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p);
 
@@ -44,11 +62,10 @@ static void CodeGen_gen_IdentifierExpr(CodeGen *g, IdentifierExprNode *p) {
     assert(g);
     assert(p);
 
-    assert(
-        p->symbol->address->type ==
-        NativeAddressType_stack); // TODO: temporary constraint
+    CodeGen_load_address(g, p->symbol->address);
 
-    fprintf(g->fp, "  mov eax, [rbp%+d]\n", p->symbol->address->offset);
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  mov eax, [rax]\n");
     fprintf(g->fp, "  push rax\n");
 }
 
@@ -67,12 +84,9 @@ static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
 
     // TODO: left hand side
     IdentifierExprNode *lhs = IdentifierExprNode_cast(p->lhs);
-    assert(
-        lhs->symbol->address->type ==
-        NativeAddressType_stack); // TODO: temporary constraint
 
-    fprintf(g->fp, "  pop rax\n");
-    fprintf(g->fp, "  mov [rbp%+d], eax\n", lhs->symbol->address->offset);
+    CodeGen_store(g, lhs->symbol->address);
+
     fprintf(g->fp, "  push rax\n");
 }
 
@@ -117,6 +131,19 @@ static void CodeGen_gen_ReturnStmt(CodeGen *g, ReturnStmtNode *p) {
 static void CodeGen_gen_DeclStmt(CodeGen *g, DeclStmtNode *p) {
     assert(g);
     assert(p);
+
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(p->declarators); i++) {
+        DeclaratorNode *declarator = Vec_get(DeclaratorNode)(p->declarators, i);
+
+        if (declarator->kind == NodeKind_InitDeclarator) {
+            Symbol *symbol = DeclaratorNode_symbol(declarator);
+            ExprNode *initializer =
+                InitDeclaratorNode_cast(declarator)->initializer;
+
+            CodeGen_gen_expr(g, initializer);
+            CodeGen_store(g, symbol->address);
+        }
+    }
 
     (void)g;
     (void)p;

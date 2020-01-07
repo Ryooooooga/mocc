@@ -39,12 +39,14 @@ clean:
 	${RM} -r ${BUILD_DIR} tmp/*
 
 ${TARGET}: ${OBJS}
+	@echo "linking $@"
 	@mkdir -p ${@D}
-	${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
+	@${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 
 ${BUILD_DIR}/${BUILD_TYPE}/%.c.o: %.c
+	@echo "compiling $<"
 	@mkdir -p ${@D}
-	${CC} ${CFLAGS} -MMD -MP -o $@ -c $<
+	@${CC} ${CFLAGS} -MMD -MP -o $@ -c $<
 
 .PHONY: all test clean
 

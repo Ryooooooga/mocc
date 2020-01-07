@@ -36,7 +36,7 @@ test: ${TARGET}
 	./test.bash
 
 clean:
-	${RM} ${BUILD_DIR} tmp/*
+	${RM} -r ${BUILD_DIR} tmp/*
 
 ${TARGET}: ${OBJS}
 	@mkdir -p ${@D}

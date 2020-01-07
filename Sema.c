@@ -95,6 +95,7 @@ DeclaratorNode *Sema_act_on_init_declarator(
     assert(initializer);
 
     // TODO: Type check
+    (void)s;
 
     InitDeclaratorNode *node = InitDeclaratorNode_new(declarator, initializer);
     return InitDeclaratorNode_base(node);

@@ -9,10 +9,13 @@ SRCS = \
 	main.c \
 	Vec.c \
 	File.c \
+	Symbol.c \
+	Scope.c \
 	Ast.c \
 	Lexer.c \
 	Preprocessor.c \
 	Parser.c \
+	Sema.c \
 	CodeGen.c \
 	test_Vec.c \
 	test_File.c \

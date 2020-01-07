@@ -32,7 +32,7 @@
 
 // Expressions
 EXPR_NODE(Identifier)
-    NODE_MEMBER_F(const char *, name, id)
+    NODE_MEMBER_F(Symbol *, symbol, symbol)
 NODE_END()
 
 EXPR_NODE(Integer)
@@ -63,7 +63,7 @@ NODE_END()
 
 // Declarator
 DECLARATOR_NODE(Direct)
-    NODE_MEMBER_F(const char *, name, id)
+    NODE_MEMBER_F(Symbol *, symbol, symbol)
 NODE_END()
 
 // Declarations

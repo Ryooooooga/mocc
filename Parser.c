@@ -1,6 +1,7 @@
 #include "mocc.h"
 
 struct Parser {
+    Sema *sema;
     const Vec(Token) * tokens;
     size_t cursor;
 };
@@ -9,6 +10,7 @@ Parser *Parser_new(const Vec(Token) * tokens) {
     assert(tokens);
 
     Parser *p = malloc(sizeof(Parser));
+    p->sema = Sema_new();
     p->tokens = tokens;
     p->cursor = 0;
 
@@ -66,9 +68,9 @@ static ExprNode *Parser_parse_identifier_expr(Parser *p) {
     assert(p);
 
     // identifier
-    const Token *ident = Parser_expect(p, TokenKind_identifier);
+    const Token *identifier = Parser_expect(p, TokenKind_identifier);
 
-    return IdentifierExprNode_base(IdentifierExprNode_new(ident->text));
+    return Sema_act_on_identifier_expr(p->sema, identifier);
 }
 
 // number_expr:
@@ -195,9 +197,9 @@ static DeclaratorNode *Parser_parse_declarator(Parser *p) {
     assert(p);
 
     // TODO: declarator rule
-    const Token *ident = Parser_expect(p, TokenKind_identifier);
+    const Token *identifier = Parser_expect(p, TokenKind_identifier);
 
-    return DirectDeclaratorNode_base(DirectDeclaratorNode_new(ident->text));
+    return Sema_act_on_direct_declarator(p->sema, identifier);
 }
 
 // init_declarator:

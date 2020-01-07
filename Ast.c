@@ -46,11 +46,11 @@
 #include "Ast.def"
 
 // Expressions
-IdentifierExprNode *IdentifierExprNode_new(const char *name) {
-    assert(name);
+IdentifierExprNode *IdentifierExprNode_new(Symbol *symbol) {
+    assert(symbol);
 
     IdentifierExprNode *p = IdentifierExprNode_alloc();
-    p->name = name;
+    p->symbol = symbol;
 
     return p;
 }
@@ -109,11 +109,11 @@ ExprStmtNode *ExprStmtNode_new(ExprNode *expression) {
 }
 
 // Declarators
-DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name) {
-    assert(name);
+DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol) {
+    assert(symbol);
 
     DirectDeclaratorNode *p = DirectDeclaratorNode_alloc();
-    p->name = name;
+    p->symbol = symbol;
 
     return p;
 }
@@ -149,6 +149,14 @@ static void Node_dump_indent(FILE *fp, size_t depth) {
     for (size_t i = 0; i < depth; i++) {
         fprintf(fp, "  ");
     }
+}
+
+static void Node_dump_symbol(const Symbol *x, FILE *fp, size_t depth) {
+    assert(x);
+    assert(fp);
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(symbol %s)\n", x->name);
 }
 
 static void Node_dump_id(const char *x, FILE *fp, size_t depth) {
@@ -221,6 +229,7 @@ static void Node_dump_impl(const Node *p, FILE *fp, size_t depth) {
         return;
     }
 
+    // clang-format off
     switch (p->kind) {
 #define NODE(name, base)                                                       \
     case NodeKind_##name##base: {                                              \
@@ -230,18 +239,20 @@ static void Node_dump_impl(const Node *p, FILE *fp, size_t depth) {
         Node_dump_indent(fp, depth);                                           \
         fprintf(fp, "(%s\n", #name #base);
 
-#define NODE_MEMBER_F(T, x, f) Node_dump_##f(q->x, fp, depth + 1);
+#define NODE_MEMBER_F(T, x, f)                                                 \
+        Node_dump_##f(q->x, fp, depth + 1);
 
 #define NODE_END()                                                             \
-    Node_dump_indent(fp, depth);                                               \
-    fprintf(fp, ")\n");                                                        \
-    break;                                                                     \
+        Node_dump_indent(fp, depth);                                           \
+        fprintf(fp, ")\n");                                                    \
+        break;                                                                 \
     }
 #include "Ast.def"
 
     default:
         UNREACHABLE();
     }
+    // clang-format on
 }
 
 void Node_dump(const Node *p, FILE *fp) {

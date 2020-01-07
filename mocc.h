@@ -121,6 +121,7 @@
     }
 
 VEC_DECL(Token, struct Token *)
+VEC_DECL(Symbol, struct Symbol *)
 VEC_DECL(ExprNode, struct ExprNode *)
 VEC_DECL(StmtNode, struct StmtNode *)
 VEC_DECL(DeclaratorNode, struct DeclaratorNode *)
@@ -142,6 +143,22 @@ typedef struct Token {
     TokenKind kind;
     char *text; // For identifer and number
 } Token;
+
+// Symbol
+typedef struct Symbol {
+    const char *name;
+} Symbol;
+
+Symbol *Symbol_new(const char *name);
+
+// Scope
+typedef struct Scope Scope;
+
+Scope *Scope_new(Scope *parent_scope);
+Scope *Scope_parent_scope(const Scope *s);
+
+Symbol *Scope_find(Scope *s, const char *name, bool recursive);
+bool Scope_try_register(Scope *s, Symbol *symbol);
 
 // Ast
 typedef enum NodeKind {
@@ -174,6 +191,7 @@ struct DeclNode {
     NodeKind kind;
 };
 
+// clang-format off
 #define NODE(name, base)                                                       \
     Node *name##base##Node_base_node(name##base##Node *p);                     \
     const Node *name##base##Node_cbase_node(name##base##Node *p);              \
@@ -186,13 +204,16 @@ struct DeclNode {
                                                                                \
     struct name##base##Node {                                                  \
         NODE_MEMBER(NodeKind, kind)
-#define NODE_MEMBER(T, x) T x;
-#define NODE_END()                                                             \
-    }                                                                          \
-    ;
-#include "Ast.def"
 
-IdentifierExprNode *IdentifierExprNode_new(const char *name);
+#define NODE_MEMBER(T, x)                                                      \
+        T x;
+
+#define NODE_END()                                                             \
+    };
+#include "Ast.def"
+// clang-format on
+
+IdentifierExprNode *IdentifierExprNode_new(Symbol *symbol);
 IntegerExprNode *IntegerExprNode_new(long long value);
 AssignExprNode *AssignExprNode_new(ExprNode *lhs, ExprNode *rhs);
 
@@ -201,7 +222,7 @@ ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value);
 DeclStmtNode *DeclStmtNode_new(Vec(DeclaratorNode) * declarators);
 ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 
-DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name);
+DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
 
 FunctionDeclNode *FunctionDeclNode_new(const char *name, StmtNode *body);
 
@@ -223,6 +244,15 @@ typedef struct Parser Parser;
 
 Parser *Parser_new(const Vec(Token) * tokens);
 TranslationUnitNode *Parser_parse(Parser *p);
+
+// Sema
+typedef struct Sema Sema;
+
+Sema *Sema_new(void);
+
+ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
+
+DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
 
 // CodeGen
 void CodeGen_gen(TranslationUnitNode *p, FILE *fp);

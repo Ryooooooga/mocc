@@ -194,6 +194,11 @@ struct DeclNode {
     NodeKind kind;
 };
 
+typedef enum BinaryOp {
+#define BINARY_OP(name) BinaryOp_##name,
+#include "Ast.def"
+} BinaryOp;
+
 // clang-format off
 #define NODE(name, base)                                                       \
     Node *name##base##Node_base_node(name##base##Node *p);                     \
@@ -218,6 +223,8 @@ struct DeclNode {
 
 IdentifierExprNode *IdentifierExprNode_new(Symbol *symbol);
 IntegerExprNode *IntegerExprNode_new(long long value);
+BinaryExprNode *
+BinaryExprNode_new(BinaryOp operator, ExprNode *lhs, ExprNode *rhs);
 AssignExprNode *AssignExprNode_new(ExprNode *lhs, ExprNode *rhs);
 
 CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements);
@@ -258,6 +265,8 @@ typedef struct Sema Sema;
 Sema *Sema_new(void);
 
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
+ExprNode *Sema_act_on_binary_expr(
+    Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs);
 
 StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
 

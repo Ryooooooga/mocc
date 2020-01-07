@@ -76,6 +76,32 @@ static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
     fprintf(g->fp, "  push %lld\n", p->value);
 }
 
+static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
+    assert(g);
+    assert(p);
+
+    CodeGen_gen_expr(g, p->lhs);
+    CodeGen_gen_expr(g, p->rhs);
+
+    fprintf(g->fp, "  pop rdi\n");
+    fprintf(g->fp, "  pop rax\n");
+
+    switch (p->operator) {
+    case BinaryOp_add:
+        fprintf(g->fp, "  add rax, rdi\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_sub:
+        fprintf(g->fp, "  sub rax, rdi\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    default:
+        ERROR("unknown binary op %d", p->operator);
+    }
+}
+
 static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
     assert(g);
     assert(p);

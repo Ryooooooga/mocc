@@ -14,6 +14,14 @@
 #define NODE_MEMBER_F(T, x, f) NODE_MEMBER(T, x)
 #endif
 
+#ifndef UNARY_OP
+#define UNARY_OP(name)
+#endif
+
+#ifndef BINARY_OP
+#define BINARY_OP(name)
+#endif
+
 #ifndef EXPR_NODE
 #define EXPR_NODE(name) NODE(name, Expr)
 #endif
@@ -37,6 +45,15 @@ NODE_END()
 
 EXPR_NODE(Integer)
     NODE_MEMBER_F(long long, value, int)
+NODE_END()
+
+BINARY_OP(add)
+BINARY_OP(sub)
+
+EXPR_NODE(Binary)
+    NODE_MEMBER_F(BinaryOp, operator, BinaryOp)
+    NODE_MEMBER_F(ExprNode *, lhs, Expr)
+    NODE_MEMBER_F(ExprNode *, rhs, Expr)
 NODE_END()
 
 EXPR_NODE(Assign)
@@ -87,6 +104,8 @@ NODE_END()
 #undef NODE_END
 #undef NODE_MEMBER
 #undef NODE_MEMBER_F
+#undef UNARY_OP
+#undef BINARY_OP
 #undef EXPR_NODE
 #undef STMT_NODE
 #undef DECLARATOR_NODE

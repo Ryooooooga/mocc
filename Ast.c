@@ -62,6 +62,19 @@ IntegerExprNode *IntegerExprNode_new(long long value) {
     return p;
 }
 
+BinaryExprNode *
+BinaryExprNode_new(BinaryOp operator, ExprNode *lhs, ExprNode *rhs) {
+    assert(lhs);
+    assert(rhs);
+
+    BinaryExprNode *p = BinaryExprNode_alloc();
+    p->operator= operator;
+    p->lhs = lhs;
+    p->rhs = rhs;
+
+    return p;
+}
+
 AssignExprNode *AssignExprNode_new(ExprNode *lhs, ExprNode *rhs) {
     assert(lhs);
     assert(rhs);
@@ -205,6 +218,25 @@ static void Node_dump_int(long long x, FILE *fp, size_t depth) {
 
     Node_dump_indent(fp, depth);
     fprintf(fp, "(int %lld)\n", x);
+}
+
+static void Node_dump_BinaryOp(BinaryOp x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    const char *text;
+    switch (x) {
+#define BINARY_OP(name)                                                        \
+    case BinaryOp_##name:                                                      \
+        text = #name;                                                          \
+        break;
+#include "Ast.def"
+
+    default:
+        UNREACHABLE();
+    }
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(BinaryOp %s)\n", text);
 }
 
 static void Node_dump_Expr(const ExprNode *x, FILE *fp, size_t depth) {

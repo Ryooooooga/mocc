@@ -106,13 +106,47 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
     }
 }
 
+// multiplicative_expr:
+//  multiplicative_expr '+' primary_expr
+//  multiplicative_expr '-' primary_expr
+//  primary_expr
+static ExprNode *Parser_parse_multiplicative_expr(Parser *p) {
+    assert(p);
+
+    // TODO: multiplicative_expr rule
+    return Parser_parse_primary_expr(p);
+}
+
+// additive_expr:
+//  additive_expr '+' multiplicative_expr
+//  additive_expr '-' multiplicative_expr
+//  multiplicative_expr
+static ExprNode *Parser_parse_additive_expr(Parser *p) {
+    assert(p);
+
+    // multiplicative_expr
+    ExprNode *lhs = Parser_parse_multiplicative_expr(p);
+
+    while (Parser_peek(p)->kind == '+' || Parser_peek(p)->kind == '-') {
+        // '+' | '-'
+        const Token *operator= Parser_consume(p);
+
+        // multiplicative_expr
+        ExprNode *rhs = Parser_parse_multiplicative_expr(p);
+
+        lhs = Sema_act_on_binary_expr(p->sema, lhs, operator, rhs);
+    }
+
+    return lhs;
+}
+
 // conditional_expr:
 //  TODO: conditional_expr rule
 static ExprNode *Parser_parse_conditional_expr(Parser *p) {
     assert(p);
 
     // TODO: conditional_expr rule
-    return Parser_parse_primary_expr(p);
+    return Parser_parse_additive_expr(p);
 }
 
 // assign_expr:

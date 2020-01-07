@@ -57,6 +57,38 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
     return IdentifierExprNode_base(node);
 }
 
+ExprNode *Sema_act_on_binary_expr(
+    Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs) {
+    assert(s);
+    assert(lhs);
+    assert(operator);
+    assert(rhs);
+
+    BinaryOp op;
+
+    switch (operator->kind) {
+    case '+': {
+        // TODO: Type check
+
+        op = BinaryOp_add;
+        break;
+    }
+
+    case '-': {
+        // TODO: Type check
+
+        op = BinaryOp_sub;
+        break;
+    }
+
+    default:
+        ERROR("unknown binary operator %s\n", operator->text);
+    }
+
+    BinaryExprNode *node = BinaryExprNode_new(op, lhs, rhs);
+    return BinaryExprNode_base(node);
+}
+
 // Statements
 StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators) {
     assert(declarators);

@@ -138,9 +138,11 @@ typedef enum ValueCategory {
 } ValueCategory;
 
 typedef enum TypeKind {
+    TypeKind_void,
     TypeKind_int,
     TypeKind_pointer,
     TypeKind_function,
+    TypeKind_array,
 } TypeKind;
 
 typedef struct Type Type;
@@ -154,6 +156,10 @@ struct Type {
     // For function type
     Type *return_type;
     Vec(Type) * parameter_types;
+
+    // For array type
+    Type *element_type;
+    size_t array_length;
 };
 
 Type *IntType_new(void);
@@ -164,6 +170,13 @@ Type *PointerType_pointee_type(const Type *pointer_type);
 Type *FunctionType_new(Type *return_type, Vec(Type) * parameter_types);
 Type *FunctionType_return_type(const Type *function_type);
 Vec(Type) * FunctionType_parameter_types(const Type *function_type);
+
+Type *ArrayType_new(Type *element_type, size_t array_length);
+Type *ArrayType_element_type(const Type *array_type);
+size_t ArrayType_length(const Type *array_type);
+
+size_t Type_sizeof(const Type *type);
+size_t Type_alignof(const Type *type);
 
 bool Type_is_incomplete_type(const Type *type);
 bool Type_is_function_pointer_type(const Type *type);
@@ -248,6 +261,7 @@ typedef enum BinaryOp {
 typedef enum ImplicitCastOp {
     ImplicitCastOp_lvalue_to_rvalue,
     ImplicitCastOp_function_to_function_pointer,
+    ImplicitCastOp_array_to_pointer,
 } ImplicitCastOp;
 
 // clang-format off
@@ -339,6 +353,9 @@ ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 // Declarators
 DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
 
+ArrayDeclaratorNode *
+ArrayDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *array_size);
+
 FunctionDeclaratorNode *FunctionDeclaratorNode_new(
     DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters);
 
@@ -410,6 +427,9 @@ StmtNode *Sema_act_on_expr_stmt(Sema *s, ExprNode *expression);
 
 // Declarators
 DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
+
+DeclaratorNode *Sema_act_on_array_declarator(
+    Sema *s, DeclaratorNode *declarator, ExprNode *array_size);
 
 void Sema_act_on_function_declarator_start_of_parameter_list(Sema *s);
 DeclaratorNode *Sema_act_on_function_declarator_end_of_parameter_list(

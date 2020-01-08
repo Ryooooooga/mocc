@@ -244,6 +244,30 @@ static Vec(DeclaratorNode) *
     return NULL;
 }
 
+ArrayDeclaratorNode *
+ArrayDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *array_size) {
+    assert(declarator);
+
+    ArrayDeclaratorNode *p = ArrayDeclaratorNode_alloc();
+    p->declarator = declarator;
+    p->array_size = array_size;
+
+    return p;
+}
+
+static Symbol *ArrayDeclaratorNode_symbol(const ArrayDeclaratorNode *p) {
+    assert(p);
+
+    return DeclaratorNode_symbol(p->declarator);
+}
+
+static Vec(DeclaratorNode) *
+    ArrayDeclaratorNode_parameters(const ArrayDeclaratorNode *p) {
+    assert(p);
+
+    return DeclaratorNode_parameters(p->declarator);
+}
+
 FunctionDeclaratorNode *FunctionDeclaratorNode_new(
     DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters) {
     assert(declarator);
@@ -445,6 +469,10 @@ static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
 
     case ImplicitCastOp_function_to_function_pointer:
         text = "function_to_function_pointer";
+        break;
+
+    case ImplicitCastOp_array_to_pointer:
+        text = "array_to_pointer";
         break;
 
     default:

@@ -87,14 +87,25 @@ static void Sema_decay_conversion(Sema *s, ExprNode **expression) {
 
     if ((*expression)->result_type->kind == TypeKind_function) {
         // function to pointer conversion
+        Type *function_type = (*expression)->result_type;
+
         *expression = Sema_implicit_cast(
             s,
-            PointerType_new((*expression)->result_type),
+            PointerType_new(function_type),
             ValueCategory_rvalue,
             ImplicitCastOp_function_to_function_pointer,
             (*expression));
+    } else if ((*expression)->result_type->kind == TypeKind_array) {
+        // array to pointer conversion
+        Type *element_type = ArrayType_element_type((*expression)->result_type);
+
+        *expression = Sema_implicit_cast(
+            s,
+            PointerType_new(element_type),
+            ValueCategory_rvalue,
+            ImplicitCastOp_array_to_pointer,
+            (*expression));
     } else {
-        // TODO: array to pointer conversion
         Sema_to_rvalue(s, expression);
     }
 }
@@ -173,13 +184,13 @@ Sema_act_on_subscript_expr(Sema *s, ExprNode *array, ExprNode *index) {
     // Type check
     if (array->result_type->kind != TypeKind_pointer ||
         index->result_type->kind != TypeKind_int) {
-        ERROR("subscripted value is not a pointer");
+        ERROR("subscripted value is not a pointer\n");
     }
 
     Type *result_type = PointerType_pointee_type(array->result_type);
 
     if (Type_is_incomplete_type(result_type)) {
-        ERROR("subscripted value is an incomplete type");
+        ERROR("subscripted value is an incomplete type\n");
     }
 
     SubscriptExprNode *node =
@@ -410,6 +421,18 @@ Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
     return DirectDeclaratorNode_base(node);
 }
 
+DeclaratorNode *Sema_act_on_array_declarator(
+    Sema *s, DeclaratorNode *declarator, ExprNode *array_size) {
+    assert(s);
+    assert(declarator);
+    assert(array_size);
+
+    (void)s;
+
+    ArrayDeclaratorNode *node = ArrayDeclaratorNode_new(declarator, array_size);
+    return ArrayDeclaratorNode_base(node);
+}
+
 void Sema_act_on_function_declarator_start_of_parameter_list(Sema *s) {
     assert(s);
 
@@ -457,6 +480,34 @@ static void Sema_complete_declarator_Direct(
     declarator->symbol->type = base_type;
 }
 
+static void Sema_complete_declarator_Array(
+    Sema *s, ArrayDeclaratorNode *declarator, Type *base_type) {
+    assert(s);
+    assert(declarator);
+    assert(base_type);
+
+    // Type check
+    if (Type_is_incomplete_type(base_type)) {
+        ERROR("array has incomplete element type\n");
+    }
+
+    // TODO: unsized array
+    if (declarator->array_size == NULL) {
+        TODO("array without size");
+    }
+
+    // TODO: constant value
+    long long length = IntegerExprNode_ccast(declarator->array_size)->value;
+
+    if (length <= 0) {
+        ERROR("array must have a positive length\n");
+    }
+
+    base_type = ArrayType_new(base_type, length);
+
+    Sema_complete_declarator(s, declarator->declarator, base_type);
+}
+
 static void Sema_complete_declarator_Function(
     Sema *s, FunctionDeclaratorNode *declarator, Type *base_type) {
     assert(s);
@@ -473,7 +524,13 @@ static void Sema_complete_declarator_Function(
         Vec_push(Type)(parameter_types, symbol->type);
     }
 
-    // TODO: Type check
+    // Type check
+    if (base_type->kind == TypeKind_function) {
+        ERROR("function cannot return a function\n");
+    } else if (base_type->kind == TypeKind_array) {
+        ERROR("function cannot return an array\n");
+    }
+
     base_type = FunctionType_new(base_type, parameter_types);
 
     Sema_complete_declarator(s, declarator->declarator, base_type);
@@ -566,7 +623,7 @@ void Sema_act_on_function_decl_start_of_body(
     Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(declarator);
 
     if (parameters == NULL) {
-        ERROR("declarator is not a function");
+        ERROR("declarator is not a function\n");
     }
 
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i++) {

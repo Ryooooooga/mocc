@@ -112,6 +112,11 @@ DECLARATOR_NODE(Direct)
     NODE_MEMBER_F(Symbol *, symbol, symbol)
 NODE_END()
 
+DECLARATOR_NODE(Array)
+    NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)
+    NODE_MEMBER_F(ExprNode *, array_size, Expr)
+NODE_END()
+
 DECLARATOR_NODE(Function)
     NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)
     NODE_MEMBER_F(Vec(DeclaratorNode) *, parameters, Declarators)

@@ -6,8 +6,11 @@
 #define FUNC_PREFIX ""
 #endif
 
-static const char *const registers[6] = {
+static const char *const registers_qword[6] = {
     "rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+static const char *const registers_dword[6] = {
+    "edi", "esi", "edx", "ecx", "e8", "e9"};
 
 enum NativeAddressType {
     NativeAddressType_label,
@@ -73,7 +76,7 @@ static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
         break;
 
     case NativeAddressType_stack:
-        fprintf(g->fp, "  lea rax, [rbp%+d]\n", address->offset);
+        fprintf(g->fp, "  lea rax, [rbp%+d]\n", -address->offset);
         fprintf(g->fp, "  push rax\n");
         break;
 
@@ -82,20 +85,25 @@ static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
     }
 }
 
-static void CodeGen_store(CodeGen *g, const NativeAddress *address) {
-    assert(address);
+static void CodeGen_store(CodeGen *g, const Type *type) {
+    assert(g);
+    assert(type);
 
-    switch (address->type) {
-    case NativeAddressType_label:
-        UNREACHABLE();
-
-    case NativeAddressType_stack:
+    switch (type->kind) {
+    case TypeKind_int:
+        fprintf(g->fp, "  pop rdi\n");
         fprintf(g->fp, "  pop rax\n");
-        fprintf(g->fp, "  mov [rbp%+d], rax\n", address->offset);
+        fprintf(g->fp, "  mov [rdi], eax\n");
+        break;
+
+    case TypeKind_pointer:
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  mov [rdi], rax\n");
         break;
 
     default:
-        ERROR("unknown address type %d\n", address->type);
+        ERROR("unknown type\n");
     }
 }
 
@@ -124,9 +132,12 @@ static void CodeGen_gen_SubscriptExpr(CodeGen *g, SubscriptExprNode *p) {
     CodeGen_gen_expr(g, p->index);
     CodeGen_gen_expr(g, p->array);
 
+    size_t size = Type_sizeof(p->result_type);
+
     fprintf(g->fp, "  pop rax\n");
     fprintf(g->fp, "  pop rdi\n");
-    fprintf(g->fp, "  lea rax, [rax+rdi*%d]\n", 8); // TODO: type size
+    fprintf(g->fp, "  imul rdi, %zu\n", size);
+    fprintf(g->fp, "  lea rax, [rax+rdi]\n");
     fprintf(g->fp, "  push rax\n");
 }
 
@@ -138,7 +149,7 @@ static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
     size_t num_arguments = Vec_len(ExprNode)(p->arguments);
 
     if (num_arguments > 6) {
-        ERROR("too much arguments");
+        ERROR("too much arguments\n");
     }
 
     for (size_t i = 0; i < num_arguments; i++) {
@@ -149,7 +160,7 @@ static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
     }
 
     for (size_t i = 0; i < num_arguments; i++) {
-        fprintf(g->fp, "  pop %s\n", registers[i]);
+        fprintf(g->fp, "  pop %s\n", registers_qword[i]);
     }
 
     // Callee
@@ -211,9 +222,8 @@ static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
     CodeGen_gen_expr(g, p->rhs);
     CodeGen_gen_expr(g, p->lhs);
 
-    fprintf(g->fp, "  pop rdi\n");
-    fprintf(g->fp, "  pop rax\n");
-    fprintf(g->fp, "  mov [rdi], rax\n");
+    CodeGen_store(g, p->lhs->result_type);
+
     fprintf(g->fp, "  push rax\n");
 }
 
@@ -225,12 +235,28 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
 
     switch (p->operator) {
     case ImplicitCastOp_lvalue_to_rvalue:
-        fprintf(g->fp, "  pop rax\n");
-        fprintf(g->fp, "  mov rax, [rax]\n");
-        fprintf(g->fp, "  push rax\n");
+        switch (p->result_type->kind) {
+        case TypeKind_int:
+            fprintf(g->fp, "  pop rax\n");
+            fprintf(g->fp, "  mov eax, [rax]\n");
+            fprintf(g->fp, "  push rax\n");
+            break;
+
+        case TypeKind_pointer:
+            fprintf(g->fp, "  pop rax\n");
+            fprintf(g->fp, "  mov rax, [rax]\n");
+            fprintf(g->fp, "  push rax\n");
+            break;
+
+        default:
+            ERROR("unknown type\n");
+        }
         break;
 
     case ImplicitCastOp_function_to_function_pointer:
+        break;
+
+    case ImplicitCastOp_array_to_pointer:
         break;
 
     default:
@@ -320,7 +346,8 @@ static void CodeGen_gen_DeclStmt(CodeGen *g, DeclStmtNode *p) {
                 InitDeclaratorNode_cast(declarator)->initializer;
 
             CodeGen_gen_expr(g, initializer);
-            CodeGen_store(g, symbol->address);
+            CodeGen_load_address(g, symbol->address);
+            CodeGen_store(g, symbol->type);
         }
     }
 }
@@ -351,13 +378,20 @@ static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p) {
 }
 
 // Declarations
-static NativeAddress *CodeGen_alloca_object(CodeGen *g, int *stack_top) {
+static NativeAddress *
+CodeGen_alloca_object(CodeGen *g, Type *type, int *stack_top) {
     assert(g);
     assert(stack_top);
 
     (void)g;
 
-    *stack_top -= 8; // TODO: size of type
+    size_t size = Type_sizeof(type);
+    *stack_top += size;
+
+    size_t align = Type_alignof(type);
+    size_t padding = *stack_top % align == 0 ? 0 : align - *stack_top % align;
+    *stack_top += padding;
+
     return NativeAddress_new_stack(*stack_top);
 }
 
@@ -371,7 +405,7 @@ static void CodeGen_allocate_parameters(
         DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, i);
         Symbol *symbol = DeclaratorNode_symbol(parameter);
 
-        symbol->address = CodeGen_alloca_object(g, stack_top);
+        symbol->address = CodeGen_alloca_object(g, symbol->type, stack_top);
     }
 }
 
@@ -384,7 +418,7 @@ static void CodeGen_allocate_local_variables(
     for (size_t i = 0; i < Vec_len(Symbol)(local_variables); i++) {
         Symbol *symbol = Vec_get(Symbol)(local_variables, i);
 
-        symbol->address = CodeGen_alloca_object(g, stack_top);
+        symbol->address = CodeGen_alloca_object(g, symbol->type, stack_top);
     }
 }
 
@@ -404,11 +438,30 @@ CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
 
         DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, index);
         Symbol *symbol = DeclaratorNode_symbol(parameter);
-        NativeAddress *address = symbol->address;
 
+        NativeAddress *address = symbol->address;
         assert(address->type == NativeAddressType_stack);
-        fprintf(
-            g->fp, "  mov [rbp%+d], %s\n", address->offset, registers[index]);
+
+        switch (symbol->type->kind) {
+        case TypeKind_int:
+            fprintf(
+                g->fp,
+                "  mov [rbp%+d], %s\n",
+                -address->offset,
+                registers_dword[index]);
+            break;
+
+        case TypeKind_pointer:
+            fprintf(
+                g->fp,
+                "  mov [rbp%+d], %s\n",
+                -address->offset,
+                registers_qword[index]);
+            break;
+
+        default:
+            ERROR("unknown type");
+        }
     }
 }
 
@@ -433,7 +486,7 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     CodeGen_allocate_parameters(g, parameters, &stack_top);
     CodeGen_allocate_local_variables(g, p->local_variables, &stack_top);
 
-    fprintf(g->fp, "  sub rsp, %d\n", -stack_top);
+    fprintf(g->fp, "  sub rsp, %d\n", stack_top);
 
     CodeGen_store_parameters(g, parameters);
 

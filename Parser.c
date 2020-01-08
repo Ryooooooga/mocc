@@ -401,6 +401,25 @@ static DeclaratorNode *Parser_parse_parameter_decl(Parser *p) {
     return Sema_act_on_parameter_decl(p->sema, declarator);
 }
 
+// array_declarator:
+//  postfix_declarator '[' assign_expr ']'
+static DeclaratorNode *
+Parser_parse_array_declarator(Parser *p, DeclaratorNode *declarator) {
+    assert(p);
+    assert(declarator);
+
+    // '['
+    Parser_expect(p, '[');
+
+    // assign_expr
+    ExprNode *array_size = Parser_parse_assign_expr(p);
+
+    // ']'
+    Parser_expect(p, ']');
+
+    return Sema_act_on_array_declarator(p->sema, declarator, array_size);
+}
+
 // function_declarator:
 //  postfix_declarator '(' ')'
 //  postfix_declarator '(' 'void' ')'
@@ -461,7 +480,9 @@ static DeclaratorNode *Parser_parse_postfix_declarator(Parser *p) {
     while (1) {
         switch (Parser_current(p)->kind) {
         case '[':
-            UNIMPLEMENTED();
+            // array_declarator
+            declarator = Parser_parse_array_declarator(p, declarator);
+            break;
 
         case '(':
             // function_declarator

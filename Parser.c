@@ -309,15 +309,63 @@ static DeclaratorNode *Parser_parse_direct_declarator(Parser *p) {
     return Sema_act_on_direct_declarator(p->sema, identifier);
 }
 
+// function_declarator:
+//  postfix_declarator '(' ')'
+//  postfix_declarator '(' 'void' ')'
+//  postfix_declarator '(' parameter_decl (',' parameter_decl)* [',' '...'] ')'
+static DeclaratorNode *
+Parser_parse_function_declarator(Parser *p, DeclaratorNode *declarator) {
+    assert(p);
+
+    // '('
+    Parser_expect(p, '(');
+
+    // 'void'
+    Parser_expect(p, TokenKind_kw_void);
+
+    // ')'
+    Parser_expect(p, ')');
+
+    // TODO: function_declarator rule
+
+    return Sema_act_on_function_declarator(p->sema, declarator);
+}
+
+// postfix_declarator:
+//  array_declarator
+//  function_declarator
+//  direct_declarator
+static DeclaratorNode *Parser_parse_postfix_declarator(Parser *p) {
+    assert(p);
+
+    // direct_declarator
+    DeclaratorNode *declarator = Parser_parse_direct_declarator(p);
+
+    while (1) {
+        switch (Parser_peek(p)->kind) {
+        case '[':
+            UNIMPLEMENTED();
+
+        case '(':
+            // function_declarator
+            declarator = Parser_parse_function_declarator(p, declarator);
+            break;
+
+        default:
+            return declarator;
+        }
+    }
+}
+
 // pointer_declarator:
 //  '*' pointer_declarator
-//  direct_declarator
+//  postfix_declarator
 static DeclaratorNode *Parser_parse_pointer_declarator(Parser *p) {
     assert(p);
 
     if (Parser_peek(p)->kind != '*') {
-        // direct_declarator
-        return Parser_parse_direct_declarator(p);
+        // postfix_declarator
+        return Parser_parse_postfix_declarator(p);
     }
 
     // '*'
@@ -455,14 +503,6 @@ static DeclNode *Parser_parse_top_level_decl(Parser *p) {
 
     // declarator
     DeclaratorNode *declarator = Parser_parse_declarator(p);
-
-    // TODO: function declarator
-    // params
-    DeclaratorNode_symbol(declarator)->type =
-        FunctionType_new(DeclaratorNode_symbol(declarator)->type);
-    Parser_expect(p, '(');
-    Parser_expect(p, TokenKind_kw_void);
-    Parser_expect(p, ')');
 
     Sema_act_on_function_decl_start_of_body(p->sema, declarator);
 

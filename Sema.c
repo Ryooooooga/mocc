@@ -353,11 +353,21 @@ Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
 
     (void)s;
 
-    // Register the symbol
     Symbol *symbol = Symbol_new(identifier->text, NULL);
 
     DirectDeclaratorNode *node = DirectDeclaratorNode_new(symbol);
     return DirectDeclaratorNode_base(node);
+}
+
+DeclaratorNode *
+Sema_act_on_function_declarator(Sema *s, DeclaratorNode *declarator) {
+    assert(s);
+    assert(declarator);
+
+    (void)s;
+
+    FunctionDeclaratorNode *node = FunctionDeclaratorNode_new(declarator);
+    return FunctionDeclaratorNode_base(node);
 }
 
 DeclaratorNode *
@@ -380,12 +390,24 @@ static void Sema_complete_declarator_Direct(
     assert(declarator);
     assert(base_type);
 
+    // Register the symbol
     if (!Sema_try_register_symbol(s, declarator->symbol)) {
         ERROR(
             "%s is already declared in this scope\n", declarator->symbol->name);
     }
 
     declarator->symbol->type = base_type;
+}
+
+static void Sema_complete_declarator_Function(
+    Sema *s, FunctionDeclaratorNode *declarator, Type *base_type) {
+    assert(s);
+    assert(declarator);
+    assert(base_type);
+
+    base_type = FunctionType_new(base_type);
+
+    Sema_complete_declarator(s, declarator->declarator, base_type);
 }
 
 static void Sema_complete_declarator_Pointer(

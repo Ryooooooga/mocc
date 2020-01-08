@@ -98,20 +98,13 @@ try "c$LINENO" '
     }' 10
 
 try "c$LINENO" '
-    int f(void) {
-        return 42;
-    }
-    int main(void) {
-        return f();
-    }' 42
+    int f(void) { return 42; }
+    int main(void) { return f(); }
+    ' 42
 
 try "c$LINENO" '
-    int f(void) {
-        return 10;
-    }
-    int g(void) {
-        return f() + 2;
-    }
-    int main(void) {
-        return g();
-    }' 12
+    int f(void) { return 10; }
+    int g(void) { return f() + 2; }
+    int main(void) { return g(); }
+    ' 12
+

@@ -203,6 +203,21 @@ static Symbol *DirectDeclaratorNode_symbol(const DirectDeclaratorNode *p) {
     return p->symbol;
 }
 
+FunctionDeclaratorNode *FunctionDeclaratorNode_new(DeclaratorNode *declarator) {
+    assert(declarator);
+
+    FunctionDeclaratorNode *p = FunctionDeclaratorNode_alloc();
+    p->declarator = declarator;
+
+    return p;
+}
+
+static Symbol *FunctionDeclaratorNode_symbol(const FunctionDeclaratorNode *p) {
+    assert(p);
+
+    return DeclaratorNode_symbol(p->declarator);
+}
+
 PointerDeclaratorNode *PointerDeclaratorNode_new(DeclaratorNode *declarator) {
     assert(declarator);
 

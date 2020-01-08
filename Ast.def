@@ -48,7 +48,7 @@ EXPR_NODE(Integer)
 NODE_END()
 
 UNARY_OP(address_of)
-UNARY_OP(dereference)
+UNARY_OP(indirection)
 
 EXPR_NODE(Unary)
     NODE_MEMBER_F(UnaryOp, operator, UnaryOp)

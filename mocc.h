@@ -138,13 +138,20 @@ typedef enum ValueCategory {
 
 typedef enum TypeKind {
     TypeKind_int,
+    TypeKind_pointer,
 } TypeKind;
 
-typedef struct Type {
+typedef struct Type Type;
+
+struct Type {
     TypeKind kind;
-} Type;
+    Type *pointee_type;
+};
 
 Type *IntType_new(void);
+
+Type *PointerType_new(Type *pointee_type);
+Type *PointerType_pointee_type(const Type *pointer_type);
 
 // Token
 typedef int TokenKind;

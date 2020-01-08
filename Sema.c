@@ -78,13 +78,24 @@ static void Sema_to_rvalue(Sema *s, ExprNode **expression) {
     }
 }
 
+static void Sema_decay_conversion(Sema *s, ExprNode **expression) {
+    assert(s);
+    assert(expression);
+    assert(*expression);
+
+    // TODO: array to pointer conversion
+    // TODO: function to pointer conversion
+
+    Sema_to_rvalue(s, expression);
+}
+
 static void Sema_integer_promotion(Sema *s, ExprNode **expression) {
     assert(s);
     assert(expression);
     assert(*expression);
 
     // TODO: integer promotion
-    Sema_to_rvalue(s, expression);
+    Sema_decay_conversion(s, expression);
 }
 
 static void
@@ -106,7 +117,7 @@ static void Sema_assignment_conversion(Sema *s, ExprNode **expression) {
     assert(*expression);
 
     // TODO: assignment conversion
-    Sema_to_rvalue(s, expression);
+    Sema_decay_conversion(s, expression);
 }
 
 // Expressions
@@ -132,8 +143,6 @@ ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
     assert(s);
     assert(integer);
 
-    (void)s;
-
     long long value = atoll(integer->text); // TODO: conversion
 
     IntegerExprNode *node =
@@ -154,20 +163,38 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
     case '+':
     case '-':
         TODO("unary + -");
+        break;
 
     case '!':
         TODO("unary !");
+        break;
 
     case '&':
+        if (operand->value_category != ValueCategory_lvalue) {
+            ERROR("cannot take the address of an rvalue\n");
+        }
+
+        type = PointerType_new(operand->result_type);
+        value_category = ValueCategory_rvalue;
         op = UnaryOp_address_of;
-        TODO("unary &");
+        break;
 
     case '*':
-        op = UnaryOp_dereference;
-        TODO("unary *");
+        // Conversion
+        Sema_decay_conversion(s, &operand);
+
+        if (operand->result_type->kind != TypeKind_pointer) {
+            ERROR("indirection requires pointer operand\n");
+        }
+
+        type = PointerType_pointee_type(operand->result_type);
+        value_category = ValueCategory_lvalue;
+        op = UnaryOp_indirection;
+        break;
 
     case TokenKind_kw_sizeof:
         TODO("unary sizeof");
+        break;
 
     default:
         ERROR("unknown unary operator %s\n", operator->text);
@@ -183,8 +210,6 @@ ExprNode *Sema_act_on_binary_expr(
     assert(lhs);
     assert(operator);
     assert(rhs);
-
-    (void)s;
 
     Type *type;
     BinaryOp op;
@@ -234,8 +259,6 @@ ExprNode *Sema_act_on_assign_expr(
     assert(lhs);
     assert(operator);
     assert(rhs);
-
-    (void)s;
 
     if (lhs->value_category != ValueCategory_lvalue) {
         ERROR("expression is not assignable\n");

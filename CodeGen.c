@@ -109,7 +109,7 @@ static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
     case UnaryOp_address_of:
         break;
 
-    case UnaryOp_dereference:
+    case UnaryOp_indirection:
         break;
 
     default:
@@ -122,12 +122,11 @@ static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
     assert(p);
 
     CodeGen_gen_expr(g, p->rhs);
+    CodeGen_gen_expr(g, p->lhs);
 
-    // TODO: left hand side
-    IdentifierExprNode *lhs = IdentifierExprNode_cast(p->lhs);
-
-    CodeGen_store(g, lhs->symbol->address);
-
+    fprintf(g->fp, "  pop rdi\n");
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  mov [rdi], eax\n");
     fprintf(g->fp, "  push rax\n");
 }
 
@@ -204,11 +203,6 @@ static void CodeGen_gen_DeclStmt(CodeGen *g, DeclStmtNode *p) {
             CodeGen_store(g, symbol->address);
         }
     }
-
-    (void)g;
-    (void)p;
-
-    // TODO: initializer
 }
 
 static void CodeGen_gen_ExprStmt(CodeGen *g, ExprStmtNode *p) {

@@ -113,6 +113,24 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
     }
 }
 
+// subscript_expr:
+//  postfix_expr '[' comma_expr ']'
+static ExprNode *Parser_parse_subscript_expr(Parser *p, ExprNode *array) {
+    assert(p);
+    assert(array);
+
+    // '['
+    Parser_expect(p, '[');
+
+    // comma_expr
+    ExprNode *index = Parser_parse_comma_expr(p);
+
+    // ']'
+    Parser_expect(p, ']');
+
+    return Sema_act_on_subscript_expr(p->sema, array, index);
+}
+
 // call_expr:
 //  postfix_expr '(' [assign_expr (',' assign_expr)*] ')'
 static ExprNode *Parser_parse_call_expr(Parser *p, ExprNode *callee) {
@@ -158,7 +176,7 @@ static ExprNode *Parser_parse_postfix_expr(Parser *p) {
     while (true) {
         switch (Parser_current(p)->kind) {
         case '[':
-            UNIMPLEMENTED();
+            node = Parser_parse_subscript_expr(p, node);
             break;
 
         case '(':
@@ -303,8 +321,8 @@ static StmtNode *Parser_parse_compound_stmt(Parser *p) {
 }
 
 // if_stmt:
-//  'if' '(' expr ')' stmt 'else' stmt
-//  'if' '(' expr ')' stmt
+//  'if' '(' comma_expr ')' stmt 'else' stmt
+//  'if' '(' comma_expr ')' stmt
 static StmtNode *Parser_parse_if_stmt(Parser *p) {
     assert(p);
 
@@ -314,7 +332,7 @@ static StmtNode *Parser_parse_if_stmt(Parser *p) {
     // '('
     Parser_expect(p, '(');
 
-    // expr
+    // comma_expr
     ExprNode *condition = Parser_parse_comma_expr(p);
 
     // ')'
@@ -345,7 +363,7 @@ static StmtNode *Parser_parse_return_stmt(Parser *p) {
     // 'return'
     Parser_expect(p, TokenKind_kw_return);
 
-    // [expr]
+    // [comma_expr]
     ExprNode *return_value = NULL;
 
     if (Parser_current(p)->kind != ';') {

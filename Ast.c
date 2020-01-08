@@ -78,6 +78,21 @@ IntegerExprNode *IntegerExprNode_new(
     return p;
 }
 
+SubscriptExprNode *SubscriptExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *array,
+    ExprNode *index) {
+    assert(array);
+    assert(index);
+
+    SubscriptExprNode *p = SubscriptExprNode_alloc(result_type, value_category);
+    p->array = array;
+    p->index = index;
+
+    return p;
+}
+
 CallExprNode *CallExprNode_new(
     Type *result_type,
     ValueCategory value_category,

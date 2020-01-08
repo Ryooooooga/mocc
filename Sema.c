@@ -161,6 +161,33 @@ ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
 }
 
 ExprNode *
+Sema_act_on_subscript_expr(Sema *s, ExprNode *array, ExprNode *index) {
+    assert(s);
+    assert(array);
+    assert(index);
+
+    // Conversion
+    Sema_integer_promotion(s, &array);
+    Sema_integer_promotion(s, &index);
+
+    // Type check
+    if (array->result_type->kind != TypeKind_pointer ||
+        index->result_type->kind != TypeKind_int) {
+        ERROR("subscripted value is not a pointer");
+    }
+
+    Type *result_type = PointerType_pointee_type(array->result_type);
+
+    if (Type_is_incomplete_type(result_type)) {
+        ERROR("subscripted value is an incomplete type");
+    }
+
+    SubscriptExprNode *node =
+        SubscriptExprNode_new(result_type, ValueCategory_lvalue, array, index);
+    return SubscriptExprNode_base(node);
+}
+
+ExprNode *
 Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
     assert(s);
     assert(callee);
@@ -170,15 +197,11 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
     Sema_decay_conversion(s, &callee);
 
     // Type check
-    if (callee->result_type->kind != TypeKind_pointer) {
-        goto Error;
+    if (!Type_is_function_pointer_type(callee->result_type)) {
+        ERROR("cannot call a non-function type object\n");
     }
 
     Type *function_type = PointerType_pointee_type(callee->result_type);
-    if (function_type->kind != TypeKind_function) {
-        goto Error;
-    }
-
     Type *return_type = FunctionType_return_type(function_type);
 
     // TODO: Parameter check
@@ -186,9 +209,6 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
     CallExprNode *node =
         CallExprNode_new(return_type, ValueCategory_rvalue, callee, arguments);
     return CallExprNode_base(node);
-
-Error:
-    ERROR("cannot call a non-function type object\n");
 }
 
 ExprNode *

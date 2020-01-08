@@ -117,6 +117,19 @@ static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
     fprintf(g->fp, "  push %lld\n", p->value);
 }
 
+static void CodeGen_gen_SubscriptExpr(CodeGen *g, SubscriptExprNode *p) {
+    assert(g);
+    assert(p);
+
+    CodeGen_gen_expr(g, p->index);
+    CodeGen_gen_expr(g, p->array);
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  pop rdi\n");
+    fprintf(g->fp, "  lea rax, [rax+rdi*%d]\n", 8); // TODO: type size
+    fprintf(g->fp, "  push rax\n");
+}
+
 static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
     assert(g);
     assert(p);

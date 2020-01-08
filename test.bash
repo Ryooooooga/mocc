@@ -136,3 +136,16 @@ try "c$LINENO" '
     }
     int main(void) { return f(9); }
     ' 34
+
+try "c$LINENO" '
+    int main(void) {
+        int a = 5, *p = &a;
+        return p[0];
+    }' 5
+
+try "c$LINENO" '
+    int main(void) {
+        int a, *p = &a;
+        p[0] = 4;
+        return a;
+    }' 4

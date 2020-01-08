@@ -165,6 +165,9 @@ Type *FunctionType_new(Type *return_type, Vec(Type) * parameter_types);
 Type *FunctionType_return_type(const Type *function_type);
 Vec(Type) * FunctionType_parameter_types(const Type *function_type);
 
+bool Type_is_incomplete_type(const Type *type);
+bool Type_is_function_pointer_type(const Type *type);
+
 // Token
 typedef int TokenKind;
 
@@ -281,6 +284,12 @@ IdentifierExprNode *IdentifierExprNode_new(
 IntegerExprNode *IntegerExprNode_new(
     Type *result_type, ValueCategory value_category, long long value);
 
+SubscriptExprNode *SubscriptExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *array,
+    ExprNode *index);
+
 CallExprNode *CallExprNode_new(
     Type *result_type,
     ValueCategory value_category,
@@ -374,6 +383,8 @@ Sema *Sema_new(void);
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
 ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer);
+
+ExprNode *Sema_act_on_subscript_expr(Sema *s, ExprNode *array, ExprNode *index);
 
 ExprNode *
 Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments);

@@ -56,3 +56,23 @@ Vec(Type) * FunctionType_parameter_types(const Type *function_type) {
 
     return function_type->parameter_types;
 }
+
+bool Type_is_incomplete_type(const Type *type) {
+    assert(type);
+
+    switch (type->kind) {
+    // TODO: case TypeKind_void:
+    case TypeKind_function:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
+bool Type_is_function_pointer_type(const Type *type) {
+    assert(type);
+
+    return type->kind == TypeKind_pointer &&
+           PointerType_pointee_type(type)->kind == TypeKind_function;
+}

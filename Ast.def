@@ -47,6 +47,11 @@ EXPR_NODE(Integer)
     NODE_MEMBER_F(long long, value, int)
 NODE_END()
 
+EXPR_NODE(Subscript)
+    NODE_MEMBER_F(ExprNode *, array, Expr)
+    NODE_MEMBER_F(ExprNode *, index, Expr)
+NODE_END()
+
 EXPR_NODE(Call)
     NODE_MEMBER_F(ExprNode *, callee, Expr)
     NODE_MEMBER_F(Vec(ExprNode) *, arguments, Exprs)

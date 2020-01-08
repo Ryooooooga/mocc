@@ -7,19 +7,37 @@
 #endif
 
 enum NativeAddressType {
-    NativeAddressType_global,
+    NativeAddressType_label,
     NativeAddressType_stack,
 };
 
 typedef struct NativeAddress {
     enum NativeAddressType type;
+
+    // For label
+    const char *label;
+
+    // For stack
     int offset;
 } NativeAddress;
 
-static NativeAddress *
-NativeAddress_new(enum NativeAddressType type, int offset) {
+static NativeAddress *NativeAddress_new(enum NativeAddressType type) {
     NativeAddress *a = malloc(sizeof(NativeAddress));
     a->type = type;
+    a->offset = 0;
+
+    return a;
+}
+
+static NativeAddress *NativeAddress_new_label(const char *label) {
+    NativeAddress *a = NativeAddress_new(NativeAddressType_label);
+    a->label = label;
+
+    return a;
+}
+
+static NativeAddress *NativeAddress_new_stack(int offset) {
+    NativeAddress *a = NativeAddress_new(NativeAddressType_stack);
     a->offset = offset;
 
     return a;
@@ -39,20 +57,43 @@ static int CodeGen_next_label(CodeGen *g) {
 
 static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
     assert(address);
-    assert(
-        address->type == NativeAddressType_stack); // TODO: temporary constraint
 
-    fprintf(g->fp, "  lea rax, [rbp%+d]\n", address->offset);
-    fprintf(g->fp, "  push rax\n");
+    switch (address->type) {
+    case NativeAddressType_label:
+        fprintf(
+            g->fp,
+            "  mov rax, [rip+%s%s%s]\n",
+            FUNC_PREFIX,
+            address->label,
+            "@GOTPCREL");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case NativeAddressType_stack:
+        fprintf(g->fp, "  lea rax, [rbp%+d]\n", address->offset);
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    default:
+        ERROR("unknown address type %d\n", address->type);
+    }
 }
 
 static void CodeGen_store(CodeGen *g, const NativeAddress *address) {
     assert(address);
-    assert(
-        address->type == NativeAddressType_stack); // TODO: temporary constraint
 
-    fprintf(g->fp, "  pop rax\n");
-    fprintf(g->fp, "  mov [rbp%+d], rax\n", address->offset);
+    switch (address->type) {
+    case NativeAddressType_label:
+        UNREACHABLE();
+
+    case NativeAddressType_stack:
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  mov [rbp%+d], rax\n", address->offset);
+        break;
+
+    default:
+        ERROR("unknown address type %d\n", address->type);
+    }
 }
 
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p);
@@ -71,6 +112,38 @@ static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
     assert(p);
 
     fprintf(g->fp, "  push %lld\n", p->value);
+}
+
+static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
+    assert(g);
+    assert(p);
+
+    // TODO: Arguments
+
+    // Callee
+    CodeGen_gen_expr(g, p->callee);
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  call rax\n");
+    fprintf(g->fp, "  push rax\n");
+}
+
+static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
+    assert(g);
+    assert(p);
+
+    CodeGen_gen_expr(g, p->operand);
+
+    switch (p->operator) {
+    case UnaryOp_address_of:
+        break;
+
+    case UnaryOp_indirection:
+        break;
+
+    default:
+        ERROR("unknown unary op %d", p->operator);
+    }
 }
 
 static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
@@ -99,24 +172,6 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
     }
 }
 
-static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
-    assert(g);
-    assert(p);
-
-    CodeGen_gen_expr(g, p->operand);
-
-    switch (p->operator) {
-    case UnaryOp_address_of:
-        break;
-
-    case UnaryOp_indirection:
-        break;
-
-    default:
-        ERROR("unknown unary op %d", p->operator);
-    }
-}
-
 static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
     assert(g);
     assert(p);
@@ -141,6 +196,9 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  mov rax, [rax]\n");
         fprintf(g->fp, "  push rax\n");
+        break;
+
+    case ImplicitCastOp_function_to_function_pointer:
         break;
 
     default:
@@ -238,7 +296,7 @@ static NativeAddress *CodeGen_alloca_object(CodeGen *g, int *stack_top) {
     (void)g;
 
     *stack_top -= 8; // TODO: size of type
-    return NativeAddress_new(NativeAddressType_stack, *stack_top);
+    return NativeAddress_new_stack(*stack_top);
 }
 
 static void
@@ -263,6 +321,7 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
 
     // Function label
     Symbol *symbol = DeclaratorNode_symbol(p->declarator);
+    symbol->address = NativeAddress_new_label(symbol->name);
 
     fprintf(g->fp, "  .global %s%s\n", FUNC_PREFIX, symbol->name);
     fprintf(g->fp, "%s%s:\n", FUNC_PREFIX, symbol->name);

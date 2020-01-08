@@ -105,6 +105,47 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
     }
 }
 
+// call_expr:
+//  postfix_expr '(' [assign_expr (',' assign_expr)*] ')'
+static ExprNode *Parser_parse_call_expr(Parser *p, ExprNode *callee) {
+    assert(p);
+    assert(callee);
+
+    // '('
+    Parser_expect(p, '(');
+
+    // ')'
+    Parser_expect(p, ')');
+
+    return Sema_act_on_call_expr(p->sema, callee);
+}
+
+// postfix_expr:
+//  subscript_expr
+//  call_expr
+//  primary_expr
+static ExprNode *Parser_parse_postfix_expr(Parser *p) {
+    assert(p);
+
+    // primary_expr
+    ExprNode *node = Parser_parse_primary_expr(p);
+
+    while (true) {
+        switch (Parser_peek(p)->kind) {
+        case '[':
+            UNIMPLEMENTED();
+            break;
+
+        case '(':
+            node = Parser_parse_call_expr(p, node);
+            break;
+
+        default:
+            return node;
+        }
+    }
+}
+
 // unary_expr:
 //  '+' unary_expr
 //  '-' unary_expr
@@ -112,7 +153,7 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
 //  '&' unary_expr
 //  '*' unary_expr
 //  'sizeof' unary_expr
-//  primary_expr
+//  postfix_expr
 static ExprNode *Parser_parse_unary_expr(Parser *p) {
     assert(p);
 
@@ -133,8 +174,8 @@ static ExprNode *Parser_parse_unary_expr(Parser *p) {
     }
 
     default:
-        // primary_expr
-        return Parser_parse_primary_expr(p);
+        // postfix_expr
+        return Parser_parse_postfix_expr(p);
     }
 }
 
@@ -417,6 +458,8 @@ static DeclNode *Parser_parse_top_level_decl(Parser *p) {
 
     // TODO: function declarator
     // params
+    DeclaratorNode_symbol(declarator)->type =
+        FunctionType_new(DeclaratorNode_symbol(declarator)->type);
     Parser_expect(p, '(');
     Parser_expect(p, TokenKind_kw_void);
     Parser_expect(p, ')');

@@ -83,10 +83,18 @@ static void Sema_decay_conversion(Sema *s, ExprNode **expression) {
     assert(expression);
     assert(*expression);
 
-    // TODO: array to pointer conversion
-    // TODO: function to pointer conversion
-
-    Sema_to_rvalue(s, expression);
+    if ((*expression)->result_type->kind == TypeKind_function) {
+        // function to pointer conversion
+        *expression = Sema_implicit_cast(
+            s,
+            PointerType_new((*expression)->result_type),
+            ValueCategory_rvalue,
+            ImplicitCastOp_function_to_function_pointer,
+            (*expression));
+    } else {
+        // TODO: array to pointer conversion
+        Sema_to_rvalue(s, expression);
+    }
 }
 
 static void Sema_integer_promotion(Sema *s, ExprNode **expression) {
@@ -148,6 +156,33 @@ ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
     IntegerExprNode *node =
         IntegerExprNode_new(s->int_type, ValueCategory_rvalue, value);
     return IntegerExprNode_base(node);
+}
+
+ExprNode *Sema_act_on_call_expr(Sema *s, ExprNode *callee) {
+    assert(s);
+    assert(callee);
+
+    // Conversion
+    Sema_decay_conversion(s, &callee);
+
+    // Type check
+    if (callee->result_type->kind != TypeKind_pointer) {
+        goto Error;
+    }
+
+    Type *function_type = PointerType_pointee_type(callee->result_type);
+    if (function_type->kind != TypeKind_function) {
+        goto Error;
+    }
+
+    Type *return_type = FunctionType_return_type(function_type);
+
+    CallExprNode *node =
+        CallExprNode_new(return_type, ValueCategory_rvalue, callee);
+    return CallExprNode_base(node);
+
+Error:
+    ERROR("cannot call a non-function type object\n");
 }
 
 ExprNode *

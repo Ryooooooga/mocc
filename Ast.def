@@ -47,6 +47,10 @@ EXPR_NODE(Integer)
     NODE_MEMBER_F(long long, value, int)
 NODE_END()
 
+EXPR_NODE(Call)
+    NODE_MEMBER_F(ExprNode *, callee, Expr)
+NODE_END()
+
 UNARY_OP(address_of)
 UNARY_OP(indirection)
 

@@ -78,6 +78,16 @@ IntegerExprNode *IntegerExprNode_new(
     return p;
 }
 
+CallExprNode *CallExprNode_new(
+    Type *result_type, ValueCategory value_category, ExprNode *callee) {
+    assert(callee);
+
+    CallExprNode *p = CallExprNode_alloc(result_type, value_category);
+    p->callee = callee;
+
+    return p;
+}
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,
@@ -336,6 +346,10 @@ static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
     switch (x) {
     case ImplicitCastOp_lvalue_to_rvalue:
         text = "lvalue_to_rvalue";
+        break;
+
+    case ImplicitCastOp_function_to_function_pointer:
+        text = "function_to_function_pointer";
         break;
 
     default:

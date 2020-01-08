@@ -4,6 +4,7 @@ static Type *Type_new(TypeKind kind) {
     Type *t = malloc(sizeof(Type));
     t->kind = kind;
     t->pointee_type = NULL;
+    t->return_type = NULL;
 
     return t;
 }
@@ -27,4 +28,21 @@ Type *PointerType_pointee_type(const Type *pointer_type) {
     assert(pointer_type->pointee_type != NULL);
 
     return pointer_type->pointee_type;
+}
+
+Type *FunctionType_new(Type *return_type) {
+    assert(return_type);
+
+    Type *type = Type_new(TypeKind_function);
+    type->return_type = return_type;
+
+    return type;
+}
+
+Type *FunctionType_return_type(const Type *function_type) {
+    assert(function_type);
+    assert(function_type->kind == TypeKind_function);
+    assert(function_type->return_type != NULL);
+
+    return function_type->return_type;
 }

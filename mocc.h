@@ -139,19 +139,28 @@ typedef enum ValueCategory {
 typedef enum TypeKind {
     TypeKind_int,
     TypeKind_pointer,
+    TypeKind_function,
 } TypeKind;
 
 typedef struct Type Type;
 
 struct Type {
     TypeKind kind;
+
+    // For pointer type
     Type *pointee_type;
+
+    // For function type
+    Type *return_type;
 };
 
 Type *IntType_new(void);
 
 Type *PointerType_new(Type *pointee_type);
 Type *PointerType_pointee_type(const Type *pointer_type);
+
+Type *FunctionType_new(Type *return_type);
+Type *FunctionType_return_type(const Type *function_type);
 
 // Token
 typedef int TokenKind;
@@ -232,6 +241,7 @@ typedef enum BinaryOp {
 
 typedef enum ImplicitCastOp {
     ImplicitCastOp_lvalue_to_rvalue,
+    ImplicitCastOp_function_to_function_pointer,
 } ImplicitCastOp;
 
 // clang-format off
@@ -267,6 +277,9 @@ IdentifierExprNode *IdentifierExprNode_new(
 
 IntegerExprNode *IntegerExprNode_new(
     Type *result_type, ValueCategory value_category, long long value);
+
+CallExprNode *CallExprNode_new(
+    Type *result_type, ValueCategory value_category, ExprNode *callee);
 
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
@@ -344,6 +357,8 @@ Sema *Sema_new(void);
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
 ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer);
+
+ExprNode *Sema_act_on_call_expr(Sema *s, ExprNode *callee);
 
 ExprNode *
 Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand);

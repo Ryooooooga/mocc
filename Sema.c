@@ -64,6 +64,8 @@ ExprNode *Sema_act_on_binary_expr(
     assert(operator);
     assert(rhs);
 
+    (void)s;
+
     BinaryOp op;
 
     switch (operator->kind) {

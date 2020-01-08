@@ -536,9 +536,18 @@ static StmtNode *Parser_parse_decl_stmt(Parser *p) {
     Vec(DeclaratorNode) *declarators = Vec_new(DeclaratorNode)();
 
     if (Parser_current(p)->kind != ';') {
-        DeclaratorNode *declarator = Parser_parse_init_declarator(p);
+        // init_declarator
+        Vec_push(DeclaratorNode)(declarators, Parser_parse_init_declarator(p));
 
-        Vec_push(DeclaratorNode)(declarators, declarator);
+        // (',' init_declarator)*
+        while (Parser_current(p)->kind == ',') {
+            // ','
+            Parser_expect(p, ',');
+
+            // init_declarator
+            Vec_push(DeclaratorNode)(
+                declarators, Parser_parse_init_declarator(p));
+        }
     }
 
     // ';'

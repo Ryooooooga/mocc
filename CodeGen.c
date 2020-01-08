@@ -58,6 +58,7 @@ static void CodeGen_store(CodeGen *g, const NativeAddress *address) {
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p);
 static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p);
 
+// Expressions
 static void CodeGen_gen_IdentifierExpr(CodeGen *g, IdentifierExprNode *p) {
     assert(g);
     assert(p);
@@ -95,6 +96,24 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
 
     default:
         ERROR("unknown binary op %d", p->operator);
+    }
+}
+
+static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
+    assert(g);
+    assert(p);
+
+    CodeGen_gen_expr(g, p->operand);
+
+    switch (p->operator) {
+    case UnaryOp_address_of:
+        break;
+
+    case UnaryOp_dereference:
+        break;
+
+    default:
+        ERROR("unknown unary op %d", p->operator);
     }
 }
 
@@ -146,6 +165,7 @@ static void CodeGen_gen_expr(CodeGen *g, ExprNode *p) {
     }
 }
 
+// Statements
 static void CodeGen_gen_CompoundStmt(CodeGen *g, CompoundStmtNode *p) {
     assert(g);
     assert(p);
@@ -216,6 +236,7 @@ static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p) {
     }
 }
 
+// Declarations
 static NativeAddress *CodeGen_alloca_object(CodeGen *g, int *stack_top) {
     assert(g);
     assert(stack_top);

@@ -201,6 +201,11 @@ struct DeclNode {
     NodeKind kind;
 };
 
+typedef enum UnaryOp {
+#define UNARY_OP(name) UnaryOp_##name,
+#include "Ast.def"
+} UnaryOp;
+
 typedef enum BinaryOp {
 #define BINARY_OP(name) BinaryOp_##name,
 #include "Ast.def"
@@ -242,6 +247,9 @@ IdentifierExprNode_new(ValueCategory value_category, Symbol *symbol);
 
 IntegerExprNode *
 IntegerExprNode_new(ValueCategory value_category, long long value);
+
+UnaryExprNode *UnaryExprNode_new(
+    ValueCategory value_category, UnaryOp operator, ExprNode *operand);
 
 BinaryExprNode *BinaryExprNode_new(
     ValueCategory value_category,

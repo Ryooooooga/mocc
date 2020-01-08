@@ -1,12 +1,6 @@
 #include "mocc.h"
 
 #define NODE(name, base)                                                       \
-    static name##base##Node *name##base##Node_alloc(void) {                    \
-        name##base##Node *p = malloc(sizeof(*p));                              \
-        p->kind = NodeKind_##name##base;                                       \
-        return p;                                                              \
-    }                                                                          \
-                                                                               \
     Node *name##base##Node_base_node(name##base##Node *p) {                    \
         assert(p);                                                             \
         return (Node *)p;                                                      \
@@ -45,13 +39,29 @@
     }
 #include "Ast.def"
 
+#define NODE(name, base)                                                       \
+    static name##base##Node *name##base##Node_alloc(void) {                    \
+        name##base##Node *p = malloc(sizeof(*p));                              \
+        p->kind = NodeKind_##name##base;                                       \
+        return p;                                                              \
+    }
+
+#define EXPR_NODE(name)                                                        \
+    static name##ExprNode *name##ExprNode_alloc(                               \
+        ValueCategory value_category) {                                        \
+        name##ExprNode *p = malloc(sizeof(*p));                                \
+        p->kind = NodeKind_##name##Expr;                                       \
+        p->value_category = value_category;                                    \
+        return p;                                                              \
+    }
+#include "Ast.def"
+
 // Expressions
 IdentifierExprNode *
 IdentifierExprNode_new(ValueCategory value_category, Symbol *symbol) {
     assert(symbol);
 
-    IdentifierExprNode *p = IdentifierExprNode_alloc();
-    p->value_category = value_category;
+    IdentifierExprNode *p = IdentifierExprNode_alloc(value_category);
     p->symbol = symbol;
 
     return p;
@@ -59,9 +69,19 @@ IdentifierExprNode_new(ValueCategory value_category, Symbol *symbol) {
 
 IntegerExprNode *
 IntegerExprNode_new(ValueCategory value_category, long long value) {
-    IntegerExprNode *p = IntegerExprNode_alloc();
-    p->value_category = value_category;
+    IntegerExprNode *p = IntegerExprNode_alloc(value_category);
     p->value = value;
+
+    return p;
+}
+
+UnaryExprNode *UnaryExprNode_new(
+    ValueCategory value_category, UnaryOp operator, ExprNode *operand) {
+    assert(operand);
+
+    UnaryExprNode *p = UnaryExprNode_alloc(value_category);
+    p->operator= operator;
+    p->operand = operand;
 
     return p;
 }
@@ -75,8 +95,7 @@ BinaryExprNode *BinaryExprNode_new(
     assert(lhs);
     assert(rhs);
 
-    BinaryExprNode *p = BinaryExprNode_alloc();
-    p->value_category = value_category;
+    BinaryExprNode *p = BinaryExprNode_alloc(value_category);
     p->operator= operator;
     p->lhs = lhs;
     p->rhs = rhs;
@@ -89,8 +108,7 @@ AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs) {
     assert(lhs);
     assert(rhs);
 
-    AssignExprNode *p = AssignExprNode_alloc();
-    p->value_category = value_category;
+    AssignExprNode *p = AssignExprNode_alloc(value_category);
     p->lhs = lhs;
     p->rhs = rhs;
 
@@ -104,8 +122,7 @@ ImplicitCastExprNode *ImplicitCastExprNode_new(
     ExprNode *expression) {
     assert(expression);
 
-    ImplicitCastExprNode *p = ImplicitCastExprNode_alloc();
-    p->value_category = value_category;
+    ImplicitCastExprNode *p = ImplicitCastExprNode_alloc(value_category);
     p->operator= operator;
     p->expression = expression;
 
@@ -244,6 +261,25 @@ static void Node_dump_int(long long x, FILE *fp, size_t depth) {
 
     Node_dump_indent(fp, depth);
     fprintf(fp, "(int %lld)\n", x);
+}
+
+static void Node_dump_UnaryOp(UnaryOp x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    const char *text;
+    switch (x) {
+#define UNARY_OP(name)                                                         \
+    case UnaryOp_##name:                                                       \
+        text = #name;                                                          \
+        break;
+#include "Ast.def"
+
+    default:
+        UNREACHABLE();
+    }
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(UnaryOp %s)\n", text);
 }
 
 static void Node_dump_BinaryOp(BinaryOp x, FILE *fp, size_t depth) {

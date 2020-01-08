@@ -47,6 +47,14 @@ EXPR_NODE(Integer)
     NODE_MEMBER_F(long long, value, int)
 NODE_END()
 
+UNARY_OP(address_of)
+UNARY_OP(dereference)
+
+EXPR_NODE(Unary)
+    NODE_MEMBER_F(UnaryOp, operator, UnaryOp)
+    NODE_MEMBER_F(ExprNode *, operand, Expr)
+NODE_END()
+
 BINARY_OP(add)
 BINARY_OP(sub)
 

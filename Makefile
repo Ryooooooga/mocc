@@ -9,6 +9,7 @@ SRCS = \
 	main.c \
 	Vec.c \
 	File.c \
+	Type.c \
 	Symbol.c \
 	Scope.c \
 	Ast.c \

@@ -72,5 +72,5 @@ try "c$LINENO" '
 try "c$LINENO" '
     int main(void) {
         int a = 5 + 2;
-        return a + a - 3;
-    }' 11
+        return a + a - 6 - 3;
+    }' 5

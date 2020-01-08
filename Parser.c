@@ -105,15 +105,48 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
     }
 }
 
-// multiplicative_expr:
-//  multiplicative_expr '+' primary_expr
-//  multiplicative_expr '-' primary_expr
+// unary_expr:
+//  '+' unary_expr
+//  '-' unary_expr
+//  '!' unary_expr
+//  '&' unary_expr
+//  '*' unary_expr
+//  'sizeof' unary_expr
 //  primary_expr
+static ExprNode *Parser_parse_unary_expr(Parser *p) {
+    assert(p);
+
+    switch (Parser_peek(p)->kind) {
+    case '+':
+    case '-':
+    case '!':
+    case '&':
+    case '*':
+    case TokenKind_kw_sizeof: {
+        // unary_op
+        const Token *operator= Parser_consume(p);
+
+        // unary_expr
+        ExprNode *operand = Parser_parse_unary_expr(p);
+
+        return Sema_act_on_unary_expr(p->sema, operator, operand);
+    }
+
+    default:
+        // primary_expr
+        return Parser_parse_primary_expr(p);
+    }
+}
+
+// multiplicative_expr:
+//  multiplicative_expr '+' unary_expr
+//  multiplicative_expr '-' unary_expr
+//  unary_expr
 static ExprNode *Parser_parse_multiplicative_expr(Parser *p) {
     assert(p);
 
     // TODO: multiplicative_expr rule
-    return Parser_parse_primary_expr(p);
+    return Parser_parse_unary_expr(p);
 }
 
 // additive_expr:

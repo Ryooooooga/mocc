@@ -3,12 +3,14 @@
 struct Sema {
     Scope *current_scope;
     Vec(Symbol) * local_variables;
+    Type *int_type;
 };
 
 Sema *Sema_new(void) {
     Sema *s = malloc(sizeof(Sema));
     s->current_scope = Scope_new(NULL);
     s->local_variables = NULL;
+    s->int_type = IntType_new();
 
     return s;
 }
@@ -45,17 +47,19 @@ static bool Sema_try_register_symbol(Sema *s, Symbol *symbol) {
 // Implicit conversion
 static ExprNode *Sema_implicit_cast(
     Sema *s,
+    Type *destination_type,
     ValueCategory value_category,
     ImplicitCastOp
     operator,
     ExprNode *expression) {
     assert(s);
+    assert(destination_type);
     assert(expression);
 
     (void)s;
 
-    ImplicitCastExprNode *node =
-        ImplicitCastExprNode_new(value_category, operator, expression);
+    ImplicitCastExprNode *node = ImplicitCastExprNode_new(
+        destination_type, value_category, operator, expression);
     return ImplicitCastExprNode_base(node);
 }
 
@@ -67,6 +71,7 @@ static void Sema_to_rvalue(Sema *s, ExprNode **expression) {
     if ((*expression)->value_category == ValueCategory_lvalue) {
         *expression = Sema_implicit_cast(
             s,
+            (*expression)->result_type,
             ValueCategory_rvalue,
             ImplicitCastOp_lvalue_to_rvalue,
             *expression);
@@ -115,9 +120,11 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
         ERROR("undeclared identifier %s\n", identifier->text);
     }
 
+    assert(symbol->type != NULL);
+
     // TODO: enumerator
     IdentifierExprNode *node =
-        IdentifierExprNode_new(ValueCategory_lvalue, symbol);
+        IdentifierExprNode_new(symbol->type, ValueCategory_lvalue, symbol);
     return IdentifierExprNode_base(node);
 }
 
@@ -129,8 +136,45 @@ ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
 
     long long value = atoll(integer->text); // TODO: conversion
 
-    IntegerExprNode *node = IntegerExprNode_new(ValueCategory_rvalue, value);
+    IntegerExprNode *node =
+        IntegerExprNode_new(s->int_type, ValueCategory_rvalue, value);
     return IntegerExprNode_base(node);
+}
+
+ExprNode *
+Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
+    assert(s);
+    assert(operator);
+    assert(operand);
+
+    Type *type;
+    ValueCategory value_category;
+    UnaryOp op;
+    switch (operator->kind) {
+    case '+':
+    case '-':
+        TODO("unary + -");
+
+    case '!':
+        TODO("unary !");
+
+    case '&':
+        op = UnaryOp_address_of;
+        TODO("unary &");
+
+    case '*':
+        op = UnaryOp_dereference;
+        TODO("unary *");
+
+    case TokenKind_kw_sizeof:
+        TODO("unary sizeof");
+
+    default:
+        ERROR("unknown unary operator %s\n", operator->text);
+    }
+
+    UnaryExprNode *node = UnaryExprNode_new(type, value_category, op, operand);
+    return UnaryExprNode_base(node);
 }
 
 ExprNode *Sema_act_on_binary_expr(
@@ -142,15 +186,21 @@ ExprNode *Sema_act_on_binary_expr(
 
     (void)s;
 
+    Type *type;
     BinaryOp op;
-
     switch (operator->kind) {
     case '+':
         // Promotion
         Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
 
-        // TODO: Type check
+        // Type check
+        if (lhs->result_type->kind == TypeKind_int &&
+            rhs->result_type->kind == TypeKind_int) {
+        } else {
+            ERROR("invalid operands to binary +\n");
+        }
 
+        type = s->int_type;
         op = BinaryOp_add;
         break;
 
@@ -158,8 +208,14 @@ ExprNode *Sema_act_on_binary_expr(
         // Promotion
         Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
 
-        // TODO: Type check
+        // Type check
+        if (lhs->result_type->kind == TypeKind_int &&
+            rhs->result_type->kind == TypeKind_int) {
+        } else {
+            ERROR("invalid operands to binary -\n");
+        }
 
+        type = s->int_type;
         op = BinaryOp_sub;
         break;
 
@@ -168,7 +224,7 @@ ExprNode *Sema_act_on_binary_expr(
     }
 
     BinaryExprNode *node =
-        BinaryExprNode_new(ValueCategory_rvalue, op, lhs, rhs);
+        BinaryExprNode_new(type, ValueCategory_rvalue, op, lhs, rhs);
     return BinaryExprNode_base(node);
 }
 
@@ -189,8 +245,6 @@ ExprNode *Sema_act_on_assign_expr(
     case '=':
         // Conversion
         Sema_assignment_conversion(s, &rhs);
-
-        // TODO: Type check
         break;
 
     default:
@@ -200,7 +254,8 @@ ExprNode *Sema_act_on_assign_expr(
     // Assignments is rvalue in C
     ValueCategory value_category = ValueCategory_rvalue;
 
-    AssignExprNode *node = AssignExprNode_new(value_category, lhs, rhs);
+    AssignExprNode *node =
+        AssignExprNode_new(lhs->result_type, value_category, lhs, rhs);
     return AssignExprNode_base(node);
 }
 
@@ -239,7 +294,8 @@ Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
     assert(identifier);
 
     // Register the symbol
-    Symbol *symbol = Symbol_new(identifier->text);
+    Symbol *symbol =
+        Symbol_new(identifier->text, s->int_type); // TODO: variable type
     if (!Sema_try_register_symbol(s, symbol)) {
         ERROR("%s is already declared in this scope\n", identifier->text);
     }

@@ -48,38 +48,45 @@
 
 #define EXPR_NODE(name)                                                        \
     static name##ExprNode *name##ExprNode_alloc(                               \
-        ValueCategory value_category) {                                        \
+        Type *result_type, ValueCategory value_category) {                     \
+        assert(result_type);                                                   \
         name##ExprNode *p = malloc(sizeof(*p));                                \
         p->kind = NodeKind_##name##Expr;                                       \
+        p->result_type = result_type;                                          \
         p->value_category = value_category;                                    \
         return p;                                                              \
     }
 #include "Ast.def"
 
 // Expressions
-IdentifierExprNode *
-IdentifierExprNode_new(ValueCategory value_category, Symbol *symbol) {
+IdentifierExprNode *IdentifierExprNode_new(
+    Type *result_type, ValueCategory value_category, Symbol *symbol) {
     assert(symbol);
 
-    IdentifierExprNode *p = IdentifierExprNode_alloc(value_category);
+    IdentifierExprNode *p =
+        IdentifierExprNode_alloc(result_type, value_category);
     p->symbol = symbol;
 
     return p;
 }
 
-IntegerExprNode *
-IntegerExprNode_new(ValueCategory value_category, long long value) {
-    IntegerExprNode *p = IntegerExprNode_alloc(value_category);
+IntegerExprNode *IntegerExprNode_new(
+    Type *result_type, ValueCategory value_category, long long value) {
+    IntegerExprNode *p = IntegerExprNode_alloc(result_type, value_category);
     p->value = value;
 
     return p;
 }
 
 UnaryExprNode *UnaryExprNode_new(
-    ValueCategory value_category, UnaryOp operator, ExprNode *operand) {
+    Type *result_type,
+    ValueCategory value_category,
+    UnaryOp
+    operator,
+    ExprNode *operand) {
     assert(operand);
 
-    UnaryExprNode *p = UnaryExprNode_alloc(value_category);
+    UnaryExprNode *p = UnaryExprNode_alloc(result_type, value_category);
     p->operator= operator;
     p->operand = operand;
 
@@ -87,6 +94,7 @@ UnaryExprNode *UnaryExprNode_new(
 }
 
 BinaryExprNode *BinaryExprNode_new(
+    Type *result_type,
     ValueCategory value_category,
     BinaryOp
     operator,
@@ -95,7 +103,7 @@ BinaryExprNode *BinaryExprNode_new(
     assert(lhs);
     assert(rhs);
 
-    BinaryExprNode *p = BinaryExprNode_alloc(value_category);
+    BinaryExprNode *p = BinaryExprNode_alloc(result_type, value_category);
     p->operator= operator;
     p->lhs = lhs;
     p->rhs = rhs;
@@ -103,12 +111,15 @@ BinaryExprNode *BinaryExprNode_new(
     return p;
 }
 
-AssignExprNode *
-AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs) {
+AssignExprNode *AssignExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *lhs,
+    ExprNode *rhs) {
     assert(lhs);
     assert(rhs);
 
-    AssignExprNode *p = AssignExprNode_alloc(value_category);
+    AssignExprNode *p = AssignExprNode_alloc(result_type, value_category);
     p->lhs = lhs;
     p->rhs = rhs;
 
@@ -116,13 +127,15 @@ AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs) {
 }
 
 ImplicitCastExprNode *ImplicitCastExprNode_new(
+    Type *result_type,
     ValueCategory value_category,
     ImplicitCastOp
     operator,
     ExprNode *expression) {
     assert(expression);
 
-    ImplicitCastExprNode *p = ImplicitCastExprNode_alloc(value_category);
+    ImplicitCastExprNode *p =
+        ImplicitCastExprNode_alloc(result_type, value_category);
     p->operator= operator;
     p->expression = expression;
 

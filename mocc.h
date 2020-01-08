@@ -130,6 +130,22 @@ VEC_DECL(DeclNode, struct DeclNode *)
 // File
 char *File_read(const char *path);
 
+// Type
+typedef enum ValueCategory {
+    ValueCategory_lvalue,
+    ValueCategory_rvalue,
+} ValueCategory;
+
+typedef enum TypeKind {
+    TypeKind_int,
+} TypeKind;
+
+typedef struct Type {
+    TypeKind kind;
+} Type;
+
+Type *IntType_new(void);
+
 // Token
 typedef int TokenKind;
 
@@ -147,12 +163,13 @@ typedef struct Token {
 // Symbol
 typedef struct Symbol {
     const char *name;
+    Type *type;
 
     // For CodeGen
     struct NativeAddress *address;
 } Symbol;
 
-Symbol *Symbol_new(const char *name);
+Symbol *Symbol_new(const char *name, Type *type);
 
 // Scope
 typedef struct Scope Scope;
@@ -162,12 +179,6 @@ Scope *Scope_parent_scope(const Scope *s);
 
 Symbol *Scope_find(Scope *s, const char *name, bool recursive);
 bool Scope_try_register(Scope *s, Symbol *symbol);
-
-// Type
-typedef enum ValueCategory {
-    ValueCategory_lvalue,
-    ValueCategory_rvalue,
-} ValueCategory;
 
 // Ast
 typedef enum NodeKind {
@@ -189,6 +200,7 @@ struct Node {
 };
 struct ExprNode {
     NodeKind kind;
+    Type *result_type;
     ValueCategory value_category;
 };
 struct StmtNode {
@@ -231,7 +243,8 @@ typedef enum ImplicitCastOp {
 
 #define EXPR_NODE(name)                                                        \
     NODE(name, Expr)                                                           \
-        NODE_MEMBER(ValueCategory, value_category)
+        NODE_MEMBER(Type *, result_type)                                       \
+        NODE_MEMBER(ValueCategory, value_category)                             \
 
 #define NODE_MEMBER(T, x)                                                      \
         T x;
@@ -242,26 +255,35 @@ typedef enum ImplicitCastOp {
 // clang-format on
 
 // Expressions
-IdentifierExprNode *
-IdentifierExprNode_new(ValueCategory value_category, Symbol *symbol);
+IdentifierExprNode *IdentifierExprNode_new(
+    Type *result_type, ValueCategory value_category, Symbol *symbol);
 
-IntegerExprNode *
-IntegerExprNode_new(ValueCategory value_category, long long value);
+IntegerExprNode *IntegerExprNode_new(
+    Type *result_type, ValueCategory value_category, long long value);
 
 UnaryExprNode *UnaryExprNode_new(
-    ValueCategory value_category, UnaryOp operator, ExprNode *operand);
+    Type *result_type,
+    ValueCategory value_category,
+    UnaryOp
+    operator,
+    ExprNode *operand);
 
 BinaryExprNode *BinaryExprNode_new(
+    Type *result_type,
     ValueCategory value_category,
     BinaryOp
     operator,
     ExprNode *lhs,
     ExprNode *rhs);
 
-AssignExprNode *
-AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs);
+AssignExprNode *AssignExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *lhs,
+    ExprNode *rhs);
 
 ImplicitCastExprNode *ImplicitCastExprNode_new(
+    Type *result_type,
     ValueCategory value_category,
     ImplicitCastOp
     operator,
@@ -313,6 +335,9 @@ Sema *Sema_new(void);
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
 ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer);
+
+ExprNode *
+Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand);
 
 ExprNode *Sema_act_on_binary_expr(
     Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs);

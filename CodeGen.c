@@ -126,7 +126,7 @@ static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
 
     fprintf(g->fp, "  pop rdi\n");
     fprintf(g->fp, "  pop rax\n");
-    fprintf(g->fp, "  mov [rdi], eax\n");
+    fprintf(g->fp, "  mov [rdi], rax\n");
     fprintf(g->fp, "  push rax\n");
 }
 
@@ -139,7 +139,7 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
     switch (p->operator) {
     case ImplicitCastOp_lvalue_to_rvalue:
         fprintf(g->fp, "  pop rax\n");
-        fprintf(g->fp, "  mov eax, [rax]\n");
+        fprintf(g->fp, "  mov rax, [rax]\n");
         fprintf(g->fp, "  push rax\n");
         break;
 
@@ -237,7 +237,7 @@ static NativeAddress *CodeGen_alloca_object(CodeGen *g, int *stack_top) {
 
     (void)g;
 
-    *stack_top -= sizeof(int); // TODO: size of type
+    *stack_top -= 8; // TODO: size of type
     return NativeAddress_new(NativeAddressType_stack, *stack_top);
 }
 

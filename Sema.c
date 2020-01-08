@@ -316,15 +316,88 @@ Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
     assert(s);
     assert(identifier);
 
+    (void)s;
+
     // Register the symbol
-    Symbol *symbol =
-        Symbol_new(identifier->text, s->int_type); // TODO: variable type
-    if (!Sema_try_register_symbol(s, symbol)) {
-        ERROR("%s is already declared in this scope\n", identifier->text);
-    }
+    Symbol *symbol = Symbol_new(identifier->text, NULL);
 
     DirectDeclaratorNode *node = DirectDeclaratorNode_new(symbol);
     return DirectDeclaratorNode_base(node);
+}
+
+DeclaratorNode *
+Sema_act_on_pointer_declarator(Sema *s, DeclaratorNode *declarator) {
+    assert(s);
+    assert(declarator);
+
+    (void)s;
+
+    PointerDeclaratorNode *node = PointerDeclaratorNode_new(declarator);
+    return PointerDeclaratorNode_base(node);
+}
+
+static void
+Sema_complete_declarator(Sema *s, DeclaratorNode *declarator, Type *base_type);
+
+static void Sema_complete_declarator_Direct(
+    Sema *s, DirectDeclaratorNode *declarator, Type *base_type) {
+    assert(s);
+    assert(declarator);
+    assert(base_type);
+
+    if (!Sema_try_register_symbol(s, declarator->symbol)) {
+        ERROR(
+            "%s is already declared in this scope\n", declarator->symbol->name);
+    }
+
+    declarator->symbol->type = base_type;
+}
+
+static void Sema_complete_declarator_Pointer(
+    Sema *s, PointerDeclaratorNode *declarator, Type *base_type) {
+    assert(s);
+    assert(declarator);
+    assert(base_type);
+
+    Sema_complete_declarator(
+        s, declarator->declarator, PointerType_new(base_type));
+}
+
+static void Sema_complete_declarator_Init(
+    Sema *s, InitDeclaratorNode *declarator, Type *base_type) {
+    (void)s;
+    (void)declarator;
+    (void)base_type;
+    UNREACHABLE();
+}
+
+static void
+Sema_complete_declarator(Sema *s, DeclaratorNode *declarator, Type *base_type) {
+    assert(s);
+    assert(declarator);
+
+    switch (declarator->kind) {
+#define DECLARATOR_NODE(name)                                                  \
+    case NodeKind_##name##Declarator:                                          \
+        Sema_complete_declarator_##name(                                       \
+            s, name##DeclaratorNode_cast(declarator), base_type);              \
+        break;
+#include "Ast.def"
+
+    default:
+        UNREACHABLE();
+    }
+}
+
+DeclaratorNode *
+Sema_act_on_declarator_completed(Sema *s, DeclaratorNode *declarator) {
+    assert(s);
+    assert(declarator);
+
+    Type *base_type = s->int_type; // TODO: base_type
+
+    Sema_complete_declarator(s, declarator, base_type);
+    return declarator;
 }
 
 DeclaratorNode *Sema_act_on_init_declarator(

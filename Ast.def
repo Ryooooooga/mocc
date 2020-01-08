@@ -96,6 +96,10 @@ DECLARATOR_NODE(Direct)
     NODE_MEMBER_F(Symbol *, symbol, symbol)
 NODE_END()
 
+DECLARATOR_NODE(Pointer)
+    NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)
+NODE_END()
+
 DECLARATOR_NODE(Init)
     NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)
     NODE_MEMBER_F(ExprNode *, initializer, Expr)

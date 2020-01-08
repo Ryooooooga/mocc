@@ -257,15 +257,46 @@ static StmtNode *Parser_parse_return_stmt(Parser *p) {
     return Sema_act_on_return_stmt(p->sema, return_value);
 }
 
-// declarator:
-//  TODO: declarator rule
-static DeclaratorNode *Parser_parse_declarator(Parser *p) {
+// direct_declarator:
+//  identifier
+static DeclaratorNode *Parser_parse_direct_declarator(Parser *p) {
     assert(p);
 
-    // TODO: declarator rule
+    // TODO: direct declarator rule
     const Token *identifier = Parser_expect(p, TokenKind_identifier);
 
     return Sema_act_on_direct_declarator(p->sema, identifier);
+}
+
+// pointer_declarator:
+//  '*' pointer_declarator
+//  direct_declarator
+static DeclaratorNode *Parser_parse_pointer_declarator(Parser *p) {
+    assert(p);
+
+    if (Parser_peek(p)->kind != '*') {
+        // direct_declarator
+        return Parser_parse_direct_declarator(p);
+    }
+
+    // '*'
+    Parser_expect(p, '*');
+
+    // pointer_declarator
+    DeclaratorNode *declarator = Parser_parse_pointer_declarator(p);
+
+    return Sema_act_on_pointer_declarator(p->sema, declarator);
+}
+
+// declarator:
+//  pointer_declarator
+static DeclaratorNode *Parser_parse_declarator(Parser *p) {
+    assert(p);
+
+    // pointer_declarator
+    DeclaratorNode *declarator = Parser_parse_pointer_declarator(p);
+
+    return Sema_act_on_declarator_completed(p->sema, declarator);
 }
 
 // initializer:

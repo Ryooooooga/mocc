@@ -193,6 +193,21 @@ static Symbol *DirectDeclaratorNode_symbol(const DirectDeclaratorNode *p) {
     return p->symbol;
 }
 
+PointerDeclaratorNode *PointerDeclaratorNode_new(DeclaratorNode *declarator) {
+    assert(declarator);
+
+    PointerDeclaratorNode *p = PointerDeclaratorNode_alloc();
+    p->declarator = declarator;
+
+    return p;
+}
+
+static Symbol *PointerDeclaratorNode_symbol(const PointerDeclaratorNode *p) {
+    assert(p);
+
+    return DeclaratorNode_symbol(p->declarator);
+}
+
 InitDeclaratorNode *
 InitDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *initializer) {
     assert(declarator);

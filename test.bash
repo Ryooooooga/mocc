@@ -81,3 +81,18 @@ try "c$LINENO" '
         *&a = 5;
         return *&a;
     }' 5
+
+try "c$LINENO" '
+    int main(void) {
+        int a = 5;
+        int *p = &a;
+        return *p;
+    }' 5
+
+try "c$LINENO" '
+    int main(void) {
+        int a;
+        int *p = &a;
+        *p = 10;
+        return a;
+    }' 10

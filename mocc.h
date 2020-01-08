@@ -305,6 +305,8 @@ ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 // Declarators
 DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
 
+PointerDeclaratorNode *PointerDeclaratorNode_new(DeclaratorNode *declarator);
+
 InitDeclaratorNode *
 InitDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *initializer);
 
@@ -359,6 +361,12 @@ StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
 
 // Declarators
 DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
+
+DeclaratorNode *
+Sema_act_on_pointer_declarator(Sema *s, DeclaratorNode *declarator);
+
+DeclaratorNode *
+Sema_act_on_declarator_completed(Sema *s, DeclaratorNode *declarator);
 
 DeclaratorNode *Sema_act_on_init_declarator(
     Sema *s, DeclaratorNode *declarator, ExprNode *initializer);

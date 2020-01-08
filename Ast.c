@@ -167,6 +167,19 @@ CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements) {
     return p;
 }
 
+IfStmtNode *
+IfStmtNode_new(ExprNode *condition, StmtNode *if_true, StmtNode *if_false) {
+    assert(condition);
+    assert(if_true);
+
+    IfStmtNode *p = IfStmtNode_alloc();
+    p->condition = condition;
+    p->if_true = if_true;
+    p->if_false = if_false;
+
+    return p;
+}
+
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value) {
     ReturnStmtNode *p = ReturnStmtNode_alloc();
     p->return_value = return_value;

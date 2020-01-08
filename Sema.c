@@ -324,6 +324,21 @@ ExprNode *Sema_act_on_assign_expr(
 }
 
 // Statements
+StmtNode *Sema_act_on_if_stmt(
+    Sema *s, ExprNode *condition, StmtNode *if_true, StmtNode *if_false) {
+    assert(s);
+    assert(condition);
+    assert(if_true);
+
+    // Conversion
+    Sema_decay_conversion(s, &condition);
+
+    // TODO: Type check
+
+    IfStmtNode *node = IfStmtNode_new(condition, if_true, if_false);
+    return IfStmtNode_base(node);
+}
+
 StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value) {
     assert(s);
 
@@ -349,6 +364,16 @@ StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators) {
 
     DeclStmtNode *node = DeclStmtNode_new(declarators);
     return DeclStmtNode_base(node);
+}
+
+StmtNode *Sema_act_on_expr_stmt(Sema *s, ExprNode *expression) {
+    assert(s);
+    assert(expression);
+
+    (void)s;
+
+    ExprStmtNode *node = ExprStmtNode_new(expression);
+    return ExprStmtNode_base(node);
 }
 
 // Declarators

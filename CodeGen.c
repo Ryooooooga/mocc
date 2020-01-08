@@ -251,6 +251,36 @@ static void CodeGen_gen_CompoundStmt(CodeGen *g, CompoundStmtNode *p) {
     }
 }
 
+static void CodeGen_gen_IfStmt(CodeGen *g, IfStmtNode *p) {
+    assert(g);
+    assert(p);
+
+    int else_label = CodeGen_next_label(g);
+    int end_label = CodeGen_next_label(g);
+
+    // Condition
+    CodeGen_gen_expr(g, p->condition);
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  cmp rax, 0\n");
+    fprintf(g->fp, "  je .L%d\n", else_label);
+
+    // Then
+    CodeGen_gen_stmt(g, p->if_true);
+
+    fprintf(g->fp, "  jmp .L%d\n", end_label);
+
+    // Else
+    fprintf(g->fp, ".L%d:\n", else_label);
+
+    if (p->if_false != NULL) {
+        CodeGen_gen_stmt(g, p->if_false);
+    }
+
+    // End if
+    fprintf(g->fp, ".L%d:\n", end_label);
+}
+
 static void CodeGen_gen_ReturnStmt(CodeGen *g, ReturnStmtNode *p) {
     assert(g);
     assert(p);

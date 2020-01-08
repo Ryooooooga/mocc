@@ -302,6 +302,41 @@ static StmtNode *Parser_parse_compound_stmt(Parser *p) {
     return CompoundStmtNode_base(CompoundStmtNode_new(statements));
 }
 
+// if_stmt:
+//  'if' '(' expr ')' stmt 'else' stmt
+//  'if' '(' expr ')' stmt
+static StmtNode *Parser_parse_if_stmt(Parser *p) {
+    assert(p);
+
+    // 'if'
+    Parser_expect(p, TokenKind_kw_if);
+
+    // '('
+    Parser_expect(p, '(');
+
+    // expr
+    ExprNode *condition = Parser_parse_comma_expr(p);
+
+    // ')'
+    Parser_expect(p, ')');
+
+    // stmt
+    StmtNode *if_true = Parser_parse_stmt(p);
+
+    // ['else' stmt]
+    StmtNode *if_false = NULL;
+
+    if (Parser_current(p)->kind == TokenKind_kw_else) {
+        // 'else'
+        Parser_expect(p, TokenKind_kw_else);
+
+        // stmt
+        if_false = Parser_parse_stmt(p);
+    }
+
+    return Sema_act_on_if_stmt(p->sema, condition, if_true, if_false);
+}
+
 // return_stmt:
 //  'return' [comma_expr] ';'
 static StmtNode *Parser_parse_return_stmt(Parser *p) {
@@ -523,11 +558,16 @@ static StmtNode *Parser_parse_expr_stmt(Parser *p) {
     // ';'
     Parser_expect(p, ';');
 
-    return ExprStmtNode_base(ExprStmtNode_new(expression));
+    return Sema_act_on_expr_stmt(p->sema, expression);
 }
 
 // stmt:
 //  compound_stmt
+//  if_stmt
+//  while_stmt
+//  do_stmt
+//  for_stmt
+//  switch_stmt
 //  return_stmt
 //  decl_stmt
 //  expr_stmt
@@ -538,6 +578,10 @@ static StmtNode *Parser_parse_stmt(Parser *p) {
     case '{':
         // compound_stmt
         return Parser_parse_compound_stmt(p);
+
+    case TokenKind_kw_if:
+        // if_stmt
+        return Parser_parse_if_stmt(p);
 
     case TokenKind_kw_return:
         // return_stmt

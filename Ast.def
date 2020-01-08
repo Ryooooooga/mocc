@@ -84,6 +84,12 @@ STMT_NODE(Compound)
     NODE_MEMBER_F(Vec(StmtNode) *, statements, Stmts)
 NODE_END()
 
+STMT_NODE(If)
+    NODE_MEMBER_F(ExprNode *, condition, Expr)
+    NODE_MEMBER_F(StmtNode *, if_true, Stmt)
+    NODE_MEMBER_F(StmtNode *, if_false, Stmt)
+NODE_END()
+
 STMT_NODE(Return)
     NODE_MEMBER_F(ExprNode *, return_value, Expr)
 NODE_END()

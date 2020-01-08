@@ -1,20 +1,8 @@
-name: C
+name: Test
 
 on: [push]
 
 jobs:
-  format:
-    name: Format - ubuntu
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v1
-      - uses: DoozyX/clang-format-lint-action@v0.5
-        with:
-          source: "."
-          extensions: "c,h"
-          clangFormatVersion: 9
-
   build:
     strategy:
       fail-fast: false
@@ -31,7 +19,5 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
-      - name: make BUILD_TYPE=${{ matrix.build-type }}
-        run: make BUILD_TYPE=${{ matrix.build-type }}
       - name: make test BUILD_TYPE=${{ matrix.build-type }}
         run: make test BUILD_TYPE=${{ matrix.build-type }}

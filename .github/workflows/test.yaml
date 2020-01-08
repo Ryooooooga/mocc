@@ -10,14 +10,19 @@ jobs:
         os:
           - ubuntu-latest
           - macOS-latest
+        cc:
+          - gcc
+          - clang
         build-type:
           - debug
           - release
 
-    name: Build ${{ matrix.build-type }} - ${{ matrix.os }}
+    name: Build ${{ matrix.build-type }} - ${{ matrix.os }} - ${{ matrix.cc }}
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v1
-      - name: make test BUILD_TYPE=${{ matrix.build-type }}
-        run: make test BUILD_TYPE=${{ matrix.build-type }}
+      - name: ${{ matrix.cc }} -v
+        run: ${{ matrix.cc }} -v
+      - name: make test CC=${{ matrix.cc }} BUILD_TYPE=${{ matrix.build-type }}
+        run: make test CC=${{ matrix.cc }} BUILD_TYPE=${{ matrix.build-type }}

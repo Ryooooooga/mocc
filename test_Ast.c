@@ -45,14 +45,16 @@ void test_Ast(void) {
 
     check_Node_dump(
         "ast_integer_expr1",
-        IntegerExprNode_cbase_node(IntegerExprNode_new(0)),
+        IntegerExprNode_cbase_node(
+            IntegerExprNode_new(ValueCategory_rvalue, 0)),
         "(IntegerExpr\n"
         "  (int 0)\n"
         ")\n");
 
     check_Node_dump(
         "ast_integer_expr2",
-        IntegerExprNode_cbase_node(IntegerExprNode_new(42)),
+        IntegerExprNode_cbase_node(
+            IntegerExprNode_new(ValueCategory_rvalue, 42)),
         "(IntegerExpr\n"
         "  (int 42)\n"
         ")\n");
@@ -66,8 +68,8 @@ void test_Ast(void) {
 
     check_Node_dump(
         "ast_return_stmt2s",
-        ReturnStmtNode_cbase_node(
-            ReturnStmtNode_new(IntegerExprNode_base(IntegerExprNode_new(42)))),
+        ReturnStmtNode_cbase_node(ReturnStmtNode_new(IntegerExprNode_base(
+            IntegerExprNode_new(ValueCategory_rvalue, 42)))),
         "(ReturnStmt\n"
         "  (IntegerExpr\n"
         "    (int 42)\n"

@@ -163,6 +163,12 @@ Scope *Scope_parent_scope(const Scope *s);
 Symbol *Scope_find(Scope *s, const char *name, bool recursive);
 bool Scope_try_register(Scope *s, Symbol *symbol);
 
+// Type
+typedef enum ValueCategory {
+    ValueCategory_lvalue,
+    ValueCategory_rvalue,
+} ValueCategory;
+
 // Ast
 typedef enum NodeKind {
 #define NODE(name, base) NodeKind_##name##base,
@@ -183,6 +189,7 @@ struct Node {
 };
 struct ExprNode {
     NodeKind kind;
+    ValueCategory value_category;
 };
 struct StmtNode {
     NodeKind kind;
@@ -213,6 +220,10 @@ typedef enum BinaryOp {
     struct name##base##Node {                                                  \
         NODE_MEMBER(NodeKind, kind)
 
+#define EXPR_NODE(name)                                                        \
+    NODE(name, Expr)                                                           \
+        NODE_MEMBER(ValueCategory, value_category)
+
 #define NODE_MEMBER(T, x)                                                      \
         T x;
 
@@ -221,24 +232,40 @@ typedef enum BinaryOp {
 #include "Ast.def"
 // clang-format on
 
-IdentifierExprNode *IdentifierExprNode_new(Symbol *symbol);
-IntegerExprNode *IntegerExprNode_new(long long value);
-BinaryExprNode *
-BinaryExprNode_new(BinaryOp operator, ExprNode *lhs, ExprNode *rhs);
-AssignExprNode *AssignExprNode_new(ExprNode *lhs, ExprNode *rhs);
+// Expressions
+IdentifierExprNode *
+IdentifierExprNode_new(ValueCategory value_category, Symbol *symbol);
 
+IntegerExprNode *
+IntegerExprNode_new(ValueCategory value_category, long long value);
+
+BinaryExprNode *BinaryExprNode_new(
+    ValueCategory value_category,
+    BinaryOp
+    operator,
+    ExprNode *lhs,
+    ExprNode *rhs);
+
+AssignExprNode *
+AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs);
+
+// Statements
 CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements);
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value);
 DeclStmtNode *DeclStmtNode_new(Vec(DeclaratorNode) * declarators);
 ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 
+// Declarators
 DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
+
 InitDeclaratorNode *
 InitDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *initializer);
 
+// Declarations
 FunctionDeclNode *FunctionDeclNode_new(
     DeclaratorNode *declarator, StmtNode *body, Vec(Symbol) * local_variables);
 
+// Miscs
 TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations);
 
 Symbol *DeclaratorNode_symbol(const DeclaratorNode *p);
@@ -264,16 +291,27 @@ typedef struct Sema Sema;
 
 Sema *Sema_new(void);
 
+// Expressions
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
+
+ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer);
+
 ExprNode *Sema_act_on_binary_expr(
     Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs);
 
+ExprNode *Sema_act_on_assign_expr(
+    Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs);
+
+// Statements
 StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
 
+// Declarators
 DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
+
 DeclaratorNode *Sema_act_on_init_declarator(
     Sema *s, DeclaratorNode *declarator, ExprNode *initializer);
 
+// Declarations
 void Sema_act_on_function_decl_start_of_body(
     Sema *s, DeclaratorNode *declarator);
 DeclNode *Sema_act_on_function_decl_end_of_body(

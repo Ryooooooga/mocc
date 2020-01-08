@@ -80,9 +80,8 @@ static ExprNode *Parser_parse_number_expr(Parser *p) {
 
     // number
     const Token *num = Parser_expect(p, TokenKind_number);
-    long long value = atoll(num->text); // TODO: conversion
 
-    return IntegerExprNode_base(IntegerExprNode_new(value));
+    return Sema_act_on_integer_expr(p->sema, num);
 }
 
 // primary_expr:
@@ -163,12 +162,12 @@ static ExprNode *Parser_parse_assign_expr(Parser *p) {
     }
 
     // '='
-    Parser_expect(p, '=');
+    const Token *operator= Parser_expect(p, '=');
 
     // assign_expr
     ExprNode *rhs = Parser_parse_assign_expr(p);
 
-    return AssignExprNode_base(AssignExprNode_new(lhs, rhs));
+    return Sema_act_on_assign_expr(p->sema, lhs, operator, rhs);
 }
 
 // comma_expr:

@@ -46,28 +46,37 @@
 #include "Ast.def"
 
 // Expressions
-IdentifierExprNode *IdentifierExprNode_new(Symbol *symbol) {
+IdentifierExprNode *
+IdentifierExprNode_new(ValueCategory value_category, Symbol *symbol) {
     assert(symbol);
 
     IdentifierExprNode *p = IdentifierExprNode_alloc();
+    p->value_category = value_category;
     p->symbol = symbol;
 
     return p;
 }
 
-IntegerExprNode *IntegerExprNode_new(long long value) {
+IntegerExprNode *
+IntegerExprNode_new(ValueCategory value_category, long long value) {
     IntegerExprNode *p = IntegerExprNode_alloc();
+    p->value_category = value_category;
     p->value = value;
 
     return p;
 }
 
-BinaryExprNode *
-BinaryExprNode_new(BinaryOp operator, ExprNode *lhs, ExprNode *rhs) {
+BinaryExprNode *BinaryExprNode_new(
+    ValueCategory value_category,
+    BinaryOp
+    operator,
+    ExprNode *lhs,
+    ExprNode *rhs) {
     assert(lhs);
     assert(rhs);
 
     BinaryExprNode *p = BinaryExprNode_alloc();
+    p->value_category = value_category;
     p->operator= operator;
     p->lhs = lhs;
     p->rhs = rhs;
@@ -75,11 +84,13 @@ BinaryExprNode_new(BinaryOp operator, ExprNode *lhs, ExprNode *rhs) {
     return p;
 }
 
-AssignExprNode *AssignExprNode_new(ExprNode *lhs, ExprNode *rhs) {
+AssignExprNode *
+AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs) {
     assert(lhs);
     assert(rhs);
 
     AssignExprNode *p = AssignExprNode_alloc();
+    p->value_category = value_category;
     p->lhs = lhs;
     p->rhs = rhs;
 

@@ -53,8 +53,22 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
         ERROR("undeclared identifier %s\n", identifier->text);
     }
 
-    IdentifierExprNode *node = IdentifierExprNode_new(symbol);
+    // TODO: enumerator
+    IdentifierExprNode *node =
+        IdentifierExprNode_new(ValueCategory_lvalue, symbol);
     return IdentifierExprNode_base(node);
+}
+
+ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
+    assert(s);
+    assert(integer);
+
+    (void)s;
+
+    long long value = atoll(integer->text); // TODO: conversion
+
+    IntegerExprNode *node = IntegerExprNode_new(ValueCategory_rvalue, value);
+    return IntegerExprNode_base(node);
 }
 
 ExprNode *Sema_act_on_binary_expr(
@@ -87,8 +101,38 @@ ExprNode *Sema_act_on_binary_expr(
         ERROR("unknown binary operator %s\n", operator->text);
     }
 
-    BinaryExprNode *node = BinaryExprNode_new(op, lhs, rhs);
+    BinaryExprNode *node =
+        BinaryExprNode_new(ValueCategory_rvalue, op, lhs, rhs);
     return BinaryExprNode_base(node);
+}
+
+ExprNode *Sema_act_on_assign_expr(
+    Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs) {
+    assert(s);
+    assert(lhs);
+    assert(operator);
+    assert(rhs);
+
+    (void)s;
+
+    if (lhs->value_category != ValueCategory_lvalue) {
+        ERROR("expression is not assignable\n");
+    }
+
+    switch (operator->kind) {
+    case '=':
+        // TODO: Type check
+        break;
+
+    default:
+        ERROR("unknown assignment operator %s\n", operator->text);
+    }
+
+    // Assignments is rvalue in C
+    ValueCategory value_category = ValueCategory_rvalue;
+
+    AssignExprNode *node = AssignExprNode_new(value_category, lhs, rhs);
+    return AssignExprNode_base(node);
 }
 
 // Statements

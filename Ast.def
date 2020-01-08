@@ -61,6 +61,11 @@ EXPR_NODE(Assign)
     NODE_MEMBER_F(ExprNode *, rhs, Expr)
 NODE_END()
 
+EXPR_NODE(ImplicitCast)
+    NODE_MEMBER_F(ImplicitCastOp, operator, ImplicitCastOp)
+    NODE_MEMBER_F(ExprNode *, expression, Expr)
+NODE_END()
+
 // Statements
 STMT_NODE(Compound)
     NODE_MEMBER_F(Vec(StmtNode) *, statements, Stmts)

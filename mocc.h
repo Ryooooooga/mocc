@@ -206,6 +206,10 @@ typedef enum BinaryOp {
 #include "Ast.def"
 } BinaryOp;
 
+typedef enum ImplicitCastOp {
+    ImplicitCastOp_lvalue_to_rvalue,
+} ImplicitCastOp;
+
 // clang-format off
 #define NODE(name, base)                                                       \
     Node *name##base##Node_base_node(name##base##Node *p);                     \
@@ -248,6 +252,12 @@ BinaryExprNode *BinaryExprNode_new(
 
 AssignExprNode *
 AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs);
+
+ImplicitCastExprNode *ImplicitCastExprNode_new(
+    ValueCategory value_category,
+    ImplicitCastOp
+    operator,
+    ExprNode *expression);
 
 // Statements
 CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements);
@@ -303,6 +313,8 @@ ExprNode *Sema_act_on_assign_expr(
     Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs);
 
 // Statements
+StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value);
+
 StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
 
 // Declarators

@@ -42,6 +42,68 @@ static bool Sema_try_register_symbol(Sema *s, Symbol *symbol) {
     return Scope_try_register(s->current_scope, symbol);
 }
 
+// Implicit conversion
+static ExprNode *Sema_implicit_cast(
+    Sema *s,
+    ValueCategory value_category,
+    ImplicitCastOp
+    operator,
+    ExprNode *expression) {
+    assert(s);
+    assert(expression);
+
+    (void)s;
+
+    ImplicitCastExprNode *node =
+        ImplicitCastExprNode_new(value_category, operator, expression);
+    return ImplicitCastExprNode_base(node);
+}
+
+static void Sema_to_rvalue(Sema *s, ExprNode **expression) {
+    assert(s);
+    assert(expression);
+    assert(*expression);
+
+    if ((*expression)->value_category == ValueCategory_lvalue) {
+        *expression = Sema_implicit_cast(
+            s,
+            ValueCategory_rvalue,
+            ImplicitCastOp_lvalue_to_rvalue,
+            *expression);
+    }
+}
+
+static void Sema_integer_promotion(Sema *s, ExprNode **expression) {
+    assert(s);
+    assert(expression);
+    assert(*expression);
+
+    // TODO: integer promotion
+    Sema_to_rvalue(s, expression);
+}
+
+static void
+Sema_usual_arithmetic_conversion(Sema *s, ExprNode **lhs, ExprNode **rhs) {
+    assert(s);
+    assert(lhs);
+    assert(*lhs);
+    assert(rhs);
+    assert(*rhs);
+
+    // TODO: usual arithmetic conversion
+    Sema_integer_promotion(s, lhs);
+    Sema_integer_promotion(s, rhs);
+}
+
+static void Sema_assignment_conversion(Sema *s, ExprNode **expression) {
+    assert(s);
+    assert(expression);
+    assert(*expression);
+
+    // TODO: assignment conversion
+    Sema_to_rvalue(s, expression);
+}
+
 // Expressions
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
     assert(s);
@@ -83,19 +145,23 @@ ExprNode *Sema_act_on_binary_expr(
     BinaryOp op;
 
     switch (operator->kind) {
-    case '+': {
+    case '+':
+        // Promotion
+        Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
+
         // TODO: Type check
 
         op = BinaryOp_add;
         break;
-    }
 
-    case '-': {
+    case '-':
+        // Promotion
+        Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
+
         // TODO: Type check
 
         op = BinaryOp_sub;
         break;
-    }
 
     default:
         ERROR("unknown binary operator %s\n", operator->text);
@@ -121,6 +187,9 @@ ExprNode *Sema_act_on_assign_expr(
 
     switch (operator->kind) {
     case '=':
+        // Conversion
+        Sema_assignment_conversion(s, &rhs);
+
         // TODO: Type check
         break;
 
@@ -136,6 +205,19 @@ ExprNode *Sema_act_on_assign_expr(
 }
 
 // Statements
+StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value) {
+    assert(s);
+
+    // TODO: Type check
+    if (return_value != NULL) {
+        // Conversion
+        Sema_assignment_conversion(s, &return_value);
+    }
+
+    ReturnStmtNode *node = ReturnStmtNode_new(return_value);
+    return ReturnStmtNode_base(node);
+}
+
 StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators) {
     assert(declarators);
 
@@ -172,8 +254,10 @@ DeclaratorNode *Sema_act_on_init_declarator(
     assert(declarator);
     assert(initializer);
 
+    // Conversion
+    Sema_assignment_conversion(s, &initializer);
+
     // TODO: Type check
-    (void)s;
 
     InitDeclaratorNode *node = InitDeclaratorNode_new(declarator, initializer);
     return InitDeclaratorNode_base(node);

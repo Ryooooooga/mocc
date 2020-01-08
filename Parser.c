@@ -221,7 +221,7 @@ static StmtNode *Parser_parse_return_stmt(Parser *p) {
     // ';'
     Parser_expect(p, ';');
 
-    return ReturnStmtNode_base(ReturnStmtNode_new(return_value));
+    return Sema_act_on_return_stmt(p->sema, return_value);
 }
 
 // declarator:

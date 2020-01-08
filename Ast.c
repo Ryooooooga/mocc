@@ -97,6 +97,21 @@ AssignExprNode_new(ValueCategory value_category, ExprNode *lhs, ExprNode *rhs) {
     return p;
 }
 
+ImplicitCastExprNode *ImplicitCastExprNode_new(
+    ValueCategory value_category,
+    ImplicitCastOp
+    operator,
+    ExprNode *expression) {
+    assert(expression);
+
+    ImplicitCastExprNode *p = ImplicitCastExprNode_alloc();
+    p->value_category = value_category;
+    p->operator= operator;
+    p->expression = expression;
+
+    return p;
+}
+
 // Statements
 CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements) {
     assert(statements);
@@ -248,6 +263,23 @@ static void Node_dump_BinaryOp(BinaryOp x, FILE *fp, size_t depth) {
 
     Node_dump_indent(fp, depth);
     fprintf(fp, "(BinaryOp %s)\n", text);
+}
+
+static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    const char *text;
+    switch (x) {
+    case ImplicitCastOp_lvalue_to_rvalue:
+        text = "lvalue_to_rvalue";
+        break;
+
+    default:
+        UNREACHABLE();
+    }
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(ImplicitCastOp %s)\n", text);
 }
 
 static void Node_dump_Expr(const ExprNode *x, FILE *fp, size_t depth) {

@@ -63,10 +63,6 @@ static void CodeGen_gen_IdentifierExpr(CodeGen *g, IdentifierExprNode *p) {
     assert(p);
 
     CodeGen_load_address(g, p->symbol->address);
-
-    fprintf(g->fp, "  pop rax\n");
-    fprintf(g->fp, "  mov eax, [rax]\n");
-    fprintf(g->fp, "  push rax\n");
 }
 
 static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
@@ -114,6 +110,24 @@ static void CodeGen_gen_AssignExpr(CodeGen *g, AssignExprNode *p) {
     CodeGen_store(g, lhs->symbol->address);
 
     fprintf(g->fp, "  push rax\n");
+}
+
+static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
+    assert(g);
+    assert(p);
+
+    CodeGen_gen_expr(g, p->expression);
+
+    switch (p->operator) {
+    case ImplicitCastOp_lvalue_to_rvalue:
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  mov eax, [rax]\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    default:
+        ERROR("unknown implicit cast operator %d\n", p->operator);
+    }
 }
 
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p) {

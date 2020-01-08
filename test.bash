@@ -13,12 +13,15 @@ try() {
     local input=$2
     local expected=$3
 
+    local c="$dir/tmp/$test_name.c"
     local asm="$dir/tmp/$test_name.s"
     local bin="$dir/tmp/$test_name"
 
     local exit_code
 
-    "./build/$BUILD_TYPE/mocc" "$input" > "$asm"
+    echo -n "$input" > "$c"
+
+    "./build/$BUILD_TYPE/mocc" "$(cat "$c")" > "$asm"
     exit_code="$?"
     if [ "$exit_code" -ne 0 ]; then
         echo "$test_name: compilation failed with exit code $exit_code"
@@ -39,7 +42,7 @@ try() {
         exit 1
     fi
 
-    rm "$asm" "$bin"
+    rm "$c" "$asm" "$bin"
 }
 
 try "c$LINENO" '

@@ -6,6 +6,9 @@
 #define FUNC_PREFIX ""
 #endif
 
+static const char *const registers[6] = {
+    "rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
 enum NativeAddressType {
     NativeAddressType_label,
     NativeAddressType_stack,
@@ -118,7 +121,23 @@ static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
     assert(g);
     assert(p);
 
-    // TODO: Arguments
+    // Arguments
+    size_t num_arguments = Vec_len(ExprNode)(p->arguments);
+
+    if (num_arguments > 6) {
+        ERROR("too much arguments");
+    }
+
+    for (size_t i = 0; i < num_arguments; i++) {
+        size_t index = num_arguments - i - 1;
+        ExprNode *argument = Vec_get(ExprNode)(p->arguments, index);
+
+        CodeGen_gen_expr(g, argument);
+    }
+
+    for (size_t i = 0; i < num_arguments; i++) {
+        fprintf(g->fp, "  pop %s\n", registers[i]);
+    }
 
     // Callee
     CodeGen_gen_expr(g, p->callee);
@@ -299,20 +318,55 @@ static NativeAddress *CodeGen_alloca_object(CodeGen *g, int *stack_top) {
     return NativeAddress_new_stack(*stack_top);
 }
 
-static void
-CodeGen_allocate_local_variables(CodeGen *g, Vec(Symbol) * local_variables) {
+static void CodeGen_allocate_parameters(
+    CodeGen *g, Vec(DeclaratorNode) * parameters, int *stack_top) {
+    assert(g);
+    assert(parameters);
+    assert(stack_top);
+
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i++) {
+        DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, i);
+        Symbol *symbol = DeclaratorNode_symbol(parameter);
+
+        symbol->address = CodeGen_alloca_object(g, stack_top);
+    }
+}
+
+static void CodeGen_allocate_local_variables(
+    CodeGen *g, Vec(Symbol) * local_variables, int *stack_top) {
     assert(g);
     assert(local_variables);
-
-    int stack_top = 0;
+    assert(stack_top);
 
     for (size_t i = 0; i < Vec_len(Symbol)(local_variables); i++) {
         Symbol *symbol = Vec_get(Symbol)(local_variables, i);
 
-        symbol->address = CodeGen_alloca_object(g, &stack_top);
+        symbol->address = CodeGen_alloca_object(g, stack_top);
+    }
+}
+
+static void
+CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
+    assert(g);
+    assert(parameters);
+
+    size_t len = Vec_len(DeclaratorNode)(parameters);
+
+    if (len > 6) {
+        ERROR("too much parameters\n");
     }
 
-    fprintf(g->fp, "  sub rsp, %d\n", -stack_top);
+    for (size_t i = 0; i < len; i++) {
+        size_t index = len - i - 1;
+
+        DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, index);
+        Symbol *symbol = DeclaratorNode_symbol(parameter);
+        NativeAddress *address = symbol->address;
+
+        assert(address->type == NativeAddressType_stack);
+        fprintf(
+            g->fp, "  mov [rbp%+d], %s\n", address->offset, registers[index]);
+    }
 }
 
 static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
@@ -330,7 +384,15 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     fprintf(g->fp, "  push rbp\n");
     fprintf(g->fp, "  mov rbp, rsp\n");
 
-    CodeGen_allocate_local_variables(g, p->local_variables);
+    int stack_top = 0;
+
+    Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(p->declarator);
+    CodeGen_allocate_parameters(g, parameters, &stack_top);
+    CodeGen_allocate_local_variables(g, p->local_variables, &stack_top);
+
+    fprintf(g->fp, "  sub rsp, %d\n", -stack_top);
+
+    CodeGen_store_parameters(g, parameters);
 
     // Body
     g->return_label = CodeGen_next_label(g);

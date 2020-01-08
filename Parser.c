@@ -17,15 +17,21 @@ Parser *Parser_new(const Vec(Token) * tokens) {
     return p;
 }
 
-static const Token *Parser_peek(const Parser *p) {
+static const Token *Parser_current(const Parser *p) {
     assert(p);
 
     return Vec_get(Token)(p->tokens, p->cursor);
 }
 
+static const Token *Parser_peek(const Parser *p) {
+    assert(p);
+
+    return Vec_get(Token)(p->tokens, p->cursor + 1);
+}
+
 static const Token *Parser_consume(Parser *p) {
     assert(p);
-    assert(Parser_peek(p)->kind != '\0');
+    assert(Parser_current(p)->kind != '\0');
 
     return Vec_get(Token)(p->tokens, p->cursor++);
 }
@@ -33,7 +39,7 @@ static const Token *Parser_consume(Parser *p) {
 static const Token *Parser_expect(Parser *p, TokenKind kind) {
     assert(p);
 
-    const Token *t = Parser_peek(p);
+    const Token *t = Parser_current(p);
     if (t->kind != kind) {
         ERROR("unexpected token %s, expected %d\n", t->text, kind);
     }
@@ -59,8 +65,10 @@ static bool Parser_is_decl_spec(Parser *p, const Token *t) {
     }
 }
 
+static ExprNode *Parser_parse_assign_expr(Parser *p);
 static ExprNode *Parser_parse_comma_expr(Parser *p);
 static StmtNode *Parser_parse_stmt(Parser *p);
+static DeclaratorNode *Parser_parse_declarator(Parser *p);
 
 // identifier_expr:
 //  identifier
@@ -90,7 +98,7 @@ static ExprNode *Parser_parse_number_expr(Parser *p) {
 static ExprNode *Parser_parse_primary_expr(Parser *p) {
     assert(p);
 
-    const Token *t = Parser_peek(p);
+    const Token *t = Parser_current(p);
     switch (t->kind) {
     case TokenKind_identifier:
         // identifier_expr
@@ -114,10 +122,27 @@ static ExprNode *Parser_parse_call_expr(Parser *p, ExprNode *callee) {
     // '('
     Parser_expect(p, '(');
 
+    // [assign_expr (',' assign_expr)*]
+    Vec(ExprNode) *arguments = Vec_new(ExprNode)();
+
+    if (Parser_current(p)->kind != ')') {
+        // assign_expr
+        Vec_push(ExprNode)(arguments, Parser_parse_assign_expr(p));
+
+        // (',' assign_expr)*
+        while (Parser_current(p)->kind == ',') {
+            // ','
+            Parser_expect(p, ',');
+
+            // assign_expr
+            Vec_push(ExprNode)(arguments, Parser_parse_assign_expr(p));
+        }
+    }
+
     // ')'
     Parser_expect(p, ')');
 
-    return Sema_act_on_call_expr(p->sema, callee);
+    return Sema_act_on_call_expr(p->sema, callee, arguments);
 }
 
 // postfix_expr:
@@ -131,7 +156,7 @@ static ExprNode *Parser_parse_postfix_expr(Parser *p) {
     ExprNode *node = Parser_parse_primary_expr(p);
 
     while (true) {
-        switch (Parser_peek(p)->kind) {
+        switch (Parser_current(p)->kind) {
         case '[':
             UNIMPLEMENTED();
             break;
@@ -157,7 +182,7 @@ static ExprNode *Parser_parse_postfix_expr(Parser *p) {
 static ExprNode *Parser_parse_unary_expr(Parser *p) {
     assert(p);
 
-    switch (Parser_peek(p)->kind) {
+    switch (Parser_current(p)->kind) {
     case '+':
     case '-':
     case '!':
@@ -200,7 +225,7 @@ static ExprNode *Parser_parse_additive_expr(Parser *p) {
     // multiplicative_expr
     ExprNode *lhs = Parser_parse_multiplicative_expr(p);
 
-    while (Parser_peek(p)->kind == '+' || Parser_peek(p)->kind == '-') {
+    while (Parser_current(p)->kind == '+' || Parser_current(p)->kind == '-') {
         // '+' | '-'
         const Token *operator= Parser_consume(p);
 
@@ -231,7 +256,7 @@ static ExprNode *Parser_parse_assign_expr(Parser *p) {
     // conditional_expr
     ExprNode *lhs = Parser_parse_conditional_expr(p);
 
-    if (Parser_peek(p)->kind != '=') {
+    if (Parser_current(p)->kind != '=') {
         return lhs;
     }
 
@@ -265,7 +290,7 @@ static StmtNode *Parser_parse_compound_stmt(Parser *p) {
     // stmt*
     Vec(StmtNode) *statements = Vec_new(StmtNode)();
 
-    while (Parser_peek(p)->kind != '}') {
+    while (Parser_current(p)->kind != '}') {
         StmtNode *stmt = Parser_parse_stmt(p);
 
         Vec_push(StmtNode)(statements, stmt);
@@ -288,7 +313,7 @@ static StmtNode *Parser_parse_return_stmt(Parser *p) {
     // [expr]
     ExprNode *return_value = NULL;
 
-    if (Parser_peek(p)->kind != ';') {
+    if (Parser_current(p)->kind != ';') {
         return_value = Parser_parse_comma_expr(p);
     }
 
@@ -309,6 +334,20 @@ static DeclaratorNode *Parser_parse_direct_declarator(Parser *p) {
     return Sema_act_on_direct_declarator(p->sema, identifier);
 }
 
+// parameter_decl:
+//  type abstract_declarator
+static DeclaratorNode *Parser_parse_parameter_decl(Parser *p) {
+    assert(p);
+
+    // TODO: type
+    Parser_expect(p, TokenKind_kw_int);
+
+    // TODO: abstract_declarator
+    DeclaratorNode *declarator = Parser_parse_declarator(p);
+
+    return Sema_act_on_parameter_decl(p->sema, declarator);
+}
+
 // function_declarator:
 //  postfix_declarator '(' ')'
 //  postfix_declarator '(' 'void' ')'
@@ -317,18 +356,43 @@ static DeclaratorNode *
 Parser_parse_function_declarator(Parser *p, DeclaratorNode *declarator) {
     assert(p);
 
+    Sema_act_on_function_declarator_start_of_parameter_list(p->sema);
+
     // '('
     Parser_expect(p, '(');
 
-    // 'void'
-    Parser_expect(p, TokenKind_kw_void);
+    // Parameters
+    Vec(DeclaratorNode) *parameters = Vec_new(DeclaratorNode)();
+
+    if (Parser_current(p)->kind == ')') {
+        // <empty>
+        UNIMPLEMENTED();
+    } else if (
+        Parser_current(p)->kind == TokenKind_kw_void &&
+        Parser_peek(p)->kind == ')') {
+        // 'void'
+        Parser_expect(p, TokenKind_kw_void);
+    } else {
+        // parameter_decl
+        Vec_push(DeclaratorNode)(parameters, Parser_parse_parameter_decl(p));
+
+        // (',' parameter_decl)* [',' '...']
+        while (Parser_current(p)->kind == ',') {
+            // ','
+            Parser_expect(p, ',');
+
+            // TODO: ...
+            // parameter_decl
+            Vec_push(DeclaratorNode)(
+                parameters, Parser_parse_parameter_decl(p));
+        }
+    }
 
     // ')'
     Parser_expect(p, ')');
 
-    // TODO: function_declarator rule
-
-    return Sema_act_on_function_declarator(p->sema, declarator);
+    return Sema_act_on_function_declarator_end_of_parameter_list(
+        p->sema, declarator, parameters);
 }
 
 // postfix_declarator:
@@ -342,7 +406,7 @@ static DeclaratorNode *Parser_parse_postfix_declarator(Parser *p) {
     DeclaratorNode *declarator = Parser_parse_direct_declarator(p);
 
     while (1) {
-        switch (Parser_peek(p)->kind) {
+        switch (Parser_current(p)->kind) {
         case '[':
             UNIMPLEMENTED();
 
@@ -363,7 +427,7 @@ static DeclaratorNode *Parser_parse_postfix_declarator(Parser *p) {
 static DeclaratorNode *Parser_parse_pointer_declarator(Parser *p) {
     assert(p);
 
-    if (Parser_peek(p)->kind != '*') {
+    if (Parser_current(p)->kind != '*') {
         // postfix_declarator
         return Parser_parse_postfix_declarator(p);
     }
@@ -394,7 +458,7 @@ static DeclaratorNode *Parser_parse_declarator(Parser *p) {
 static ExprNode *Parser_parse_initializer(Parser *p) {
     assert(p);
 
-    if (Parser_peek(p)->kind == '{') {
+    if (Parser_current(p)->kind == '{') {
         // compound_initializer
         TODO("compound_initializer");
     } else {
@@ -412,7 +476,7 @@ static DeclaratorNode *Parser_parse_init_declarator(Parser *p) {
     // declarator
     DeclaratorNode *declarator = Parser_parse_declarator(p);
 
-    if (Parser_peek(p)->kind != '=') {
+    if (Parser_current(p)->kind != '=') {
         return declarator;
     }
 
@@ -436,7 +500,7 @@ static StmtNode *Parser_parse_decl_stmt(Parser *p) {
     // [init_declarator (',' init_declarator)*]
     Vec(DeclaratorNode) *declarators = Vec_new(DeclaratorNode)();
 
-    if (Parser_peek(p)->kind != ';') {
+    if (Parser_current(p)->kind != ';') {
         DeclaratorNode *declarator = Parser_parse_init_declarator(p);
 
         Vec_push(DeclaratorNode)(declarators, declarator);
@@ -470,7 +534,7 @@ static StmtNode *Parser_parse_expr_stmt(Parser *p) {
 static StmtNode *Parser_parse_stmt(Parser *p) {
     assert(p);
 
-    switch (Parser_peek(p)->kind) {
+    switch (Parser_current(p)->kind) {
     case '{':
         // compound_stmt
         return Parser_parse_compound_stmt(p);
@@ -480,7 +544,7 @@ static StmtNode *Parser_parse_stmt(Parser *p) {
         return Parser_parse_return_stmt(p);
 
     default:
-        if (Parser_is_decl_spec(p, Parser_peek(p))) {
+        if (Parser_is_decl_spec(p, Parser_current(p))) {
             // decl_stmt
             return Parser_parse_decl_stmt(p);
         }
@@ -520,7 +584,7 @@ static Vec(DeclNode) * Parser_parse_top_level_decls(Parser *p) {
     // top_level_decl*
     Vec(DeclNode) *declarations = Vec_new(DeclNode)();
 
-    while (Parser_peek(p)->kind != '\0') {
+    while (Parser_current(p)->kind != '\0') {
         // top_level_decl
         DeclNode *decl = Parser_parse_top_level_decl(p);
 

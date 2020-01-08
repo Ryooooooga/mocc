@@ -108,3 +108,13 @@ try "c$LINENO" '
     int main(void) { return g(); }
     ' 12
 
+try "c$LINENO" '
+    int f(int x) { return x + x; }
+    int main(void) { return f(4); }
+    ' 8
+
+try "c$LINENO" '
+    int f(int x, int y) { return x + y; }
+    int g(int x, int y, int z) { return x + y + z; }
+    int main(void) { return f(4, 6) - g(2, 3, 5); }
+    ' 0

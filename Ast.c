@@ -79,11 +79,16 @@ IntegerExprNode *IntegerExprNode_new(
 }
 
 CallExprNode *CallExprNode_new(
-    Type *result_type, ValueCategory value_category, ExprNode *callee) {
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *callee,
+    Vec(ExprNode) * arguments) {
     assert(callee);
+    assert(arguments);
 
     CallExprNode *p = CallExprNode_alloc(result_type, value_category);
     p->callee = callee;
+    p->arguments = arguments;
 
     return p;
 }
@@ -203,11 +208,22 @@ static Symbol *DirectDeclaratorNode_symbol(const DirectDeclaratorNode *p) {
     return p->symbol;
 }
 
-FunctionDeclaratorNode *FunctionDeclaratorNode_new(DeclaratorNode *declarator) {
+static Vec(DeclaratorNode) *
+    DirectDeclaratorNode_parameters(const DirectDeclaratorNode *p) {
+    assert(p);
+
+    (void)p;
+    return NULL;
+}
+
+FunctionDeclaratorNode *FunctionDeclaratorNode_new(
+    DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters) {
     assert(declarator);
+    assert(parameters);
 
     FunctionDeclaratorNode *p = FunctionDeclaratorNode_alloc();
     p->declarator = declarator;
+    p->parameters = parameters;
 
     return p;
 }
@@ -216,6 +232,14 @@ static Symbol *FunctionDeclaratorNode_symbol(const FunctionDeclaratorNode *p) {
     assert(p);
 
     return DeclaratorNode_symbol(p->declarator);
+}
+
+static Vec(DeclaratorNode) *
+    FunctionDeclaratorNode_parameters(const FunctionDeclaratorNode *p) {
+    assert(p);
+
+    Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(p->declarator);
+    return parameters == NULL ? p->parameters : parameters;
 }
 
 PointerDeclaratorNode *PointerDeclaratorNode_new(DeclaratorNode *declarator) {
@@ -231,6 +255,13 @@ static Symbol *PointerDeclaratorNode_symbol(const PointerDeclaratorNode *p) {
     assert(p);
 
     return DeclaratorNode_symbol(p->declarator);
+}
+
+static Vec(DeclaratorNode) *
+    PointerDeclaratorNode_parameters(const PointerDeclaratorNode *p) {
+    assert(p);
+
+    return DeclaratorNode_parameters(p->declarator);
 }
 
 InitDeclaratorNode *
@@ -251,6 +282,13 @@ static Symbol *InitDeclaratorNode_symbol(const InitDeclaratorNode *p) {
     return DeclaratorNode_symbol(p->declarator);
 }
 
+static Vec(DeclaratorNode) *
+    InitDeclaratorNode_parameters(const InitDeclaratorNode *p) {
+    assert(p);
+
+    return DeclaratorNode_parameters(p->declarator);
+}
+
 Symbol *DeclaratorNode_symbol(const DeclaratorNode *p) {
     assert(p);
 
@@ -258,6 +296,20 @@ Symbol *DeclaratorNode_symbol(const DeclaratorNode *p) {
 #define DECLARATOR_NODE(name)                                                  \
     case NodeKind_##name##Declarator:                                          \
         return name##DeclaratorNode_symbol(name##DeclaratorNode_ccast(p));
+#include "Ast.def"
+
+    default:
+        UNREACHABLE();
+    }
+}
+
+Vec(DeclaratorNode) * DeclaratorNode_parameters(const DeclaratorNode *p) {
+    assert(p);
+
+    switch (p->kind) {
+#define DECLARATOR_NODE(name)                                                  \
+    case NodeKind_##name##Declarator:                                          \
+        return name##DeclaratorNode_parameters(name##DeclaratorNode_ccast(p));
 #include "Ast.def"
 
     default:
@@ -378,6 +430,14 @@ static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
 static void Node_dump_Expr(const ExprNode *x, FILE *fp, size_t depth) {
     assert(fp);
     Node_dump_impl((const Node *)x, fp, depth);
+}
+
+static void Node_dump_Exprs(const Vec(ExprNode) * x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    for (size_t i = 0; i < Vec_len(ExprNode)(x); i++) {
+        Node_dump_Expr(Vec_get(ExprNode)(x, i), fp, depth);
+    }
 }
 
 static void Node_dump_Stmt(const StmtNode *x, FILE *fp, size_t depth) {

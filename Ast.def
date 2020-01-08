@@ -49,6 +49,7 @@ NODE_END()
 
 EXPR_NODE(Call)
     NODE_MEMBER_F(ExprNode *, callee, Expr)
+    NODE_MEMBER_F(Vec(ExprNode) *, arguments, Exprs)
 NODE_END()
 
 UNARY_OP(address_of)
@@ -102,6 +103,7 @@ NODE_END()
 
 DECLARATOR_NODE(Function)
     NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)
+    NODE_MEMBER_F(Vec(DeclaratorNode) *, parameters, Declarators)
 NODE_END()
 
 DECLARATOR_NODE(Pointer)

@@ -30,11 +30,13 @@ Type *PointerType_pointee_type(const Type *pointer_type) {
     return pointer_type->pointee_type;
 }
 
-Type *FunctionType_new(Type *return_type) {
+Type *FunctionType_new(Type *return_type, Vec(Type) * parameter_types) {
     assert(return_type);
+    assert(parameter_types);
 
     Type *type = Type_new(TypeKind_function);
     type->return_type = return_type;
+    type->parameter_types = parameter_types;
 
     return type;
 }
@@ -45,4 +47,12 @@ Type *FunctionType_return_type(const Type *function_type) {
     assert(function_type->return_type != NULL);
 
     return function_type->return_type;
+}
+
+Vec(Type) * FunctionType_parameter_types(const Type *function_type) {
+    assert(function_type);
+    assert(function_type->kind == TypeKind_function);
+    assert(function_type->parameter_types != NULL);
+
+    return function_type->parameter_types;
 }

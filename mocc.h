@@ -121,6 +121,7 @@
     }
 
 VEC_DECL(Token, struct Token *)
+VEC_DECL(Type, struct Type *)
 VEC_DECL(Symbol, struct Symbol *)
 VEC_DECL(ExprNode, struct ExprNode *)
 VEC_DECL(StmtNode, struct StmtNode *)
@@ -152,6 +153,7 @@ struct Type {
 
     // For function type
     Type *return_type;
+    Vec(Type) * parameter_types;
 };
 
 Type *IntType_new(void);
@@ -159,8 +161,9 @@ Type *IntType_new(void);
 Type *PointerType_new(Type *pointee_type);
 Type *PointerType_pointee_type(const Type *pointer_type);
 
-Type *FunctionType_new(Type *return_type);
+Type *FunctionType_new(Type *return_type, Vec(Type) * parameter_types);
 Type *FunctionType_return_type(const Type *function_type);
+Vec(Type) * FunctionType_parameter_types(const Type *function_type);
 
 // Token
 typedef int TokenKind;
@@ -279,7 +282,10 @@ IntegerExprNode *IntegerExprNode_new(
     Type *result_type, ValueCategory value_category, long long value);
 
 CallExprNode *CallExprNode_new(
-    Type *result_type, ValueCategory value_category, ExprNode *callee);
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *callee,
+    Vec(ExprNode) * arguments);
 
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
@@ -318,12 +324,16 @@ ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 // Declarators
 DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
 
-FunctionDeclaratorNode *FunctionDeclaratorNode_new(DeclaratorNode *declarator);
+FunctionDeclaratorNode *FunctionDeclaratorNode_new(
+    DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters);
 
 PointerDeclaratorNode *PointerDeclaratorNode_new(DeclaratorNode *declarator);
 
 InitDeclaratorNode *
 InitDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *initializer);
+
+Symbol *DeclaratorNode_symbol(const DeclaratorNode *p);
+Vec(DeclaratorNode) * DeclaratorNode_parameters(const DeclaratorNode *p);
 
 // Declarations
 FunctionDeclNode *FunctionDeclNode_new(
@@ -332,7 +342,6 @@ FunctionDeclNode *FunctionDeclNode_new(
 // Miscs
 TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations);
 
-Symbol *DeclaratorNode_symbol(const DeclaratorNode *p);
 void Node_dump(const Node *p, FILE *fp);
 
 // Lexer
@@ -360,7 +369,8 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
 ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer);
 
-ExprNode *Sema_act_on_call_expr(Sema *s, ExprNode *callee);
+ExprNode *
+Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments);
 
 ExprNode *
 Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand);
@@ -379,8 +389,9 @@ StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
 // Declarators
 DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
 
-DeclaratorNode *
-Sema_act_on_function_declarator(Sema *s, DeclaratorNode *declarator);
+void Sema_act_on_function_declarator_start_of_parameter_list(Sema *s);
+DeclaratorNode *Sema_act_on_function_declarator_end_of_parameter_list(
+    Sema *s, DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters);
 
 DeclaratorNode *
 Sema_act_on_pointer_declarator(Sema *s, DeclaratorNode *declarator);
@@ -392,6 +403,8 @@ DeclaratorNode *Sema_act_on_init_declarator(
     Sema *s, DeclaratorNode *declarator, ExprNode *initializer);
 
 // Declarations
+DeclaratorNode *Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator);
+
 void Sema_act_on_function_decl_start_of_body(
     Sema *s, DeclaratorNode *declarator);
 DeclNode *Sema_act_on_function_decl_end_of_body(

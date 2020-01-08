@@ -1,6 +1,7 @@
 #include "mocc.h"
 
 VEC_DEFINE(Token)
+VEC_DEFINE(Type)
 VEC_DEFINE(Symbol)
 VEC_DEFINE(ExprNode)
 VEC_DEFINE(StmtNode)

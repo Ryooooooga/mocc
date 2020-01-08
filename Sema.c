@@ -36,12 +36,14 @@ static Symbol *Sema_find_symbol(Sema *s, const char *name) {
     return Scope_find(s->current_scope, name, true);
 }
 
-static bool Sema_try_register_symbol(Sema *s, Symbol *symbol) {
+static void Sema_register_symbol(Sema *s, Symbol *symbol) {
     assert(s);
     assert(s->current_scope);
     assert(symbol);
 
-    return Scope_try_register(s->current_scope, symbol);
+    if (!Scope_try_register(s->current_scope, symbol)) {
+        ERROR("%s is already declared in this scope\n", symbol->name);
+    }
 }
 
 // Implicit conversion
@@ -158,9 +160,11 @@ ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
     return IntegerExprNode_base(node);
 }
 
-ExprNode *Sema_act_on_call_expr(Sema *s, ExprNode *callee) {
+ExprNode *
+Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
     assert(s);
     assert(callee);
+    assert(arguments);
 
     // Conversion
     Sema_decay_conversion(s, &callee);
@@ -177,8 +181,10 @@ ExprNode *Sema_act_on_call_expr(Sema *s, ExprNode *callee) {
 
     Type *return_type = FunctionType_return_type(function_type);
 
+    // TODO: Parameter check
+
     CallExprNode *node =
-        CallExprNode_new(return_type, ValueCategory_rvalue, callee);
+        CallExprNode_new(return_type, ValueCategory_rvalue, callee, arguments);
     return CallExprNode_base(node);
 
 Error:
@@ -359,14 +365,24 @@ Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
     return DirectDeclaratorNode_base(node);
 }
 
-DeclaratorNode *
-Sema_act_on_function_declarator(Sema *s, DeclaratorNode *declarator) {
+void Sema_act_on_function_declarator_start_of_parameter_list(Sema *s) {
+    assert(s);
+
+    // Enter the parameter scope
+    Sema_push_scope_stack(s);
+}
+
+DeclaratorNode *Sema_act_on_function_declarator_end_of_parameter_list(
+    Sema *s, DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters) {
     assert(s);
     assert(declarator);
+    assert(parameters);
 
-    (void)s;
+    // Leave the parameter scope
+    Sema_pop_scope_stack(s);
 
-    FunctionDeclaratorNode *node = FunctionDeclaratorNode_new(declarator);
+    FunctionDeclaratorNode *node =
+        FunctionDeclaratorNode_new(declarator, parameters);
     return FunctionDeclaratorNode_base(node);
 }
 
@@ -391,10 +407,7 @@ static void Sema_complete_declarator_Direct(
     assert(base_type);
 
     // Register the symbol
-    if (!Sema_try_register_symbol(s, declarator->symbol)) {
-        ERROR(
-            "%s is already declared in this scope\n", declarator->symbol->name);
-    }
+    Sema_register_symbol(s, declarator->symbol);
 
     declarator->symbol->type = base_type;
 }
@@ -405,7 +418,18 @@ static void Sema_complete_declarator_Function(
     assert(declarator);
     assert(base_type);
 
-    base_type = FunctionType_new(base_type);
+    Vec(Type) *parameter_types = Vec_new(Type)();
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarator->parameters);
+         i++) {
+        DeclaratorNode *parameter =
+            Vec_get(DeclaratorNode)(declarator->parameters, i);
+        Symbol *symbol = DeclaratorNode_symbol(parameter);
+
+        Vec_push(Type)(parameter_types, symbol->type);
+    }
+
+    // TODO: Type check
+    base_type = FunctionType_new(base_type, parameter_types);
 
     Sema_complete_declarator(s, declarator->declarator, base_type);
 }
@@ -473,6 +497,18 @@ DeclaratorNode *Sema_act_on_init_declarator(
 }
 
 // Declarations
+DeclaratorNode *
+Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator) {
+    assert(s);
+    assert(declarator);
+
+    // TODO: Type check
+    // TODO: Type conversion
+    (void)s;
+
+    return declarator;
+}
+
 void Sema_act_on_function_decl_start_of_body(
     Sema *s, DeclaratorNode *declarator) {
     assert(s);
@@ -481,10 +517,21 @@ void Sema_act_on_function_decl_start_of_body(
     // Enter the function scope
     Sema_push_scope_stack(s);
 
-    s->local_variables = Vec_new(Symbol)();
+    // Register the parameters to the scope
+    Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(declarator);
 
-    // TODO: Process parameters
-    (void)declarator;
+    if (parameters == NULL) {
+        ERROR("declarator is not a function");
+    }
+
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i++) {
+        DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, i);
+        Symbol *symbol = DeclaratorNode_symbol(parameter);
+
+        Sema_register_symbol(s, symbol);
+    }
+
+    s->local_variables = Vec_new(Symbol)();
 }
 
 DeclNode *Sema_act_on_function_decl_end_of_body(

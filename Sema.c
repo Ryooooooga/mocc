@@ -3,6 +3,7 @@
 struct Sema {
     Scope *current_scope;
     Vec(Symbol) * local_variables;
+    Type *return_type;
     Type *int_type;
 };
 
@@ -10,6 +11,7 @@ Sema *Sema_new(void) {
     Sema *s = malloc(sizeof(Sema));
     s->current_scope = Scope_new(NULL);
     s->local_variables = NULL;
+    s->return_type = NULL;
     s->int_type = IntType_new();
 
     return s;
@@ -115,8 +117,22 @@ static void Sema_integer_promotion(Sema *s, ExprNode **expression) {
     assert(expression);
     assert(*expression);
 
-    // TODO: integer promotion
     Sema_decay_conversion(s, expression);
+
+    switch ((*expression)->result_type->kind) {
+    case TypeKind_char:
+        // char or short -> int
+        *expression = Sema_implicit_cast(
+            s,
+            s->int_type,
+            ValueCategory_rvalue,
+            ImplicitCastOp_integral_cast,
+            *expression);
+        break;
+
+    default:
+        break;
+    }
 }
 
 static void
@@ -132,10 +148,50 @@ Sema_usual_arithmetic_conversion(Sema *s, ExprNode **lhs, ExprNode **rhs) {
     Sema_integer_promotion(s, rhs);
 }
 
-static void Sema_assignment_conversion(Sema *s, ExprNode **expression) {
+static void Sema_assignment_conversion(
+    Sema *s, Type *destination_type, ExprNode **expression) {
     assert(s);
+    assert(destination_type);
     assert(expression);
     assert(*expression);
+
+    Sema_decay_conversion(s, expression);
+    Type *from_type = (*expression)->result_type;
+
+    if (Type_equals(from_type, destination_type)) {
+        return;
+    }
+
+    switch (destination_type->kind) {
+    case TypeKind_char:
+    case TypeKind_int:
+        switch (from_type->kind) {
+        case TypeKind_char:
+        case TypeKind_int:
+            // int -> char or short
+            *expression = Sema_implicit_cast(
+                s,
+                destination_type,
+                ValueCategory_rvalue,
+                ImplicitCastOp_integral_cast,
+                *expression);
+            break;
+
+        default:
+            UNREACHABLE();
+        }
+        break;
+
+    case TypeKind_pointer:
+        switch (from_type->kind) {
+        default:
+            UNREACHABLE();
+        }
+        break;
+
+    default:
+        UNREACHABLE();
+    }
 
     // TODO: assignment conversion
     Sema_decay_conversion(s, expression);
@@ -214,8 +270,47 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
 
     Type *function_type = PointerType_pointee_type(callee->result_type);
     Type *return_type = FunctionType_return_type(function_type);
+    const Vec(Type) *parameter_types =
+        FunctionType_parameter_types(function_type);
+    size_t num_parameters = Vec_len(Type)(parameter_types);
+    bool var_arg = false; // TODO: var args
 
-    // TODO: Parameter check
+    size_t num_arguments = Vec_len(ExprNode)(arguments);
+
+    if (num_arguments < num_parameters) {
+        if (var_arg) {
+            ERROR(
+                "too few arguments to function call, expected at least %zu, "
+                "have %zu\n",
+                num_parameters,
+                num_arguments);
+        } else {
+            ERROR(
+                "too few arguments to function call, expected %zu, have %zu\n",
+                num_parameters,
+                num_arguments);
+        }
+    } else if (num_arguments > num_parameters && !var_arg) {
+        ERROR(
+            "too much arguments to function call, expected %zu, have %zu\n",
+            num_parameters,
+            num_arguments);
+    }
+
+    for (size_t i = 0; i < num_arguments; i++) {
+        ExprNode *argument = Vec_get(ExprNode)(arguments, i);
+
+        if (i < num_parameters) {
+            // Assignment conversion
+            Type *parameter_type = Vec_get(Type)(parameter_types, i);
+
+            Sema_assignment_conversion(s, parameter_type, &argument);
+        } else {
+            TODO("default argument promotion");
+        }
+
+        Vec_set(ExprNode)(arguments, i, argument);
+    }
 
     CallExprNode *node =
         CallExprNode_new(return_type, ValueCategory_rvalue, callee, arguments);
@@ -339,7 +434,7 @@ ExprNode *Sema_act_on_assign_expr(
     switch (operator->kind) {
     case '=':
         // Conversion
-        Sema_assignment_conversion(s, &rhs);
+        Sema_assignment_conversion(s, lhs->result_type, &rhs);
         break;
 
     default:
@@ -376,14 +471,17 @@ StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value) {
     // TODO: Type check
     if (return_value != NULL) {
         // Conversion
-        Sema_assignment_conversion(s, &return_value);
+        Sema_assignment_conversion(s, s->return_type, &return_value);
     }
 
     ReturnStmtNode *node = ReturnStmtNode_new(return_value);
     return ReturnStmtNode_base(node);
 }
 
-StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators) {
+StmtNode *Sema_act_on_decl_stmt(
+    Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
+    assert(s);
+    assert(decl_spec);
     assert(declarators);
 
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarators); i++) {
@@ -393,7 +491,7 @@ StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators) {
         Vec_push(Symbol)(s->local_variables, symbol);
     }
 
-    DeclStmtNode *node = DeclStmtNode_new(declarators);
+    DeclStmtNode *node = DeclStmtNode_new(decl_spec, declarators);
     return DeclStmtNode_base(node);
 }
 
@@ -572,14 +670,13 @@ Sema_complete_declarator(Sema *s, DeclaratorNode *declarator, Type *base_type) {
     }
 }
 
-DeclaratorNode *
-Sema_act_on_declarator_completed(Sema *s, DeclaratorNode *declarator) {
+DeclaratorNode *Sema_act_on_declarator_completed(
+    Sema *s, DeclSpecNode *decl_spec, DeclaratorNode *declarator) {
     assert(s);
+    assert(decl_spec);
     assert(declarator);
 
-    Type *base_type = s->int_type; // TODO: base_type
-
-    Sema_complete_declarator(s, declarator, base_type);
+    Sema_complete_declarator(s, declarator, decl_spec->base_type);
     return declarator;
 }
 
@@ -589,16 +686,24 @@ DeclaratorNode *Sema_act_on_init_declarator(
     assert(declarator);
     assert(initializer);
 
-    // Conversion
-    Sema_assignment_conversion(s, &initializer);
+    Symbol *symbol = DeclaratorNode_symbol(declarator);
 
-    // TODO: Type check
+    // Conversion
+    Sema_assignment_conversion(s, symbol->type, &initializer);
 
     InitDeclaratorNode *node = InitDeclaratorNode_new(declarator, initializer);
     return InitDeclaratorNode_base(node);
 }
 
 // Declarations
+DeclSpecNode *Sema_act_on_decl_spec(Sema *s, Type *base_type) {
+    assert(s);
+    assert(base_type);
+
+    (void)s;
+    return DeclSpecNode_new(base_type);
+}
+
 DeclaratorNode *
 Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator) {
     assert(s);
@@ -620,20 +725,22 @@ void Sema_act_on_function_decl_start_of_body(
     Sema_push_scope_stack(s);
 
     // Register the parameters to the scope
+    Symbol *symbol = DeclaratorNode_symbol(declarator);
     Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(declarator);
 
-    if (parameters == NULL) {
+    if (symbol->type->kind != TypeKind_function || parameters == NULL) {
         ERROR("declarator is not a function\n");
     }
 
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i++) {
         DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, i);
-        Symbol *symbol = DeclaratorNode_symbol(parameter);
+        Symbol *parameter_symbol = DeclaratorNode_symbol(parameter);
 
-        Sema_register_symbol(s, symbol);
+        Sema_register_symbol(s, parameter_symbol);
     }
 
     s->local_variables = Vec_new(Symbol)();
+    s->return_type = FunctionType_return_type(symbol->type);
 }
 
 DeclNode *Sema_act_on_function_decl_end_of_body(

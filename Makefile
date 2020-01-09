@@ -2,7 +2,7 @@ BUILD_TYPE ?= debug
 
 CFLAGS_debug ?= -g -O0
 CFLAGS_release ?= -O2 -DNDEBUG
-CFLAGS ?= -std=c99 -Wall -Wextra -pedantic -Werror ${CFLAGS_${BUILD_TYPE}}
+CFLAGS ?= -std=c11 -Wall -Wextra -pedantic -Werror ${CFLAGS_${BUILD_TYPE}}
 LDFLAGS ?=
 
 SRCS = \

@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <stdalign.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -139,6 +140,7 @@ typedef enum ValueCategory {
 
 typedef enum TypeKind {
     TypeKind_void,
+    TypeKind_char,
     TypeKind_int,
     TypeKind_pointer,
     TypeKind_function,
@@ -162,6 +164,8 @@ struct Type {
     size_t array_length;
 };
 
+Type *VoidType_new(void);
+Type *CharType_new(void);
 Type *IntType_new(void);
 
 Type *PointerType_new(Type *pointee_type);
@@ -178,6 +182,7 @@ size_t ArrayType_length(const Type *array_type);
 size_t Type_sizeof(const Type *type);
 size_t Type_alignof(const Type *type);
 
+bool Type_equals(const Type *a, const Type *b);
 bool Type_is_incomplete_type(const Type *type);
 bool Type_is_function_pointer_type(const Type *type);
 
@@ -262,12 +267,13 @@ typedef enum ImplicitCastOp {
     ImplicitCastOp_lvalue_to_rvalue,
     ImplicitCastOp_function_to_function_pointer,
     ImplicitCastOp_array_to_pointer,
+    ImplicitCastOp_integral_cast,
 } ImplicitCastOp;
 
 // clang-format off
 #define NODE(name, base)                                                       \
     Node *name##base##Node_base_node(name##base##Node *p);                     \
-    const Node *name##base##Node_cbase_node(name##base##Node *p);              \
+    const Node *name##base##Node_cbase_node(const name##base##Node *p);              \
     base##Node *name##base##Node_base(name##base##Node *p);                    \
     const base##Node *name##base##Node_cbase(const name##base##Node *p);       \
     name##base##Node *name##base##Node_cast_node(Node *p);                     \
@@ -346,7 +352,8 @@ IfStmtNode_new(ExprNode *condition, StmtNode *if_true, StmtNode *if_false);
 
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value);
 
-DeclStmtNode *DeclStmtNode_new(Vec(DeclaratorNode) * declarators);
+DeclStmtNode *
+DeclStmtNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
 
 ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 
@@ -372,6 +379,8 @@ FunctionDeclNode *FunctionDeclNode_new(
     DeclaratorNode *declarator, StmtNode *body, Vec(Symbol) * local_variables);
 
 // Miscs
+DeclSpecNode *DeclSpecNode_new(Type *base_type);
+
 TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations);
 
 void Node_dump(const Node *p, FILE *fp);
@@ -421,7 +430,8 @@ StmtNode *Sema_act_on_if_stmt(
 
 StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value);
 
-StmtNode *Sema_act_on_decl_stmt(Sema *s, Vec(DeclaratorNode) * declarators);
+StmtNode *Sema_act_on_decl_stmt(
+    Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
 
 StmtNode *Sema_act_on_expr_stmt(Sema *s, ExprNode *expression);
 
@@ -438,13 +448,15 @@ DeclaratorNode *Sema_act_on_function_declarator_end_of_parameter_list(
 DeclaratorNode *
 Sema_act_on_pointer_declarator(Sema *s, DeclaratorNode *declarator);
 
-DeclaratorNode *
-Sema_act_on_declarator_completed(Sema *s, DeclaratorNode *declarator);
+DeclaratorNode *Sema_act_on_declarator_completed(
+    Sema *s, DeclSpecNode *decl_spec, DeclaratorNode *declarator);
 
 DeclaratorNode *Sema_act_on_init_declarator(
     Sema *s, DeclaratorNode *declarator, ExprNode *initializer);
 
 // Declarations
+DeclSpecNode *Sema_act_on_decl_spec(Sema *s, Type *base_type);
+
 DeclaratorNode *Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator);
 
 void Sema_act_on_function_decl_start_of_body(

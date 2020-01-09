@@ -5,7 +5,7 @@
         assert(p);                                                             \
         return (Node *)p;                                                      \
     }                                                                          \
-    const Node *name##base##Node_cbase_node(name##base##Node *p) {             \
+    const Node *name##base##Node_cbase_node(const name##base##Node *p) {       \
         assert(p);                                                             \
         return (const Node *)p;                                                \
     }                                                                          \
@@ -202,10 +202,13 @@ ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value) {
     return p;
 }
 
-DeclStmtNode *DeclStmtNode_new(Vec(DeclaratorNode) * declarators) {
+DeclStmtNode *
+DeclStmtNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
+    assert(decl_spec);
     assert(declarators);
 
     DeclStmtNode *p = DeclStmtNode_alloc();
+    p->decl_spec = decl_spec;
     p->declarators = declarators;
 
     return p;
@@ -385,6 +388,15 @@ FunctionDeclNode *FunctionDeclNode_new(
 }
 
 // Misc
+DeclSpecNode *DeclSpecNode_new(Type *base_type) {
+    assert(base_type);
+
+    DeclSpecNode *p = DeclSpecNode_alloc();
+    p->base_type = base_type;
+
+    return p;
+}
+
 TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations) {
     assert(declarations);
 
@@ -475,6 +487,10 @@ static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
         text = "array_to_pointer";
         break;
 
+    case ImplicitCastOp_integral_cast:
+        text = "integral_cast";
+        break;
+
     default:
         UNREACHABLE();
     }
@@ -484,26 +500,20 @@ static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
 }
 
 static void Node_dump_Expr(const ExprNode *x, FILE *fp, size_t depth) {
-    assert(fp);
     Node_dump_impl((const Node *)x, fp, depth);
 }
 
 static void Node_dump_Exprs(const Vec(ExprNode) * x, FILE *fp, size_t depth) {
-    assert(fp);
-
     for (size_t i = 0; i < Vec_len(ExprNode)(x); i++) {
         Node_dump_Expr(Vec_get(ExprNode)(x, i), fp, depth);
     }
 }
 
 static void Node_dump_Stmt(const StmtNode *x, FILE *fp, size_t depth) {
-    assert(fp);
     Node_dump_impl((const Node *)x, fp, depth);
 }
 
 static void Node_dump_Stmts(const Vec(StmtNode) * x, FILE *fp, size_t depth) {
-    assert(fp);
-
     for (size_t i = 0; i < Vec_len(StmtNode)(x); i++) {
         Node_dump_Stmt(Vec_get(StmtNode)(x, i), fp, depth);
     }
@@ -511,30 +521,28 @@ static void Node_dump_Stmts(const Vec(StmtNode) * x, FILE *fp, size_t depth) {
 
 static void
 Node_dump_Declarator(const DeclaratorNode *x, FILE *fp, size_t depth) {
-    assert(fp);
     Node_dump_impl((const Node *)x, fp, depth);
 }
 
 static void
 Node_dump_Declarators(const Vec(DeclaratorNode) * x, FILE *fp, size_t depth) {
-    assert(fp);
-
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(x); i++) {
         Node_dump_Declarator(Vec_get(DeclaratorNode)(x, i), fp, depth);
     }
 }
 
 static void Node_dump_Decl(const DeclNode *x, FILE *fp, size_t depth) {
-    assert(fp);
     Node_dump_impl((const Node *)x, fp, depth);
 }
 
 static void Node_dump_Decls(const Vec(DeclNode) * x, FILE *fp, size_t depth) {
-    assert(fp);
-
     for (size_t i = 0; i < Vec_len(DeclNode)(x); i++) {
         Node_dump_Decl(Vec_get(DeclNode)(x, i), fp, depth);
     }
+}
+
+static void Node_dump_DeclSpec(const DeclSpecNode *x, FILE *fp, size_t depth) {
+    Node_dump_impl(DeclSpecNode_cbase_node(x), fp, depth);
 }
 
 static void Node_dump_impl(const Node *p, FILE *fp, size_t depth) {

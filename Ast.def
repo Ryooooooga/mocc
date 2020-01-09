@@ -100,6 +100,7 @@ STMT_NODE(Return)
 NODE_END()
 
 STMT_NODE(Decl)
+    NODE_MEMBER_F(DeclSpecNode *, decl_spec, DeclSpec)
     NODE_MEMBER_F(Vec(DeclaratorNode) *, declarators, Declarators)
 NODE_END()
 
@@ -139,6 +140,10 @@ DECL_NODE(Function)
 NODE_END()
 
 // Misc
+NODE(DeclSpec, )
+    NODE_MEMBER(Type *, base_type)
+NODE_END()
+
 NODE(TranslationUnit, )
     NODE_MEMBER_F(Vec(DeclNode) *, declarations, Decls)
 NODE_END()

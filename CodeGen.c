@@ -10,7 +10,10 @@ static const char *const registers_qword[6] = {
     "rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 static const char *const registers_dword[6] = {
-    "edi", "esi", "edx", "ecx", "e8", "e9"};
+    "edi", "esi", "edx", "ecx", "r8d", "r9d"};
+
+static const char *const registers_byte[6] = {
+    "dil", "sil", "dl", "cl", "r8b", "r9b"};
 
 enum NativeAddressType {
     NativeAddressType_label,
@@ -90,6 +93,12 @@ static void CodeGen_store(CodeGen *g, const Type *type) {
     assert(type);
 
     switch (type->kind) {
+    case TypeKind_char:
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  mov [rdi], al\n");
+        break;
+
     case TypeKind_int:
         fprintf(g->fp, "  pop rdi\n");
         fprintf(g->fp, "  pop rax\n");
@@ -236,6 +245,12 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
     switch (p->operator) {
     case ImplicitCastOp_lvalue_to_rvalue:
         switch (p->result_type->kind) {
+        case TypeKind_char:
+            fprintf(g->fp, "  pop rax\n");
+            fprintf(g->fp, "  mov al, [rax]\n");
+            fprintf(g->fp, "  push rax\n");
+            break;
+
         case TypeKind_int:
             fprintf(g->fp, "  pop rax\n");
             fprintf(g->fp, "  mov eax, [rax]\n");
@@ -257,6 +272,39 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
         break;
 
     case ImplicitCastOp_array_to_pointer:
+        break;
+
+    case ImplicitCastOp_integral_cast:
+        switch (p->result_type->kind) {
+        case TypeKind_char:
+            switch (p->expression->result_type->kind) {
+            case TypeKind_int:
+                // int -> char
+                // Do nothing
+                break;
+
+            default:
+                UNREACHABLE();
+            }
+            break;
+
+        case TypeKind_int:
+            switch (p->expression->result_type->kind) {
+            case TypeKind_char:
+                // char -> int
+                fprintf(g->fp, "  pop rax\n");
+                fprintf(g->fp, "  movsx eax, al\n");
+                fprintf(g->fp, "  push rax\n");
+                break;
+
+            default:
+                UNREACHABLE();
+            }
+            break;
+
+        default:
+            UNREACHABLE();
+        }
         break;
 
     default:
@@ -443,6 +491,14 @@ CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
         assert(address->type == NativeAddressType_stack);
 
         switch (symbol->type->kind) {
+        case TypeKind_char:
+            fprintf(
+                g->fp,
+                "  mov [rbp%+d], %s\n",
+                -address->offset,
+                registers_byte[index]);
+            break;
+
         case TypeKind_int:
             fprintf(
                 g->fp,

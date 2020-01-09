@@ -17,8 +17,9 @@
 TOKEN(identifier, "identifier")
 TOKEN(number, "number")
 
-TOKEN_KW1(int)
 TOKEN_KW1(void)
+TOKEN_KW1(char)
+TOKEN_KW1(int)
 TOKEN_KW1(sizeof)
 TOKEN_KW1(if)
 TOKEN_KW1(else)

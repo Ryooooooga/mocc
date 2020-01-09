@@ -173,3 +173,23 @@ try "c$LINENO" '
         a[1][0] = 6; a[1][1] = 7; a[1][2] = 8;
         return *a[0] + *a[1];
     }' 9
+
+try "c$LINENO" '
+    int main(void) {
+        char a = 257;
+        return a;
+    }' 1
+
+try "c$LINENO" '
+    char f(char c) { return c; }
+    int main(void) {
+        char a = f(258);
+        return a;
+    }' 2
+
+try "c$LINENO" '
+    int f(char c) { return c + 1; }
+    int main(void) {
+        char a = f(258);
+        return a;
+    }' 3

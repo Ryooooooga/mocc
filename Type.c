@@ -9,6 +9,14 @@ static Type *Type_new(TypeKind kind) {
     return t;
 }
 
+Type *VoidType_new(void) {
+    return Type_new(TypeKind_void);
+}
+
+Type *CharType_new(void) {
+    return Type_new(TypeKind_char);
+}
+
 Type *IntType_new(void) {
     return Type_new(TypeKind_int);
 }
@@ -90,10 +98,12 @@ size_t Type_sizeof(const Type *type) {
     case TypeKind_void:
     case TypeKind_function:
         return 0;
+    case TypeKind_char:
+        return sizeof(char);
     case TypeKind_int:
-        return 4;
+        return sizeof(int);
     case TypeKind_pointer:
-        return 8;
+        return sizeof(void *);
     case TypeKind_array:
         return Type_sizeof(ArrayType_element_type(type)) *
                ArrayType_length(type);
@@ -109,14 +119,67 @@ size_t Type_alignof(const Type *type) {
     case TypeKind_void:
     case TypeKind_function:
         return 0;
+    case TypeKind_char:
+        return alignof(char);
     case TypeKind_int:
-        return 4;
+        return alignof(int);
     case TypeKind_pointer:
-        return 8;
+        return alignof(void *);
     case TypeKind_array:
         return Type_alignof(ArrayType_element_type(type));
     default:
         UNREACHABLE();
+    }
+}
+
+bool Type_equals(const Type *a, const Type *b) {
+    assert(a);
+    assert(b);
+
+    if (a == b) {
+        return true;
+    }
+
+    if (a->kind != b->kind) {
+        return false;
+    }
+
+    switch (a->kind) {
+    case TypeKind_void:
+    case TypeKind_char:
+    case TypeKind_int:
+        return true;
+
+    case TypeKind_pointer:
+        return Type_equals(
+            PointerType_pointee_type(a), PointerType_pointee_type(b));
+
+    case TypeKind_function: {
+        const Vec(Type) *a_params = FunctionType_parameter_types(a);
+        const Vec(Type) *b_params = FunctionType_parameter_types(b);
+
+        // TODO: var arg
+        if (Vec_len(Type)(a_params) != Vec_len(Type)(b_params)) {
+            return false;
+        }
+
+        for (size_t i = 0; i < Vec_len(Type)(a_params); i++) {
+            const Type *a_param = Vec_get(Type)(a_params, i);
+            const Type *b_param = Vec_get(Type)(b_params, i);
+
+            if (!Type_equals(a_param, b_param)) {
+                return false;
+            }
+        }
+
+        return Type_equals(
+            FunctionType_return_type(a), FunctionType_return_type(b));
+    }
+
+    case TypeKind_array:
+        return ArrayType_length(a) == ArrayType_length(b) &&
+               Type_equals(
+                   ArrayType_element_type(a), ArrayType_element_type(b));
     }
 }
 

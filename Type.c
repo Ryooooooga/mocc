@@ -180,6 +180,9 @@ bool Type_equals(const Type *a, const Type *b) {
         return ArrayType_length(a) == ArrayType_length(b) &&
                Type_equals(
                    ArrayType_element_type(a), ArrayType_element_type(b));
+
+    default:
+        UNREACHABLE();
     }
 }
 

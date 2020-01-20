@@ -198,3 +198,8 @@ try "c$LINENO" '
     int;
     int main(void) { return 0; }
     ' 0
+
+try "c$LINENO" '
+    int a, b;
+    int main(void) { a = 1; b = 2; return a + b; }
+    ' 3

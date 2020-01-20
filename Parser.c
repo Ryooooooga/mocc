@@ -726,16 +726,43 @@ static DeclNode *Parser_parse_top_level_decl(Parser *p) {
             p->sema, decl_spec, Vec_new(DeclaratorNode)());
     }
 
-    // declarator
-    DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec);
+    // init_declarator
+    DeclaratorNode *declarator = Parser_parse_init_declarator(p, decl_spec);
+    Symbol *symbol = DeclaratorNode_symbol(declarator);
+    Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(declarator);
 
-    Sema_act_on_function_decl_start_of_body(p->sema, decl_spec, declarator);
+    bool maybe_function = declarator->kind != NodeKind_InitDeclarator &&
+                          symbol->type->kind == TypeKind_function &&
+                          parameters != NULL;
 
-    // compound_stmt
-    StmtNode *body = Parser_parse_compound_stmt(p);
+    if (maybe_function && Parser_current(p)->kind == '{') {
+        // function_decl
+        Sema_act_on_function_decl_start_of_body(p->sema, decl_spec, declarator);
 
-    return Sema_act_on_function_decl_end_of_body(
-        p->sema, decl_spec, declarator, body);
+        // compound_stmt
+        StmtNode *body = Parser_parse_compound_stmt(p);
+
+        return Sema_act_on_function_decl_end_of_body(
+            p->sema, decl_spec, declarator, body);
+    }
+
+    // (',' init_declarator)*
+    Vec(DeclaratorNode) *declarators = Vec_new(DeclaratorNode)();
+    Vec_push(DeclaratorNode)(declarators, declarator);
+
+    while (Parser_current(p)->kind == ',') {
+        // ','
+        Parser_expect(p, ',');
+
+        // init_declarator
+        Vec_push(DeclaratorNode)(
+            declarators, Parser_parse_init_declarator(p, decl_spec));
+    }
+
+    // ';'
+    Parser_expect(p, ';');
+
+    return Sema_act_on_global_decl(p->sema, decl_spec, declarators);
 }
 
 // top_level_decls:

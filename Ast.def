@@ -133,6 +133,11 @@ DECLARATOR_NODE(Init)
 NODE_END()
 
 // Declarations
+DECL_NODE(Global)
+    NODE_MEMBER_F(DeclSpecNode *, decl_spec, DeclSpec)
+    NODE_MEMBER_F(Vec(DeclaratorNode) *, declarators, Declarators)
+NODE_END()
+
 DECL_NODE(Function)
     NODE_MEMBER_F(DeclSpecNode *, decl_spec, DeclSpec)
     NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)

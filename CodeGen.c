@@ -1,9 +1,9 @@
 #include "mocc.h"
 
 #ifdef __APPLE__
-#define FUNC_PREFIX "_"
+#define GLOBAL_PREFIX "_"
 #else
-#define FUNC_PREFIX ""
+#define GLOBAL_PREFIX ""
 #endif
 
 static const char *const registers_qword[6] = {
@@ -72,7 +72,7 @@ static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
         fprintf(
             g->fp,
             "  mov rax, [rip+%s%s%s]\n",
-            FUNC_PREFIX,
+            GLOBAL_PREFIX,
             address->label,
             "@GOTPCREL");
         fprintf(g->fp, "  push rax\n");
@@ -525,6 +525,30 @@ CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
     }
 }
 
+static void CodeGen_gen_global_decl(CodeGen *g, GlobalDeclNode *p) {
+    assert(g);
+    assert(p);
+
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(p->declarators); i++) {
+        DeclaratorNode *declarator = Vec_get(DeclaratorNode)(p->declarators, i);
+        Symbol *symbol = DeclaratorNode_symbol(declarator);
+        Type *type = symbol->type;
+
+        assert(!Type_is_incomplete_type(type));
+
+        symbol->address = NativeAddress_new_label(symbol->name);
+
+        // TODO: initializer
+        fprintf(
+            g->fp,
+            "  .comm %s%s, %zu, %zu\n",
+            GLOBAL_PREFIX,
+            symbol->name,
+            Type_sizeof(type),
+            Type_alignof(type));
+    }
+}
+
 static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     assert(g);
     assert(p);
@@ -533,8 +557,8 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     Symbol *symbol = DeclaratorNode_symbol(p->declarator);
     symbol->address = NativeAddress_new_label(symbol->name);
 
-    fprintf(g->fp, "  .global %s%s\n", FUNC_PREFIX, symbol->name);
-    fprintf(g->fp, "%s%s:\n", FUNC_PREFIX, symbol->name);
+    fprintf(g->fp, "  .global %s%s\n", GLOBAL_PREFIX, symbol->name);
+    fprintf(g->fp, "%s%s:\n", GLOBAL_PREFIX, symbol->name);
 
     // Prolog
     fprintf(g->fp, "  push rbp\n");
@@ -567,6 +591,10 @@ static void CodeGen_gen_top_level_decl(CodeGen *g, DeclNode *p) {
     assert(p);
 
     switch (p->kind) {
+    case NodeKind_GlobalDecl:
+        CodeGen_gen_global_decl(g, GlobalDeclNode_cast(p));
+        break;
+
     case NodeKind_FunctionDecl:
         CodeGen_gen_function_decl(g, FunctionDeclNode_cast(p));
         break;

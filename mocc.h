@@ -375,6 +375,9 @@ Symbol *DeclaratorNode_symbol(const DeclaratorNode *p);
 Vec(DeclaratorNode) * DeclaratorNode_parameters(const DeclaratorNode *p);
 
 // Declarations
+GlobalDeclNode *
+GlobalDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
+
 FunctionDeclNode *FunctionDeclNode_new(
     DeclSpecNode *decl_spec,
     DeclaratorNode *declarator,
@@ -461,6 +464,9 @@ DeclaratorNode *Sema_act_on_init_declarator(
 DeclSpecNode *Sema_act_on_decl_spec(Sema *s, Type *base_type);
 
 DeclaratorNode *Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator);
+
+DeclNode *Sema_act_on_global_decl(
+    Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
 
 void Sema_act_on_function_decl_start_of_body(
     Sema *s, DeclSpecNode *decl_spec, DeclaratorNode *declarator);

@@ -716,6 +716,16 @@ Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator) {
     return declarator;
 }
 
+DeclNode *Sema_act_on_global_decl(
+    Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
+    assert(s);
+    assert(decl_spec);
+    assert(declarators);
+
+    GlobalDeclNode *node = GlobalDeclNode_new(decl_spec, declarators);
+    return GlobalDeclNode_base(node);
+}
+
 void Sema_act_on_function_decl_start_of_body(
     Sema *s, DeclSpecNode *decl_spec, DeclaratorNode *declarator) {
     assert(s);

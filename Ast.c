@@ -373,6 +373,18 @@ Vec(DeclaratorNode) * DeclaratorNode_parameters(const DeclaratorNode *p) {
 }
 
 // Declarations
+GlobalDeclNode *
+GlobalDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
+    assert(decl_spec);
+    assert(declarators);
+
+    GlobalDeclNode *p = GlobalDeclNode_alloc();
+    p->decl_spec = decl_spec;
+    p->declarators = declarators;
+
+    return p;
+}
+
 FunctionDeclNode *FunctionDeclNode_new(
     DeclSpecNode *decl_spec,
     DeclaratorNode *declarator,

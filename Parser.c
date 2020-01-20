@@ -704,15 +704,27 @@ static StmtNode *Parser_parse_stmt(Parser *p) {
 }
 
 // top_level_decl:
+//  global_decl
 //  function_decl
 //
 // function_decl:
 //  decl_spec declarator compound_stmt
+//
+// global_decl:
+//  decl_spec [init_declarator (',' init_declarator)* ] ';'
 static DeclNode *Parser_parse_top_level_decl(Parser *p) {
     assert(p);
 
     // decl_spec
     DeclSpecNode *decl_spec = Parser_parse_decl_spec(p);
+
+    if (Parser_current(p)->kind == ';') {
+        // ';'
+        Parser_consume(p);
+
+        return Sema_act_on_global_decl(
+            p->sema, decl_spec, Vec_new(DeclaratorNode)());
+    }
 
     // declarator
     DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec);

@@ -717,9 +717,12 @@ Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator) {
 }
 
 void Sema_act_on_function_decl_start_of_body(
-    Sema *s, DeclaratorNode *declarator) {
+    Sema *s, DeclSpecNode *decl_spec, DeclaratorNode *declarator) {
     assert(s);
+    assert(decl_spec);
     assert(declarator);
+
+    (void)decl_spec;
 
     // Enter the function scope
     Sema_push_scope_stack(s);
@@ -744,8 +747,12 @@ void Sema_act_on_function_decl_start_of_body(
 }
 
 DeclNode *Sema_act_on_function_decl_end_of_body(
-    Sema *s, DeclaratorNode *declarator, StmtNode *body) {
+    Sema *s,
+    DeclSpecNode *decl_spec,
+    DeclaratorNode *declarator,
+    StmtNode *body) {
     assert(s);
+    assert(decl_spec);
     assert(declarator);
     assert(body);
 
@@ -756,6 +763,6 @@ DeclNode *Sema_act_on_function_decl_end_of_body(
     s->local_variables = NULL;
 
     FunctionDeclNode *node =
-        FunctionDeclNode_new(declarator, body, local_variables);
+        FunctionDeclNode_new(decl_spec, declarator, body, local_variables);
     return FunctionDeclNode_base(node);
 }

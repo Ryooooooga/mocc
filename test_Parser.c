@@ -29,6 +29,8 @@ void test_Parser(void) {
         "}\n",
         "(TranslationUnit\n"
         "  (FunctionDecl\n"
+        "    (DeclSpec\n"
+        "    )\n"
         "    (FunctionDeclarator\n"
         "      (DirectDeclarator\n"
         "        (symbol main)\n"

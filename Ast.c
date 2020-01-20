@@ -374,12 +374,17 @@ Vec(DeclaratorNode) * DeclaratorNode_parameters(const DeclaratorNode *p) {
 
 // Declarations
 FunctionDeclNode *FunctionDeclNode_new(
-    DeclaratorNode *declarator, StmtNode *body, Vec(Symbol) * local_variables) {
+    DeclSpecNode *decl_spec,
+    DeclaratorNode *declarator,
+    StmtNode *body,
+    Vec(Symbol) * local_variables) {
+    assert(decl_spec);
     assert(declarator);
     assert(body);
     assert(local_variables);
 
     FunctionDeclNode *p = FunctionDeclNode_alloc();
+    p->decl_spec = decl_spec;
     p->declarator = declarator;
     p->body = body;
     p->local_variables = local_variables;

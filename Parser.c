@@ -717,12 +717,13 @@ static DeclNode *Parser_parse_top_level_decl(Parser *p) {
     // declarator
     DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec);
 
-    Sema_act_on_function_decl_start_of_body(p->sema, declarator);
+    Sema_act_on_function_decl_start_of_body(p->sema, decl_spec, declarator);
 
     // compound_stmt
     StmtNode *body = Parser_parse_compound_stmt(p);
 
-    return Sema_act_on_function_decl_end_of_body(p->sema, declarator, body);
+    return Sema_act_on_function_decl_end_of_body(
+        p->sema, decl_spec, declarator, body);
 }
 
 // top_level_decls:

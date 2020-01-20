@@ -433,6 +433,10 @@ CodeGen_alloca_object(CodeGen *g, Type *type, int *stack_top) {
 
     (void)g;
 
+    if (Type_is_incomplete_type(type)) {
+        ERROR("cannot allocate an incomplete type\n");
+    }
+
     size_t size = Type_sizeof(type);
     *stack_top += size;
 

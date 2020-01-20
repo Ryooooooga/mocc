@@ -376,7 +376,10 @@ Vec(DeclaratorNode) * DeclaratorNode_parameters(const DeclaratorNode *p);
 
 // Declarations
 FunctionDeclNode *FunctionDeclNode_new(
-    DeclaratorNode *declarator, StmtNode *body, Vec(Symbol) * local_variables);
+    DeclSpecNode *decl_spec,
+    DeclaratorNode *declarator,
+    StmtNode *body,
+    Vec(Symbol) * local_variables);
 
 // Miscs
 DeclSpecNode *DeclSpecNode_new(Type *base_type);
@@ -460,9 +463,12 @@ DeclSpecNode *Sema_act_on_decl_spec(Sema *s, Type *base_type);
 DeclaratorNode *Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator);
 
 void Sema_act_on_function_decl_start_of_body(
-    Sema *s, DeclaratorNode *declarator);
+    Sema *s, DeclSpecNode *decl_spec, DeclaratorNode *declarator);
 DeclNode *Sema_act_on_function_decl_end_of_body(
-    Sema *s, DeclaratorNode *declarator, StmtNode *body);
+    Sema *s,
+    DeclSpecNode *decl_spec,
+    DeclaratorNode *declarator,
+    StmtNode *body);
 
 // CodeGen
 void CodeGen_gen(TranslationUnitNode *p, FILE *fp);

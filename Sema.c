@@ -722,6 +722,8 @@ DeclNode *Sema_act_on_global_decl(
     assert(decl_spec);
     assert(declarators);
 
+    (void)s;
+
     GlobalDeclNode *node = GlobalDeclNode_new(decl_spec, declarators);
     return GlobalDeclNode_base(node);
 }

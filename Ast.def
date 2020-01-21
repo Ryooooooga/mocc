@@ -110,6 +110,7 @@ NODE_END()
 
 // Declarator
 DECLARATOR_NODE(Direct)
+    NODE_MEMBER(const char *, name)
     NODE_MEMBER_F(Symbol *, symbol, symbol)
 NODE_END()
 

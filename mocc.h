@@ -205,6 +205,9 @@ typedef struct Symbol {
     const char *name;
     Type *type;
 
+    // For functions
+    bool has_body;
+
     // For CodeGen
     struct NativeAddress *address;
 } Symbol;
@@ -358,7 +361,7 @@ DeclStmtNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
 ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 
 // Declarators
-DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol);
+DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name);
 
 ArrayDeclaratorNode *
 ArrayDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *array_size);

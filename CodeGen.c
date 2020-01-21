@@ -534,6 +534,13 @@ static void CodeGen_gen_global_decl(CodeGen *g, GlobalDeclNode *p) {
         Symbol *symbol = DeclaratorNode_symbol(declarator);
         Type *type = symbol->type;
 
+        if (type->kind == TypeKind_function) {
+            if (symbol->address == NULL) {
+                symbol->address = NativeAddress_new_label(symbol->name);
+            }
+            continue;
+        }
+
         assert(!Type_is_incomplete_type(type));
 
         symbol->address = NativeAddress_new_label(symbol->name);

@@ -224,11 +224,12 @@ ExprStmtNode *ExprStmtNode_new(ExprNode *expression) {
 }
 
 // Declarators
-DirectDeclaratorNode *DirectDeclaratorNode_new(Symbol *symbol) {
-    assert(symbol);
+DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name) {
+    assert(name);
 
     DirectDeclaratorNode *p = DirectDeclaratorNode_alloc();
-    p->symbol = symbol;
+    p->name = name;
+    p->symbol = NULL;
 
     return p;
 }

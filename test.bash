@@ -203,3 +203,9 @@ try "c$LINENO" '
     int a, b;
     int main(void) { a = 1; b = 2; return a + b; }
     ' 3
+
+try "c$LINENO" '
+    int f(int x, int y);
+    int main(void) { return f(10, 20); }
+    int f(int a, int b) { return a + b; }
+    ' 30

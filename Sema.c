@@ -513,9 +513,7 @@ Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
 
     (void)s;
 
-    Symbol *symbol = Symbol_new(identifier->text, NULL);
-
-    DirectDeclaratorNode *node = DirectDeclaratorNode_new(symbol);
+    DirectDeclaratorNode *node = DirectDeclaratorNode_new(identifier->text);
     return DirectDeclaratorNode_base(node);
 }
 
@@ -572,10 +570,23 @@ static void Sema_complete_declarator_Direct(
     assert(declarator);
     assert(base_type);
 
-    // Register the symbol
-    Sema_register_symbol(s, declarator->symbol);
+    if (base_type->kind == TypeKind_function) {
+        // Function
+        declarator->symbol = Sema_find_symbol(s, declarator->name);
 
-    declarator->symbol->type = base_type;
+        if (declarator->symbol == NULL) {
+            declarator->symbol = Symbol_new(declarator->name, base_type);
+
+            Sema_register_symbol(s, declarator->symbol);
+        } else if (!Type_equals(declarator->symbol->type, base_type)) {
+            ERROR("conflict function type of %s\n", declarator->symbol->name);
+        }
+    } else {
+        // Variable
+        declarator->symbol = Symbol_new(declarator->name, base_type);
+
+        Sema_register_symbol(s, declarator->symbol);
+    }
 }
 
 static void Sema_complete_declarator_Array(
@@ -746,6 +757,12 @@ void Sema_act_on_function_decl_start_of_body(
     if (symbol->type->kind != TypeKind_function || parameters == NULL) {
         ERROR("declarator is not a function\n");
     }
+
+    if (symbol->has_body) {
+        ERROR("multiple definition of function %s\n", symbol->name);
+    }
+
+    symbol->has_body = true;
 
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i++) {
         DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, i);

@@ -47,6 +47,11 @@ EXPR_NODE(Integer)
     NODE_MEMBER_F(long long, value, int)
 NODE_END()
 
+EXPR_NODE(String)
+    NODE_MEMBER_F(const char *, value, string)
+    NODE_MEMBER_F(size_t, length, size_t)
+NODE_END()
+
 EXPR_NODE(Subscript)
     NODE_MEMBER_F(ExprNode *, array, Expr)
     NODE_MEMBER_F(ExprNode *, index, Expr)

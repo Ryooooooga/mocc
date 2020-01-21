@@ -155,9 +155,21 @@ static ExprNode *Parser_parse_number_expr(Parser *p) {
     return Sema_act_on_integer_expr(p->sema, num);
 }
 
+// string_expr:
+//  string
+static ExprNode *Parser_parse_string_expr(Parser *p) {
+    assert(p);
+
+    // string
+    const Token *string = Parser_expect(p, TokenKind_string);
+
+    return Sema_act_on_string_expr(p->sema, string);
+}
+
 // primary_expr:
 //  identifier_expr
 //  number_expr
+//  string_expr
 static ExprNode *Parser_parse_primary_expr(Parser *p) {
     assert(p);
 
@@ -170,6 +182,10 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
     case TokenKind_number:
         // number_expr
         return Parser_parse_number_expr(p);
+
+    case TokenKind_string:
+        // string_expr
+        return Parser_parse_string_expr(p);
 
     default:
         ERROR("unexpected token %s, expected expression\n", t->text);

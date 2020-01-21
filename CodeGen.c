@@ -56,12 +56,44 @@ typedef struct CodeGen {
     FILE *fp;
     int next_label;
     int return_label;
+
+    Vec(String) * list_of_string;
+    Vec(size_t) * list_of_length;
 } CodeGen;
 
 static int CodeGen_next_label(CodeGen *g) {
     assert(g);
 
     return g->next_label++;
+}
+
+static size_t
+CodeGen_add_string(CodeGen *g, const char *string, size_t length) {
+    assert(g);
+    assert(string);
+
+    // TODO: dedup
+    size_t label = Vec_len(String)(g->list_of_string);
+
+    Vec_push(String)(g->list_of_string, string);
+    Vec_push(size_t)(g->list_of_length, length);
+
+    return label;
+}
+
+static void CodeGen_gen_constant_pool(CodeGen *g) {
+    assert(g);
+
+    for (size_t i = 0; i < Vec_len(String)(g->list_of_string); i++) {
+        const char *s = Vec_get(String)(g->list_of_string, i);
+        size_t len = Vec_get(size_t)(g->list_of_length, i);
+
+        fprintf(g->fp, ".S%zu:\n", i);
+
+        for (size_t j = 0; j < len; j++) {
+            fprintf(g->fp, "  .byte 0x%02x\n", (int)s[j]);
+        }
+    }
 }
 
 static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
@@ -71,11 +103,10 @@ static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
     case NativeAddressType_label:
         fprintf(
             g->fp,
-            "  mov rax, [rip+%s%s%s]\n",
+            "  push [rip+%s%s%s]\n",
             GLOBAL_PREFIX,
             address->label,
             "@GOTPCREL");
-        fprintf(g->fp, "  push rax\n");
         break;
 
     case NativeAddressType_stack:
@@ -132,6 +163,15 @@ static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
     assert(p);
 
     fprintf(g->fp, "  push %lld\n", p->value);
+}
+
+static void CodeGen_gen_StringExpr(CodeGen *g, StringExprNode *p) {
+    assert(g);
+    assert(p);
+
+    size_t string_label = CodeGen_add_string(g, p->value, p->length);
+
+    fprintf(g->fp, "  push [rip+.S%zu%s]\n", string_label, "@GOTPCREL");
 }
 
 static void CodeGen_gen_SubscriptExpr(CodeGen *g, SubscriptExprNode *p) {
@@ -630,7 +670,10 @@ void CodeGen_gen(TranslationUnitNode *p, FILE *fp) {
         .fp = fp,
         .next_label = 0,
         .return_label = -1,
+        .list_of_string = Vec_new(String)(),
+        .list_of_length = Vec_new(size_t)(),
     };
 
     CodeGen_gen_translation_unit(&g, p);
+    CodeGen_gen_constant_pool(&g);
 }

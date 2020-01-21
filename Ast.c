@@ -78,6 +78,20 @@ IntegerExprNode *IntegerExprNode_new(
     return p;
 }
 
+StringExprNode *StringExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    const char *string,
+    size_t length) {
+    assert(string);
+
+    StringExprNode *p = StringExprNode_alloc(result_type, value_category);
+    p->value = string;
+    p->length = length;
+
+    return p;
+}
+
 SubscriptExprNode *SubscriptExprNode_new(
     Type *result_type,
     ValueCategory value_category,
@@ -448,6 +462,21 @@ static void Node_dump_int(long long x, FILE *fp, size_t depth) {
 
     Node_dump_indent(fp, depth);
     fprintf(fp, "(int %lld)\n", x);
+}
+
+static void Node_dump_string(const char *x, FILE *fp, size_t depth) {
+    assert(x);
+    assert(fp);
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(string %s)\n", x);
+}
+
+static void Node_dump_size_t(size_t x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(size_t %zu)\n", x);
 }
 
 static void Node_dump_UnaryOp(UnaryOp x, FILE *fp, size_t depth) {

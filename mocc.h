@@ -121,6 +121,8 @@
         v->len = len;                                                          \
     }
 
+VEC_DECL(String, const char *)
+VEC_DECL(size_t, size_t)
 VEC_DECL(Token, struct Token *)
 VEC_DECL(Type, struct Type *)
 VEC_DECL(Symbol, struct Symbol *)
@@ -197,7 +199,9 @@ enum {
 
 typedef struct Token {
     TokenKind kind;
-    char *text; // For identifer and number
+    char *text;   // For identifer and number
+    char *string; // For string
+    size_t string_len;
 } Token;
 
 // Symbol
@@ -306,6 +310,12 @@ IdentifierExprNode *IdentifierExprNode_new(
 
 IntegerExprNode *IntegerExprNode_new(
     Type *result_type, ValueCategory value_category, long long value);
+
+StringExprNode *StringExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    const char *string,
+    size_t length);
 
 SubscriptExprNode *SubscriptExprNode_new(
     Type *result_type,
@@ -418,6 +428,8 @@ Sema *Sema_new(void);
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
 ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer);
+
+ExprNode *Sema_act_on_string_expr(Sema *s, const Token *string);
 
 ExprNode *Sema_act_on_subscript_expr(Sema *s, ExprNode *array, ExprNode *index);
 

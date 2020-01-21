@@ -209,3 +209,18 @@ try "c$LINENO" '
     int main(void) { return f(10, 20); }
     int f(int a, int b) { return a + b; }
     ' 30
+
+try "c$LINENO" '
+    int strlen(const char *s);
+    int main(void) { return strlen("hello\n"); }
+    ' 6 # TODO: size_t
+
+try "c$LINENO" '
+    int strlen(const char *s);
+    int main(void) { return strlen(&"hello\n"[3]); }
+    ' 3 # TODO: size_t
+
+try "c$LINENO" '
+    int strcmp(const char *a, const char *b);
+    int main(void) { return strcmp("world", &"hello, world"[7]); }
+    ' 0

@@ -4,6 +4,7 @@ struct Sema {
     Scope *current_scope;
     Vec(Symbol) * local_variables;
     Type *return_type;
+    Type *char_type;
     Type *int_type;
 };
 
@@ -12,6 +13,7 @@ Sema *Sema_new(void) {
     s->current_scope = Scope_new(NULL);
     s->local_variables = NULL;
     s->return_type = NULL;
+    s->char_type = CharType_new();
     s->int_type = IntType_new();
 
     return s;
@@ -219,12 +221,25 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
 ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
     assert(s);
     assert(integer);
+    assert(integer->kind == TokenKind_number);
 
     long long value = atoll(integer->text); // TODO: conversion
 
     IntegerExprNode *node =
         IntegerExprNode_new(s->int_type, ValueCategory_rvalue, value);
     return IntegerExprNode_base(node);
+}
+
+ExprNode *Sema_act_on_string_expr(Sema *s, const Token *string) {
+    assert(s);
+    assert(string);
+    assert(string->kind == TokenKind_string);
+
+    Type *type = ArrayType_new(s->char_type, string->string_len);
+
+    StringExprNode *node = StringExprNode_new(
+        type, ValueCategory_lvalue, string->string, string->string_len);
+    return StringExprNode_base(node);
 }
 
 ExprNode *

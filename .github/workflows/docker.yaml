@@ -13,5 +13,5 @@ jobs:
       - name: docker build --tag=mocc .
         run: docker build --tag=mocc .
 
-      - name: docker run --rm mocc mocc make test
-        run: docker run --rm mocc mocc make test
+      - name: docker run --rm mocc make test
+        run: docker run --rm mocc make test

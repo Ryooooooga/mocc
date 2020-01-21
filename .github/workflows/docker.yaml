@@ -1,0 +1,17 @@
+name: Docker
+
+on: [push]
+
+jobs:
+  format:
+    name: Docker - ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: docker build --tag=mocc .
+        run: docker build --tag=mocc .
+
+      - name: docker run --rm mocc mocc make test
+        run: docker run --rm mocc mocc make test

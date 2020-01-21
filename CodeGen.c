@@ -2,8 +2,10 @@
 
 #ifdef __APPLE__
 #define GLOBAL_PREFIX "_"
+#define GLOBAL_POSTFIX "@GOTPCREL"
 #else
 #define GLOBAL_PREFIX ""
+#define GLOBAL_POSTFIX "@GOTPCREL"
 #endif
 
 static const char *const registers_qword[6] = {
@@ -84,6 +86,12 @@ CodeGen_add_string(CodeGen *g, const char *string, size_t length) {
 static void CodeGen_gen_constant_pool(CodeGen *g) {
     assert(g);
 
+#ifdef __APPLE__
+    fprintf(g->fp, "  .section __DATA,__data\n");
+#else
+    fprintf(g->fp, "  .section .rodata\n");
+#endif
+
     for (size_t i = 0; i < Vec_len(String)(g->list_of_string); i++) {
         const char *s = Vec_get(String)(g->list_of_string, i);
         size_t len = Vec_get(size_t)(g->list_of_length, i);
@@ -106,7 +114,7 @@ static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
             "  push [rip+%s%s%s]\n",
             GLOBAL_PREFIX,
             address->label,
-            "@GOTPCREL");
+            GLOBAL_POSTFIX);
         break;
 
     case NativeAddressType_stack:
@@ -171,7 +179,7 @@ static void CodeGen_gen_StringExpr(CodeGen *g, StringExprNode *p) {
 
     size_t string_label = CodeGen_add_string(g, p->value, p->length);
 
-    fprintf(g->fp, "  push [rip+.S%zu%s]\n", string_label, "@GOTPCREL");
+    fprintf(g->fp, "  push [rip+.S%zu%s]\n", string_label, GLOBAL_POSTFIX);
 }
 
 static void CodeGen_gen_SubscriptExpr(CodeGen *g, SubscriptExprNode *p) {
@@ -656,10 +664,13 @@ static void CodeGen_gen_translation_unit(CodeGen *g, TranslationUnitNode *p) {
     assert(p);
 
     fprintf(g->fp, "  .intel_syntax noprefix\n");
+    fprintf(g->fp, "  .text\n");
 
     for (size_t i = 0; i < Vec_len(DeclNode)(p->declarations); i++) {
         CodeGen_gen_top_level_decl(g, Vec_get(DeclNode)(p->declarations, i));
     }
+
+    CodeGen_gen_constant_pool(g);
 }
 
 void CodeGen_gen(TranslationUnitNode *p, FILE *fp) {
@@ -675,5 +686,4 @@ void CodeGen_gen(TranslationUnitNode *p, FILE *fp) {
     };
 
     CodeGen_gen_translation_unit(&g, p);
-    CodeGen_gen_constant_pool(&g);
 }

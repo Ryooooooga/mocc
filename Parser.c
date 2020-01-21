@@ -73,9 +73,20 @@ static DeclaratorNode *
 Parser_parse_declarator(Parser *p, DeclSpecNode *decl_spec);
 
 // type_spec:
-//  type
+//  type_specifier type
 static DeclSpecNode *Parser_parse_type_spec(Parser *p) {
     assert(p);
+
+    // type_specifier
+    switch (Parser_current(p)->kind) {
+    case TokenKind_kw_const:
+        // 'const'
+        Parser_expect(p, TokenKind_kw_const); // TODO: const
+        break;
+
+    default:
+        break;
+    }
 
     // type
     Type *base_type;

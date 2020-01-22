@@ -229,3 +229,11 @@ try "c$LINENO" '
     struct S { int x; int y, z; };
     int main(void) { struct S s; s.x=2; s.y=4; s.z=5; return s.x + s.y + s.z; }
     ' 11
+
+try "c$LINENO" '
+    int main(void) {
+        struct S { int x, y; } s, *p = &s;
+        s.x=2; p->y=7;
+        return s.y - p->x;
+    }
+    ' 5

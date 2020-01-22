@@ -109,6 +109,16 @@ Token *Lexer_read(Lexer *l) {
 
             t->kind = TokenKind_identifier;
             break;
+        } else if (c == '-') {
+            buffer[len++] = Lexer_consume(l);
+
+            if (Lexer_current(l) == '>') {
+                buffer[len++] = Lexer_consume(l);
+                t->kind = TokenKind_arrow;
+            } else {
+                t->kind = '-';
+            }
+            break;
         } else {
             // .
             t->kind = buffer[len++] = Lexer_consume(l);

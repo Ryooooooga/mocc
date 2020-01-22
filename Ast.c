@@ -137,6 +137,21 @@ DotExprNode *DotExprNode_new(
     return p;
 }
 
+ArrowExprNode *ArrowExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *parent,
+    Symbol *member_symbol) {
+    assert(parent);
+    assert(member_symbol);
+
+    ArrowExprNode *p = ArrowExprNode_alloc(result_type, value_category);
+    p->parent = parent;
+    p->member_symbol = member_symbol;
+
+    return p;
+}
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,

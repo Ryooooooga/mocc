@@ -67,6 +67,11 @@ EXPR_NODE(Dot)
     NODE_MEMBER_F(Symbol *, member_symbol, Symbol)
 NODE_END()
 
+EXPR_NODE(Arrow)
+    NODE_MEMBER_F(ExprNode *, parent, Expr)
+    NODE_MEMBER_F(Symbol *, member_symbol, Symbol)
+NODE_END()
+
 UNARY_OP(address_of)
 UNARY_OP(indirection)
 

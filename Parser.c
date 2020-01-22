@@ -335,6 +335,21 @@ static ExprNode *Parser_parse_dot_expr(Parser *p, ExprNode *parent) {
     return Sema_act_on_dot_expr(p->sema, parent, identifier);
 }
 
+// arrow_expr:
+//  postfix_expr '->' identifier
+static ExprNode *Parser_parse_arrow_expr(Parser *p, ExprNode *parent) {
+    assert(p);
+    assert(parent);
+
+    // '->'
+    Parser_expect(p, TokenKind_arrow);
+
+    // identifier
+    const Token *identifier = Parser_expect(p, TokenKind_identifier);
+
+    return Sema_act_on_arrow_expr(p->sema, parent, identifier);
+}
+
 // postfix_expr:
 //  subscript_expr
 //  call_expr
@@ -358,6 +373,10 @@ static ExprNode *Parser_parse_postfix_expr(Parser *p) {
 
         case '.':
             node = Parser_parse_dot_expr(p, node);
+            break;
+
+        case TokenKind_arrow:
+            node = Parser_parse_arrow_expr(p, node);
             break;
 
         default:

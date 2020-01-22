@@ -488,25 +488,60 @@ Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier) {
         ERROR("cannot access member of non-struct type\n");
     }
 
-    // Find the member symbol
-    Symbol *member_symbol = NULL;
-
-    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols); i++) {
-        Symbol *symbol = Vec_get(Symbol)(struct_type->member_symbols, i);
-
-        if (strcmp(symbol->name, identifier->text) == 0) {
-            member_symbol = symbol;
-            break;
-        }
+    if (!StructType_is_defined(struct_type)) {
+        ERROR("cannot access member of incomplete struct type\n");
     }
 
-    if (member_symbol == NULL) {
+    // Find the member symbol
+    Symbol *symbol = StructType_find_member(struct_type, identifier->text);
+
+    if (symbol == NULL) {
         ERROR("cannot find member named %s\n", identifier->text);
     }
 
-    DotExprNode *node = DotExprNode_new(
-        member_symbol->type, parent->value_category, parent, member_symbol);
+    DotExprNode *node =
+        DotExprNode_new(symbol->type, parent->value_category, parent, symbol);
     return DotExprNode_base(node);
+}
+
+ExprNode *
+Sema_act_on_arrow_expr(Sema *s, ExprNode *parent, const Token *identifier) {
+    assert(s);
+    assert(parent);
+    assert(identifier);
+
+    (void)s;
+
+    // Type conversion
+    Sema_decay_conversion(s, &parent);
+
+    // Type check
+    Type *pointer_type = parent->result_type;
+
+    if (pointer_type->kind != TypeKind_pointer) {
+        ERROR("cannot access member of non-struct pointer type\n");
+    }
+
+    Type *struct_type = PointerType_pointee_type(pointer_type);
+
+    if (struct_type->kind != TypeKind_struct) {
+        ERROR("cannot access member of non-struct type\n");
+    }
+
+    if (!StructType_is_defined(struct_type)) {
+        ERROR("cannot access member of incomplete struct type\n");
+    }
+
+    // Find the member symbol
+    Symbol *symbol = StructType_find_member(struct_type, identifier->text);
+
+    if (symbol == NULL) {
+        ERROR("cannot find member named %s\n", identifier->text);
+    }
+
+    ArrowExprNode *node =
+        ArrowExprNode_new(symbol->type, ValueCategory_lvalue, parent, symbol);
+    return ArrowExprNode_base(node);
 }
 
 ExprNode *

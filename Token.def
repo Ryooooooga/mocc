@@ -29,6 +29,8 @@ TOKEN_KW1(else)
 TOKEN_KW1(while)
 TOKEN_KW1(return)
 
+TOKEN_DELIM(arrow, "->")
+
 #undef TOKEN
 #undef TOKEN_KW
 #undef TOKEN_KW1

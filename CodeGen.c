@@ -266,8 +266,26 @@ static void CodeGen_gen_DotExpr(CodeGen *g, DotExprNode *p) {
     // Parent
     CodeGen_gen_expr(g, p->parent);
 
-    size_t offset =
-        CodeGen_member_offset(g, p->parent->result_type, p->member_symbol);
+    Type *struct_type = p->parent->result_type;
+
+    size_t offset = CodeGen_member_offset(g, struct_type, p->member_symbol);
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  add rax, %zu\n", offset);
+    fprintf(g->fp, "  push rax\n");
+}
+
+static void CodeGen_gen_ArrowExpr(CodeGen *g, ArrowExprNode *p) {
+    assert(g);
+    assert(p);
+
+    // Parent
+    CodeGen_gen_expr(g, p->parent);
+
+    Type *pointer_type = p->parent->result_type;
+    Type *struct_type = PointerType_pointee_type(pointer_type);
+
+    size_t offset = CodeGen_member_offset(g, struct_type, p->member_symbol);
 
     fprintf(g->fp, "  pop rax\n");
     fprintf(g->fp, "  add rax, %zu\n", offset);

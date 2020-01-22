@@ -110,6 +110,26 @@ bool StructType_is_defined(const Type *struct_type) {
     return struct_type->member_symbols != NULL;
 }
 
+struct Symbol *
+StructType_find_member(const Type *struct_type, const char *member_name) {
+    assert(struct_type);
+    assert(struct_type->kind == TypeKind_struct);
+    assert(StructType_is_defined(struct_type));
+    assert(member_name);
+
+    assert(struct_type->member_symbols);
+
+    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols); i++) {
+        Symbol *symbol = Vec_get(Symbol)(struct_type->member_symbols, i);
+
+        if (strcmp(symbol->name, member_name) == 0) {
+            return symbol;
+        }
+    }
+
+    return NULL;
+}
+
 size_t Type_sizeof(const Type *type) {
     assert(type);
 

@@ -190,6 +190,8 @@ size_t ArrayType_length(const Type *array_type);
 
 Type *StructType_new(void);
 bool StructType_is_defined(const Type *struct_type);
+struct Symbol *
+StructType_find_member(const Type *struct_type, const char *member_name);
 
 size_t Type_sizeof(const Type *type);
 size_t Type_alignof(const Type *type);
@@ -345,6 +347,12 @@ DotExprNode *DotExprNode_new(
     ExprNode *parent,
     Symbol *member_symbol);
 
+ArrowExprNode *ArrowExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *parent,
+    Symbol *member_symbol);
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,
@@ -467,6 +475,9 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments);
 
 ExprNode *
 Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier);
+
+ExprNode *
+Sema_act_on_arrow_expr(Sema *s, ExprNode *parent, const Token *identifier);
 
 ExprNode *
 Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand);

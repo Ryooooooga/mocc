@@ -53,8 +53,9 @@ static bool Parser_is_decl_spec(Parser *p, const Token *t) {
 
     switch (t->kind) {
     case TokenKind_kw_void:
-    case TokenKind_kw_int:
     case TokenKind_kw_char:
+    case TokenKind_kw_int:
+    case TokenKind_kw_struct:
         return true;
 
     case TokenKind_identifier:
@@ -66,11 +67,83 @@ static bool Parser_is_decl_spec(Parser *p, const Token *t) {
     }
 }
 
+static DeclSpecNode *Parser_parse_type_spec(Parser *p);
 static ExprNode *Parser_parse_assign_expr(Parser *p);
 static ExprNode *Parser_parse_comma_expr(Parser *p);
 static StmtNode *Parser_parse_stmt(Parser *p);
 static DeclaratorNode *
 Parser_parse_declarator(Parser *p, DeclSpecNode *decl_spec);
+
+// struct_type:
+//  'struct' identifier [member_list]
+//  'struct' member_list
+//
+// member_list:
+//  type_spec [declarator (',' declarator)*] ';'
+static Type *Parser_parse_struct_type(Parser *p) {
+    assert(p);
+
+    // 'struct'
+    Parser_expect(p, TokenKind_kw_struct);
+
+    // TODO: Struct definition without name
+
+    // identifier
+    const Token *identifier = Parser_expect(p, TokenKind_identifier);
+
+    // [member_list]
+    if (Parser_current(p)->kind != '{') {
+        return Sema_act_on_struct_type_reference(p->sema, identifier);
+    }
+
+    Type *type =
+        Sema_act_on_struct_type_start_of_member_list(p->sema, identifier);
+
+    // '{'
+    Parser_expect(p, '{');
+
+    // member_list
+    Vec(MemberDeclNode) *member_decls = Vec_new(MemberDeclNode)();
+
+    while (Parser_current(p)->kind != '}') {
+        // member_decl
+        // type_spec
+        DeclSpecNode *decl_spec = Parser_parse_type_spec(p);
+
+        // [declarator (',' declarator)*]
+        Vec(DeclaratorNode) *declarators = Vec_new(DeclaratorNode)();
+
+        if (Parser_current(p)->kind != ';') {
+            // declarator
+            Vec_push(DeclaratorNode)(
+                declarators, Parser_parse_declarator(p, decl_spec));
+
+            // (',' declarator)*
+            while (Parser_current(p)->kind == ',') {
+                // ','
+                Parser_expect(p, ',');
+
+                // declarator
+                Vec_push(DeclaratorNode)(
+                    declarators, Parser_parse_declarator(p, decl_spec));
+            }
+        }
+
+        // ';'
+        Parser_expect(p, ';');
+
+        Vec_push(MemberDeclNode)(
+            member_decls,
+            Sema_act_on_struct_type_member_decl(
+                p->sema, decl_spec, declarators));
+    }
+
+    // '}'
+    Parser_expect(p, '}');
+
+    return Sema_act_on_struct_type_end_of_member_list(
+        p->sema, type, member_decls);
+}
 
 // type_spec:
 //  type_specifier type
@@ -113,12 +186,17 @@ static DeclSpecNode *Parser_parse_type_spec(Parser *p) {
         base_type = IntType_new();
         break;
 
+    case TokenKind_kw_struct:
+        // 'struct'
+        base_type = Parser_parse_struct_type(p);
+        break;
+
     case TokenKind_identifier:
         TODO("typedef name");
         break;
 
     default:
-        UNIMPLEMENTED();
+        ERROR("expected type, but got %s\n", Parser_current(p)->text);
         break;
     }
 
@@ -242,9 +320,25 @@ static ExprNode *Parser_parse_call_expr(Parser *p, ExprNode *callee) {
     return Sema_act_on_call_expr(p->sema, callee, arguments);
 }
 
+// dot_expr:
+//  postfix_expr '.' identifier
+static ExprNode *Parser_parse_dot_expr(Parser *p, ExprNode *parent) {
+    assert(p);
+    assert(parent);
+
+    // '.'
+    Parser_expect(p, '.');
+
+    // identifier
+    const Token *identifier = Parser_expect(p, TokenKind_identifier);
+
+    return Sema_act_on_dot_expr(p->sema, parent, identifier);
+}
+
 // postfix_expr:
 //  subscript_expr
 //  call_expr
+//  dot_expr
 //  primary_expr
 static ExprNode *Parser_parse_postfix_expr(Parser *p) {
     assert(p);
@@ -260,6 +354,10 @@ static ExprNode *Parser_parse_postfix_expr(Parser *p) {
 
         case '(':
             node = Parser_parse_call_expr(p, node);
+            break;
+
+        case '.':
+            node = Parser_parse_dot_expr(p, node);
             break;
 
         default:

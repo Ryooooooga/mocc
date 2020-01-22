@@ -5,6 +5,12 @@ static Type *Type_new(TypeKind kind) {
     t->kind = kind;
     t->pointee_type = NULL;
     t->return_type = NULL;
+    t->parameter_types = NULL;
+    t->element_type = NULL;
+    t->array_length = 0;
+    t->struct_symbol = NULL;
+    t->member_decls = NULL;
+    t->member_symbols = NULL;
 
     return t;
 }
@@ -91,6 +97,19 @@ size_t ArrayType_length(const Type *array_type) {
     return array_type->array_length;
 }
 
+Type *StructType_new(void) {
+    Type *type = Type_new(TypeKind_struct);
+
+    return type;
+}
+
+bool StructType_is_defined(const Type *struct_type) {
+    assert(struct_type);
+    assert(struct_type->kind == TypeKind_struct);
+
+    return struct_type->member_symbols != NULL;
+}
+
 size_t Type_sizeof(const Type *type) {
     assert(type);
 
@@ -107,6 +126,22 @@ size_t Type_sizeof(const Type *type) {
     case TypeKind_array:
         return Type_sizeof(ArrayType_element_type(type)) *
                ArrayType_length(type);
+    case TypeKind_struct: {
+        size_t size = 0;
+
+        for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols); i++) {
+            Symbol *symbol = Vec_get(Symbol)(type->member_symbols, i);
+            size_t member_size = Type_sizeof(symbol->type);
+            size_t member_align = Type_alignof(symbol->type);
+            size_t padding = size % member_align == 0
+                                 ? 0
+                                 : member_align - size % member_align;
+
+            size += padding + member_size;
+        }
+
+        return size;
+    }
     default:
         UNREACHABLE();
     }
@@ -127,6 +162,20 @@ size_t Type_alignof(const Type *type) {
         return alignof(void *);
     case TypeKind_array:
         return Type_alignof(ArrayType_element_type(type));
+    case TypeKind_struct: {
+        size_t align = 0;
+
+        for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols); i++) {
+            Symbol *symbol = Vec_get(Symbol)(type->member_symbols, i);
+            size_t member_align = Type_alignof(symbol->type);
+
+            if (member_align > align) {
+                align = member_align;
+            }
+        }
+
+        return align;
+    }
     default:
         UNREACHABLE();
     }
@@ -180,6 +229,9 @@ bool Type_equals(const Type *a, const Type *b) {
         return ArrayType_length(a) == ArrayType_length(b) &&
                Type_equals(
                    ArrayType_element_type(a), ArrayType_element_type(b));
+
+    case TypeKind_struct:
+        return false;
 
     default:
         UNREACHABLE();

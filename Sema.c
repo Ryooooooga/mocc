@@ -1,7 +1,8 @@
 #include "mocc.h"
 
 struct Sema {
-    Scope *current_scope;
+    Scope *current_variable_scope;
+    Scope *current_struct_scope;
     Vec(Symbol) * local_variables;
     Type *return_type;
     Type *char_type;
@@ -10,7 +11,8 @@ struct Sema {
 
 Sema *Sema_new(void) {
     Sema *s = malloc(sizeof(Sema));
-    s->current_scope = Scope_new(NULL);
+    s->current_variable_scope = Scope_new(NULL);
+    s->current_struct_scope = Scope_new(NULL);
     s->local_variables = NULL;
     s->return_type = NULL;
     s->char_type = CharType_new();
@@ -22,31 +24,65 @@ Sema *Sema_new(void) {
 static void Sema_push_scope_stack(Sema *s) {
     assert(s);
 
-    s->current_scope = Scope_new(s->current_scope);
+    s->current_variable_scope = Scope_new(s->current_variable_scope);
+    s->current_struct_scope = Scope_new(s->current_struct_scope);
 }
 
 static void Sema_pop_scope_stack(Sema *s) {
     assert(s);
-    assert(s->current_scope);
+    assert(s->current_variable_scope);
+    assert(s->current_struct_scope);
 
-    s->current_scope = Scope_parent_scope(s->current_scope);
+    s->current_variable_scope = Scope_parent_scope(s->current_variable_scope);
+    s->current_struct_scope = Scope_parent_scope(s->current_struct_scope);
+}
+
+static void Sema_push_scope_stack_members(Sema *s) {
+    assert(s);
+
+    s->current_struct_scope = Scope_new(s->current_struct_scope);
+}
+
+static void Sema_pop_scope_stack_members(Sema *s) {
+    assert(s);
+    assert(s->current_struct_scope);
+
+    s->current_struct_scope = Scope_parent_scope(s->current_struct_scope);
 }
 
 static Symbol *Sema_find_symbol(Sema *s, const char *name) {
     assert(s);
-    assert(s->current_scope);
+    assert(s->current_variable_scope);
     assert(name);
 
-    return Scope_find(s->current_scope, name, true);
+    return Scope_find(s->current_variable_scope, name, true);
 }
 
 static void Sema_register_symbol(Sema *s, Symbol *symbol) {
     assert(s);
-    assert(s->current_scope);
+    assert(s->current_variable_scope);
     assert(symbol);
 
-    if (!Scope_try_register(s->current_scope, symbol)) {
+    if (!Scope_try_register(s->current_variable_scope, symbol)) {
         ERROR("%s is already declared in this scope\n", symbol->name);
+    }
+}
+
+static Symbol *Sema_find_struct_symbol(Sema *s, const char *name) {
+    assert(s);
+    assert(s->current_struct_scope);
+    assert(name);
+
+    return Scope_find(s->current_struct_scope, name, true);
+}
+
+static void Sema_register_struct_symbol(Sema *s, Symbol *symbol) {
+    assert(s);
+    assert(s->current_struct_scope);
+    assert(symbol);
+
+    if (!Scope_try_register(s->current_struct_scope, symbol)) {
+        ERROR("struct %s is already declared in this scope\n", symbol->name);
     }
 }
 
@@ -199,6 +235,109 @@ static void Sema_assignment_conversion(
     Sema_decay_conversion(s, expression);
 }
 
+// Types
+Type *Sema_act_on_struct_type_reference(Sema *s, const Token *identifier) {
+    assert(s);
+    assert(identifier);
+
+    Symbol *symbol = Sema_find_struct_symbol(s, identifier->text);
+
+    if (symbol == NULL) {
+        Type *type = StructType_new();
+        type->struct_symbol = symbol = Symbol_new(identifier->text, type);
+
+        // Register the struct symbol
+        Sema_register_struct_symbol(s, symbol);
+    }
+
+    return symbol->type;
+}
+
+Type *
+Sema_act_on_struct_type_start_of_member_list(Sema *s, const Token *identifier) {
+    assert(s);
+
+    if (identifier == NULL) {
+        UNIMPLEMENTED();
+    }
+
+    Type *type;
+    Symbol *symbol = Sema_find_struct_symbol(s, identifier->text);
+
+    if (symbol == NULL) {
+        type = StructType_new();
+        type->struct_symbol = symbol = Symbol_new(identifier->text, type);
+
+        // Register the struct symbol
+        Sema_register_struct_symbol(s, symbol);
+    } else {
+        type = symbol->type;
+
+        if (StructType_is_defined(type)) {
+            ERROR("multiple definition of struct %s\n", symbol->name);
+        }
+    }
+
+    // Enter the struct member scope
+    Sema_push_scope_stack_members(s);
+
+    return type;
+}
+
+Type *Sema_act_on_struct_type_end_of_member_list(
+    Sema *s, Type *struct_type, Vec(MemberDeclNode) * member_decls) {
+    assert(s);
+    assert(struct_type);
+    assert(struct_type->kind == TypeKind_struct);
+    assert(!StructType_is_defined(struct_type));
+    assert(member_decls);
+
+    Vec(Symbol) *member_symbols = Vec_new(Symbol)();
+
+    for (size_t i = 0; i < Vec_len(MemberDeclNode)(member_decls); i++) {
+        MemberDeclNode *decl = Vec_get(MemberDeclNode)(member_decls, i);
+        size_t len = Vec_len(DeclaratorNode)(decl->declarators);
+
+        for (size_t j = 0; j < len; j++) {
+            DeclaratorNode *declarator =
+                Vec_get(DeclaratorNode)(decl->declarators, j);
+            Symbol *symbol = DeclaratorNode_symbol(declarator);
+
+            Vec_push(Symbol)(member_symbols, symbol);
+        }
+    }
+
+    if (Vec_len(Symbol)(member_symbols) == 0) {
+        ERROR("struct cannot be empty\n");
+    }
+
+    // Leave the struct member scope
+    Sema_pop_scope_stack_members(s);
+
+    struct_type->member_decls = member_decls;
+    struct_type->member_symbols = member_symbols;
+    return struct_type;
+}
+
+MemberDeclNode *Sema_act_on_struct_type_member_decl(
+    Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
+    assert(s);
+    assert(decl_spec);
+    assert(declarators);
+
+    // Type check
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarators); i++) {
+        DeclaratorNode *declarator = Vec_get(DeclaratorNode)(declarators, i);
+        Symbol *symbol = DeclaratorNode_symbol(declarator);
+
+        if (Type_is_incomplete_type(symbol->type)) {
+            ERROR("member cannot have an incomplete\n");
+        }
+    }
+
+    return MemberDeclNode_new(decl_spec, declarators);
+}
+
 // Expressions
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
     assert(s);
@@ -330,6 +469,39 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
     CallExprNode *node =
         CallExprNode_new(return_type, ValueCategory_rvalue, callee, arguments);
     return CallExprNode_base(node);
+}
+
+ExprNode *
+Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier) {
+    assert(s);
+    assert(parent);
+    assert(identifier);
+
+    Type *struct_type = parent->result_type;
+
+    // Type check
+    if (struct_type->kind != TypeKind_struct) {
+        ERROR("cannot access member of non-struct type\n");
+    }
+
+    // Find the member symbol
+    Symbol *member_symbol = NULL;
+
+    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols); i++) {
+        Symbol *symbol = Vec_get(Symbol)(struct_type->member_symbols, i);
+
+        if (strcmp(symbol->name, identifier->text) == 0) {
+            member_symbol = symbol;
+            break;
+        }
+    }
+
+    if (member_symbol == NULL) {
+        ERROR("cannot find member named %s\n", identifier->text);
+    }
+
+    DotExprNode*node = DotExprNode_new(member_symbol->type, parent->value_category, parent, member_symbol);
+    return DotExprNode_base(node);
 }
 
 ExprNode *

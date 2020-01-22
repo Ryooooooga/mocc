@@ -40,7 +40,7 @@
 
 // Expressions
 EXPR_NODE(Identifier)
-    NODE_MEMBER_F(Symbol *, symbol, symbol)
+    NODE_MEMBER_F(Symbol *, symbol, Symbol)
 NODE_END()
 
 EXPR_NODE(Integer)
@@ -60,6 +60,11 @@ NODE_END()
 EXPR_NODE(Call)
     NODE_MEMBER_F(ExprNode *, callee, Expr)
     NODE_MEMBER_F(Vec(ExprNode) *, arguments, Exprs)
+NODE_END()
+
+EXPR_NODE(Dot)
+    NODE_MEMBER_F(ExprNode *, parent, Expr)
+    NODE_MEMBER_F(Symbol *, member_symbol, Symbol)
 NODE_END()
 
 UNARY_OP(address_of)
@@ -116,7 +121,7 @@ NODE_END()
 // Declarator
 DECLARATOR_NODE(Direct)
     NODE_MEMBER(const char *, name)
-    NODE_MEMBER_F(Symbol *, symbol, symbol)
+    NODE_MEMBER_F(Symbol *, symbol, Symbol)
 NODE_END()
 
 DECLARATOR_NODE(Array)
@@ -149,6 +154,11 @@ DECL_NODE(Function)
     NODE_MEMBER_F(DeclaratorNode *, declarator, Declarator)
     NODE_MEMBER_F(StmtNode *, body, Stmt)
     NODE_MEMBER(Vec(Symbol) *, local_variables)
+NODE_END()
+
+DECL_NODE(Member)
+    NODE_MEMBER_F(DeclSpecNode *, decl_spec, DeclSpec)
+    NODE_MEMBER_F(Vec(DeclaratorNode) *, declarators, Declarators)
 NODE_END()
 
 // Misc

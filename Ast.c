@@ -122,6 +122,21 @@ CallExprNode *CallExprNode_new(
     return p;
 }
 
+DotExprNode *DotExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *parent,
+    Symbol *member_symbol) {
+    assert(parent);
+    assert(member_symbol);
+
+    DotExprNode *p = DotExprNode_alloc(result_type, value_category);
+    p->parent = parent;
+    p->member_symbol = member_symbol;
+
+    return p;
+}
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,
@@ -419,6 +434,18 @@ FunctionDeclNode *FunctionDeclNode_new(
     return p;
 }
 
+MemberDeclNode *
+MemberDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
+    assert(decl_spec);
+    assert(declarators);
+
+    MemberDeclNode *p = MemberDeclNode_alloc();
+    p->decl_spec = decl_spec;
+    p->declarators = declarators;
+
+    return p;
+}
+
 // Misc
 DeclSpecNode *DeclSpecNode_new(Type *base_type) {
     assert(base_type);
@@ -449,7 +476,7 @@ static void Node_dump_indent(FILE *fp, size_t depth) {
     }
 }
 
-static void Node_dump_symbol(const Symbol *x, FILE *fp, size_t depth) {
+static void Node_dump_Symbol(const Symbol *x, FILE *fp, size_t depth) {
     assert(x);
     assert(fp);
 

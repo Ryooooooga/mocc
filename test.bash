@@ -224,3 +224,8 @@ try "c$LINENO" '
     int strcmp(const char *a, const char *b);
     int main(void) { return strcmp("world", &"hello, world"[7]); }
     ' 0
+
+try "c$LINENO" '
+    struct S { int x; int y, z; };
+    int main(void) { struct S s; s.x=2; s.y=4; s.z=5; return s.x + s.y + s.z; }
+    ' 11

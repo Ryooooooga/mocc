@@ -130,6 +130,7 @@ VEC_DECL(ExprNode, struct ExprNode *)
 VEC_DECL(StmtNode, struct StmtNode *)
 VEC_DECL(DeclaratorNode, struct DeclaratorNode *)
 VEC_DECL(DeclNode, struct DeclNode *)
+VEC_DECL(MemberDeclNode, struct MemberDeclNode *)
 
 // File
 char *File_read(const char *path);
@@ -147,6 +148,7 @@ typedef enum TypeKind {
     TypeKind_pointer,
     TypeKind_function,
     TypeKind_array,
+    TypeKind_struct,
 } TypeKind;
 
 typedef struct Type Type;
@@ -164,6 +166,11 @@ struct Type {
     // For array type
     Type *element_type;
     size_t array_length;
+
+    // For struct type
+    struct Symbol *struct_symbol;
+    Vec(MemberDeclNode) * member_decls;
+    Vec(Symbol) * member_symbols;
 };
 
 Type *VoidType_new(void);
@@ -180,6 +187,9 @@ Vec(Type) * FunctionType_parameter_types(const Type *function_type);
 Type *ArrayType_new(Type *element_type, size_t array_length);
 Type *ArrayType_element_type(const Type *array_type);
 size_t ArrayType_length(const Type *array_type);
+
+Type *StructType_new(void);
+bool StructType_is_defined(const Type *struct_type);
 
 size_t Type_sizeof(const Type *type);
 size_t Type_alignof(const Type *type);
@@ -280,7 +290,7 @@ typedef enum ImplicitCastOp {
 // clang-format off
 #define NODE(name, base)                                                       \
     Node *name##base##Node_base_node(name##base##Node *p);                     \
-    const Node *name##base##Node_cbase_node(const name##base##Node *p);              \
+    const Node *name##base##Node_cbase_node(const name##base##Node *p);        \
     base##Node *name##base##Node_base(name##base##Node *p);                    \
     const base##Node *name##base##Node_cbase(const name##base##Node *p);       \
     name##base##Node *name##base##Node_cast_node(Node *p);                     \
@@ -328,6 +338,12 @@ CallExprNode *CallExprNode_new(
     ValueCategory value_category,
     ExprNode *callee,
     Vec(ExprNode) * arguments);
+
+DotExprNode *DotExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    ExprNode *parent,
+    Symbol *member_symbol);
 
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
@@ -397,6 +413,9 @@ FunctionDeclNode *FunctionDeclNode_new(
     StmtNode *body,
     Vec(Symbol) * local_variables);
 
+MemberDeclNode *
+MemberDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
+
 // Miscs
 DeclSpecNode *DeclSpecNode_new(Type *base_type);
 
@@ -424,6 +443,16 @@ typedef struct Sema Sema;
 
 Sema *Sema_new(void);
 
+// Types
+Type *Sema_act_on_struct_type_reference(Sema *s, const Token *identifier);
+Type *
+Sema_act_on_struct_type_start_of_member_list(Sema *s, const Token *identifier);
+Type *Sema_act_on_struct_type_end_of_member_list(
+    Sema *s, Type *struct_type, Vec(MemberDeclNode) * member_decls);
+
+MemberDeclNode *Sema_act_on_struct_type_member_decl(
+    Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
+
 // Expressions
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
@@ -435,6 +464,9 @@ ExprNode *Sema_act_on_subscript_expr(Sema *s, ExprNode *array, ExprNode *index);
 
 ExprNode *
 Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments);
+
+ExprNode *
+Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier);
 
 ExprNode *
 Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand);

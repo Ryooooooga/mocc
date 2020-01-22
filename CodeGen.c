@@ -155,6 +155,33 @@ static void CodeGen_store(CodeGen *g, const Type *type) {
     }
 }
 
+static size_t
+CodeGen_member_offset(CodeGen *g, Type *struct_type, Symbol *member_symbol) {
+    assert(g);
+    assert(struct_type);
+    assert(member_symbol);
+
+    (void)g;
+
+    size_t offset = 0;
+
+    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols); i++) {
+        Symbol *symbol = Vec_get(Symbol)(struct_type->member_symbols, i);
+        size_t align = Type_alignof(symbol->type);
+        size_t padding = offset % align == 0 ? 0 : align - offset % align;
+
+        offset += padding;
+
+        if (symbol == member_symbol) {
+            return offset;
+        }
+
+        offset += Type_sizeof(symbol->type);
+    }
+
+    UNREACHABLE();
+}
+
 static void CodeGen_gen_expr(CodeGen *g, ExprNode *p);
 static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p);
 
@@ -225,6 +252,25 @@ static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
 
     fprintf(g->fp, "  pop rax\n");
     fprintf(g->fp, "  call rax\n");
+    fprintf(g->fp, "  push rax\n");
+}
+
+static void CodeGen_gen_DotExpr(CodeGen *g, DotExprNode *p) {
+    assert(g);
+    assert(p);
+
+    if (p->value_category == ValueCategory_rvalue) {
+        UNIMPLEMENTED();
+    }
+
+    // Parent
+    CodeGen_gen_expr(g, p->parent);
+
+    size_t offset =
+        CodeGen_member_offset(g, p->parent->result_type, p->member_symbol);
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  add rax, %zu\n", offset);
     fprintf(g->fp, "  push rax\n");
 }
 

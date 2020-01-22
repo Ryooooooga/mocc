@@ -99,7 +99,7 @@ static void CodeGen_gen_constant_pool(CodeGen *g) {
         fprintf(g->fp, ".S%zu:\n", i);
 
         for (size_t j = 0; j < len; j++) {
-            fprintf(g->fp, "  .byte 0x%02x\n", (int)s[j]);
+            fprintf(g->fp, "  .byte 0x%02x\n", (unsigned char)s[j]);
         }
     }
 }

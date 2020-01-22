@@ -101,9 +101,9 @@ Token *Lexer_read(Lexer *l) {
 
             t->kind = TokenKind_number;
             break;
-        } else if (isalpha(c)) {
+        } else if (isalpha(c) || c == '_') {
             // [0-9A-Za-z]*
-            while (isalnum(Lexer_current(l))) {
+            while (isalnum(Lexer_current(l)) || Lexer_current(l) == '_') {
                 buffer[len++] = Lexer_consume(l);
             }
 

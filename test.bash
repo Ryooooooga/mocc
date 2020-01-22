@@ -211,14 +211,16 @@ try "c$LINENO" '
     ' 30
 
 try "c$LINENO" '
-    int strlen(const char *s);
+    typedef int size_t;
+    size_t strlen(const char *s);
     int main(void) { return strlen("hello\n"); }
-    ' 6 # TODO: size_t
+    ' 6
 
 try "c$LINENO" '
-    int strlen(const char *s);
+    typedef int size_t;
+    size_t strlen(const char *s);
     int main(void) { return strlen(&"hello\n"[3]); }
-    ' 3 # TODO: size_t
+    ' 3
 
 try "c$LINENO" '
     int strcmp(const char *a, const char *b);

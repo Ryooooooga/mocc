@@ -325,6 +325,8 @@ MemberDeclNode *Sema_act_on_struct_type_member_decl(
     assert(decl_spec);
     assert(declarators);
 
+    (void)s;
+
     // Type check
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarators); i++) {
         DeclaratorNode *declarator = Vec_get(DeclaratorNode)(declarators, i);
@@ -476,6 +478,8 @@ Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier) {
     assert(s);
     assert(parent);
     assert(identifier);
+
+    (void)s;
 
     Type *struct_type = parent->result_type;
 

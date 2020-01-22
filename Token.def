@@ -18,6 +18,7 @@ TOKEN(identifier, "identifier")
 TOKEN(number, "number")
 TOKEN(string, "string")
 
+TOKEN_KW1(typedef)
 TOKEN_KW1(const)
 TOKEN_KW1(void)
 TOKEN_KW1(char)

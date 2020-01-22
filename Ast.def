@@ -168,6 +168,7 @@ NODE_END()
 
 // Misc
 NODE(DeclSpec, )
+    NODE_MEMBER_F(StorageClass, storage_class, StorageClass)
     NODE_MEMBER(Type *, base_type)
 NODE_END()
 

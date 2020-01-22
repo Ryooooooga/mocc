@@ -462,10 +462,11 @@ MemberDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
 }
 
 // Misc
-DeclSpecNode *DeclSpecNode_new(Type *base_type) {
+DeclSpecNode *DeclSpecNode_new(StorageClass storage_class, Type *base_type) {
     assert(base_type);
 
     DeclSpecNode *p = DeclSpecNode_alloc();
+    p->storage_class = storage_class;
     p->base_type = base_type;
 
     return p;
@@ -519,6 +520,27 @@ static void Node_dump_size_t(size_t x, FILE *fp, size_t depth) {
 
     Node_dump_indent(fp, depth);
     fprintf(fp, "(size_t %zu)\n", x);
+}
+
+static void Node_dump_StorageClass(StorageClass x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    const char *text;
+    switch (x) {
+    case StorageClass_none:
+        text = "none";
+        break;
+
+    case StorageClass_typedef:
+        text = "typedef";
+        break;
+
+    default:
+        UNREACHABLE();
+    }
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(StorageClass %s)\n", text);
 }
 
 static void Node_dump_UnaryOp(UnaryOp x, FILE *fp, size_t depth) {

@@ -59,15 +59,15 @@ static bool Parser_is_decl_spec(Parser *p, const Token *t) {
         return true;
 
     case TokenKind_identifier:
-        (void)p; // TODO: typedef name
-        return false;
+        return Sema_is_typedef_name(p->sema, t);
 
     default:
         return false;
     }
 }
 
-static DeclSpecNode *Parser_parse_type_spec(Parser *p);
+static DeclSpecNode *
+Parser_parse_type_spec(Parser *p, StorageClass storage_class);
 static ExprNode *Parser_parse_assign_expr(Parser *p);
 static ExprNode *Parser_parse_comma_expr(Parser *p);
 static StmtNode *Parser_parse_stmt(Parser *p);
@@ -108,7 +108,7 @@ static Type *Parser_parse_struct_type(Parser *p) {
     while (Parser_current(p)->kind != '}') {
         // member_decl
         // type_spec
-        DeclSpecNode *decl_spec = Parser_parse_type_spec(p);
+        DeclSpecNode *decl_spec = Parser_parse_type_spec(p, StorageClass_none);
 
         // [declarator (',' declarator)*]
         Vec(DeclaratorNode) *declarators = Vec_new(DeclaratorNode)();
@@ -146,11 +146,15 @@ static Type *Parser_parse_struct_type(Parser *p) {
 }
 
 // type_spec:
-//  type_specifier type
-static DeclSpecNode *Parser_parse_type_spec(Parser *p) {
+//  [type_specifier] type
+//
+// type_specifier:
+//  'const'
+static DeclSpecNode *
+Parser_parse_type_spec(Parser *p, StorageClass storage_class) {
     assert(p);
 
-    // type_specifier
+    // [type_specifier]
     switch (Parser_current(p)->kind) {
     case TokenKind_kw_const:
         // 'const'
@@ -191,24 +195,47 @@ static DeclSpecNode *Parser_parse_type_spec(Parser *p) {
         base_type = Parser_parse_struct_type(p);
         break;
 
-    case TokenKind_identifier:
-        TODO("typedef name");
+    case TokenKind_identifier: {
+        // identifier
+        const Token *identifier = Parser_expect(p, TokenKind_identifier);
+
+        base_type = Sema_act_on_typedef_name(p->sema, identifier);
         break;
+    }
 
     default:
         ERROR("expected type, but got %s\n", Parser_current(p)->text);
         break;
     }
 
-    return Sema_act_on_decl_spec(p->sema, base_type);
+    return Sema_act_on_decl_spec(p->sema, storage_class, base_type);
 }
 
 // decl_spec:
-//  type_spec
+//  [storage_class] type_spec
+//
+// storage_class:
+//  'typedef'
 static DeclSpecNode *Parser_parse_decl_spec(Parser *p) {
     assert(p);
 
-    return Parser_parse_type_spec(p);
+    // [storage_class]
+    StorageClass storage_class;
+
+    switch (Parser_current(p)->kind) {
+    case TokenKind_kw_typedef:
+        // 'typedef'
+        Parser_expect(p, TokenKind_kw_typedef);
+
+        storage_class = StorageClass_typedef;
+        break;
+
+    default:
+        storage_class = StorageClass_none;
+        break;
+    }
+
+    return Parser_parse_type_spec(p, storage_class);
 }
 
 // identifier_expr:
@@ -589,7 +616,7 @@ static DeclaratorNode *Parser_parse_parameter_decl(Parser *p) {
     assert(p);
 
     // type_spec
-    DeclSpecNode *decl_spec = Parser_parse_type_spec(p);
+    DeclSpecNode *decl_spec = Parser_parse_type_spec(p, StorageClass_none);
 
     // TODO: abstract_declarator
     DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec);

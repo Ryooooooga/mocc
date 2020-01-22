@@ -244,7 +244,8 @@ Type *Sema_act_on_struct_type_reference(Sema *s, const Token *identifier) {
 
     if (symbol == NULL) {
         Type *type = StructType_new();
-        type->struct_symbol = symbol = Symbol_new(identifier->text, type);
+        type->struct_symbol = symbol =
+            Symbol_new(identifier->text, StorageClass_none, type);
 
         // Register the struct symbol
         Sema_register_struct_symbol(s, symbol);
@@ -266,7 +267,8 @@ Sema_act_on_struct_type_start_of_member_list(Sema *s, const Token *identifier) {
 
     if (symbol == NULL) {
         type = StructType_new();
-        type->struct_symbol = symbol = Symbol_new(identifier->text, type);
+        type->struct_symbol = symbol =
+            Symbol_new(identifier->text, StorageClass_none, type);
 
         // Register the struct symbol
         Sema_register_struct_symbol(s, symbol);
@@ -338,6 +340,40 @@ MemberDeclNode *Sema_act_on_struct_type_member_decl(
     }
 
     return MemberDeclNode_new(decl_spec, declarators);
+}
+
+static Symbol *Sema_find_typedef_name(Sema *s, const char *name) {
+    assert(s);
+    assert(name);
+
+    Symbol *symbol = Sema_find_symbol(s, name);
+
+    if (symbol != NULL && symbol->storage_class == StorageClass_typedef) {
+        return symbol;
+    }
+
+    return NULL;
+}
+
+bool Sema_is_typedef_name(Sema *s, const Token *identifier) {
+    assert(s);
+    assert(identifier);
+
+    return Sema_find_typedef_name(s, identifier->text) != NULL;
+}
+
+Type *Sema_act_on_typedef_name(Sema *s, const Token *identifier) {
+    assert(s);
+    assert(identifier);
+
+    // Find the symbol
+    Symbol *symbol = Sema_find_typedef_name(s, identifier->text);
+
+    if (symbol == NULL) {
+        ERROR("identifier %s is not a type\n", identifier->text);
+    }
+
+    return symbol->type;
 }
 
 // Expressions
@@ -788,11 +824,17 @@ Sema_act_on_pointer_declarator(Sema *s, DeclaratorNode *declarator) {
     return PointerDeclaratorNode_base(node);
 }
 
-static void
-Sema_complete_declarator(Sema *s, DeclaratorNode *declarator, Type *base_type);
+static void Sema_complete_declarator(
+    Sema *s,
+    DeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type);
 
 static void Sema_complete_declarator_Direct(
-    Sema *s, DirectDeclaratorNode *declarator, Type *base_type) {
+    Sema *s,
+    DirectDeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type) {
     assert(s);
     assert(declarator);
     assert(base_type);
@@ -802,7 +844,8 @@ static void Sema_complete_declarator_Direct(
         declarator->symbol = Sema_find_symbol(s, declarator->name);
 
         if (declarator->symbol == NULL) {
-            declarator->symbol = Symbol_new(declarator->name, base_type);
+            declarator->symbol =
+                Symbol_new(declarator->name, storage_class, base_type);
 
             Sema_register_symbol(s, declarator->symbol);
         } else if (!Type_equals(declarator->symbol->type, base_type)) {
@@ -810,14 +853,18 @@ static void Sema_complete_declarator_Direct(
         }
     } else {
         // Variable
-        declarator->symbol = Symbol_new(declarator->name, base_type);
+        declarator->symbol =
+            Symbol_new(declarator->name, storage_class, base_type);
 
         Sema_register_symbol(s, declarator->symbol);
     }
 }
 
 static void Sema_complete_declarator_Array(
-    Sema *s, ArrayDeclaratorNode *declarator, Type *base_type) {
+    Sema *s,
+    ArrayDeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type) {
     assert(s);
     assert(declarator);
     assert(base_type);
@@ -841,11 +888,15 @@ static void Sema_complete_declarator_Array(
 
     base_type = ArrayType_new(base_type, length);
 
-    Sema_complete_declarator(s, declarator->declarator, base_type);
+    Sema_complete_declarator(
+        s, declarator->declarator, storage_class, base_type);
 }
 
 static void Sema_complete_declarator_Function(
-    Sema *s, FunctionDeclaratorNode *declarator, Type *base_type) {
+    Sema *s,
+    FunctionDeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type) {
     assert(s);
     assert(declarator);
     assert(base_type);
@@ -869,29 +920,41 @@ static void Sema_complete_declarator_Function(
 
     base_type = FunctionType_new(base_type, parameter_types);
 
-    Sema_complete_declarator(s, declarator->declarator, base_type);
+    Sema_complete_declarator(
+        s, declarator->declarator, storage_class, base_type);
 }
 
 static void Sema_complete_declarator_Pointer(
-    Sema *s, PointerDeclaratorNode *declarator, Type *base_type) {
+    Sema *s,
+    PointerDeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type) {
     assert(s);
     assert(declarator);
     assert(base_type);
 
     Sema_complete_declarator(
-        s, declarator->declarator, PointerType_new(base_type));
+        s, declarator->declarator, storage_class, PointerType_new(base_type));
 }
 
 static void Sema_complete_declarator_Init(
-    Sema *s, InitDeclaratorNode *declarator, Type *base_type) {
+    Sema *s,
+    InitDeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type) {
     (void)s;
     (void)declarator;
+    (void)storage_class;
     (void)base_type;
+
     UNREACHABLE();
 }
 
-static void
-Sema_complete_declarator(Sema *s, DeclaratorNode *declarator, Type *base_type) {
+static void Sema_complete_declarator(
+    Sema *s,
+    DeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type) {
     assert(s);
     assert(declarator);
 
@@ -899,7 +962,10 @@ Sema_complete_declarator(Sema *s, DeclaratorNode *declarator, Type *base_type) {
 #define DECLARATOR_NODE(name)                                                  \
     case NodeKind_##name##Declarator:                                          \
         Sema_complete_declarator_##name(                                       \
-            s, name##DeclaratorNode_cast(declarator), base_type);              \
+            s,                                                                 \
+            name##DeclaratorNode_cast(declarator),                             \
+            storage_class,                                                     \
+            base_type);                                                        \
         break;
 #include "Ast.def"
 
@@ -914,7 +980,8 @@ DeclaratorNode *Sema_act_on_declarator_completed(
     assert(decl_spec);
     assert(declarator);
 
-    Sema_complete_declarator(s, declarator, decl_spec->base_type);
+    Sema_complete_declarator(
+        s, declarator, decl_spec->storage_class, decl_spec->base_type);
     return declarator;
 }
 
@@ -934,12 +1001,13 @@ DeclaratorNode *Sema_act_on_init_declarator(
 }
 
 // Declarations
-DeclSpecNode *Sema_act_on_decl_spec(Sema *s, Type *base_type) {
+DeclSpecNode *
+Sema_act_on_decl_spec(Sema *s, StorageClass storage_class, Type *base_type) {
     assert(s);
     assert(base_type);
 
     (void)s;
-    return DeclSpecNode_new(base_type);
+    return DeclSpecNode_new(storage_class, base_type);
 }
 
 DeclaratorNode *

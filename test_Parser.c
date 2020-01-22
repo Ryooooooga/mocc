@@ -30,6 +30,7 @@ void test_Parser(void) {
         "(TranslationUnit\n"
         "  (FunctionDecl\n"
         "    (DeclSpec\n"
+        "      (StorageClass none)\n"
         "    )\n"
         "    (FunctionDeclarator\n"
         "      (DirectDeclarator\n"

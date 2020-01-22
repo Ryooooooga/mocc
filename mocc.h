@@ -217,8 +217,14 @@ typedef struct Token {
 } Token;
 
 // Symbol
+typedef enum StorageClass {
+    StorageClass_none,
+    StorageClass_typedef,
+} StorageClass;
+
 typedef struct Symbol {
     const char *name;
+    StorageClass storage_class;
     Type *type;
 
     // For functions
@@ -228,7 +234,7 @@ typedef struct Symbol {
     struct NativeAddress *address;
 } Symbol;
 
-Symbol *Symbol_new(const char *name, Type *type);
+Symbol *Symbol_new(const char *name, StorageClass storage_class, Type *type);
 
 // Scope
 typedef struct Scope Scope;
@@ -425,7 +431,7 @@ MemberDeclNode *
 MemberDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
 
 // Miscs
-DeclSpecNode *DeclSpecNode_new(Type *base_type);
+DeclSpecNode *DeclSpecNode_new(StorageClass storage_class, Type *base_type);
 
 TranslationUnitNode *TranslationUnitNode_new(Vec(DeclNode) * declarations);
 
@@ -460,6 +466,9 @@ Type *Sema_act_on_struct_type_end_of_member_list(
 
 MemberDeclNode *Sema_act_on_struct_type_member_decl(
     Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
+
+bool Sema_is_typedef_name(Sema *s, const Token *identifier);
+Type *Sema_act_on_typedef_name(Sema *s, const Token *identifier);
 
 // Expressions
 ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
@@ -519,7 +528,8 @@ DeclaratorNode *Sema_act_on_init_declarator(
     Sema *s, DeclaratorNode *declarator, ExprNode *initializer);
 
 // Declarations
-DeclSpecNode *Sema_act_on_decl_spec(Sema *s, Type *base_type);
+DeclSpecNode *
+Sema_act_on_decl_spec(Sema *s, StorageClass storage_class, Type *base_type);
 
 DeclaratorNode *Sema_act_on_parameter_decl(Sema *s, DeclaratorNode *declarator);
 

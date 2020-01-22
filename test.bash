@@ -237,3 +237,14 @@ try "c$LINENO" '
         return s.y - p->x;
     }
     ' 5
+
+try "c$LINENO" '
+    typedef int T;
+    T main(void) { T x = 12; return x; }
+    ' 12
+
+try "c$LINENO" '
+    typedef struct S S;
+    struct S { int x; };
+    int main(void) { S s; s.x = 13; return s.x; }
+    ' 13

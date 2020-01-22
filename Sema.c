@@ -500,7 +500,8 @@ Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier) {
         ERROR("cannot find member named %s\n", identifier->text);
     }
 
-    DotExprNode*node = DotExprNode_new(member_symbol->type, parent->value_category, parent, member_symbol);
+    DotExprNode *node = DotExprNode_new(
+        member_symbol->type, parent->value_category, parent, member_symbol);
     return DotExprNode_base(node);
 }
 

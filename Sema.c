@@ -674,6 +674,52 @@ ExprNode *Sema_act_on_binary_expr(
         op = BinaryOp_sub;
         break;
 
+    case TokenKind_equal:
+    case TokenKind_not_equal:
+        // Conversion
+        Sema_integer_promotion(s, &lhs);
+        Sema_integer_promotion(s, &rhs);
+
+        // TODO: Type check
+        if (!Type_is_scalar(lhs->result_type) ||
+            !Type_is_scalar(rhs->result_type)) {
+            ERROR("invalid operands to binary %s\n", operator->text);
+        }
+
+        type = s->int_type;
+
+        if (operator->kind == TokenKind_equal) {
+            op = BinaryOp_equal;
+        } else if (operator->kind == TokenKind_not_equal) {
+            op = BinaryOp_not_equal;
+        } else {
+            UNREACHABLE();
+        }
+        break;
+
+    case TokenKind_and_and:
+    case TokenKind_or_or:
+        // Conversion
+        Sema_integer_promotion(s, &lhs);
+        Sema_integer_promotion(s, &rhs);
+
+        // Type check
+        if (!Type_is_scalar(lhs->result_type) ||
+            !Type_is_scalar(rhs->result_type)) {
+            ERROR("invalid operands to binary %s\n", operator->text);
+        }
+
+        type = s->int_type;
+
+        if (operator->kind == TokenKind_and_and) {
+            op = BinaryOp_logical_and;
+        } else if (operator->kind == TokenKind_or_or) {
+            op = BinaryOp_logical_or;
+        } else {
+            UNREACHABLE();
+        }
+        break;
+
     default:
         ERROR("unknown binary operator %s\n", operator->text);
     }

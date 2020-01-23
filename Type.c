@@ -258,6 +258,20 @@ bool Type_equals(const Type *a, const Type *b) {
     }
 }
 
+bool Type_is_scalar(const Type *type) {
+    assert(type);
+
+    switch (type->kind) {
+    case TypeKind_char:
+    case TypeKind_int:
+    case TypeKind_pointer:
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 bool Type_is_incomplete_type(const Type *type) {
     assert(type);
 

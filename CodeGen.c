@@ -314,22 +314,94 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
     assert(g);
     assert(p);
 
-    CodeGen_gen_expr(g, p->lhs);
-    CodeGen_gen_expr(g, p->rhs);
-
-    fprintf(g->fp, "  pop rdi\n");
-    fprintf(g->fp, "  pop rax\n");
-
     switch (p->operator) {
     case BinaryOp_add:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  add rax, rdi\n");
         fprintf(g->fp, "  push rax\n");
         break;
 
     case BinaryOp_sub:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  sub rax, rdi\n");
         fprintf(g->fp, "  push rax\n");
         break;
+
+    case BinaryOp_equal:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, rdi\n");
+        fprintf(g->fp, "  sete al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_not_equal:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, rdi\n");
+        fprintf(g->fp, "  setne al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_logical_and: {
+        int end_label = CodeGen_next_label(g);
+
+        CodeGen_gen_expr(g, p->lhs);
+
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  push 0\n");
+        fprintf(g->fp, "  cmp rax, 0\n");
+        fprintf(g->fp, "  je .L%d\n", end_label);
+        fprintf(g->fp, "  pop rax\n");
+
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, 0\n");
+        fprintf(g->fp, "  setne al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        fprintf(g->fp, ".L%d:\n", end_label);
+        break;
+    }
+
+    case BinaryOp_logical_or: {
+        int end_label = CodeGen_next_label(g);
+
+        CodeGen_gen_expr(g, p->lhs);
+
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  push 1\n");
+        fprintf(g->fp, "  cmp rax, 0\n");
+        fprintf(g->fp, "  jne .L%d\n", end_label);
+        fprintf(g->fp, "  pop rax\n");
+
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, 0\n");
+        fprintf(g->fp, "  setne al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        fprintf(g->fp, ".L%d:\n", end_label);
+        break;
+    }
 
     default:
         ERROR("unknown binary op %d", p->operator);

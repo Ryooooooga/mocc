@@ -479,13 +479,126 @@ static ExprNode *Parser_parse_additive_expr(Parser *p) {
     return lhs;
 }
 
+// relational_expr:
+//  relational_expr '<' shift_expr
+//  relational_expr '>' shift_expr
+//  relational_expr '<=' shift_expr
+//  relational_expr '>=' shift_expr
+//  shift_expr
+static ExprNode *Parser_parse_relational_expr(Parser *p) {
+    assert(p);
+
+    // TODO: relational_expr
+    return Parser_parse_additive_expr(p);
+}
+
+// equality_expr:
+//  equality_expr '==' relational_expr
+//  equality_expr '!=' relational_expr
+//  relational_expr
+static ExprNode *Parser_parse_equality_expr(Parser *p) {
+    assert(p);
+
+    // relational_expr
+    ExprNode *lhs = Parser_parse_relational_expr(p);
+
+    while (Parser_current(p)->kind == TokenKind_equal ||
+           Parser_current(p)->kind == TokenKind_not_equal) {
+        // '==' | '!='
+        const Token *operator= Parser_consume(p);
+
+        // relational_expr
+        ExprNode *rhs = Parser_parse_relational_expr(p);
+
+        lhs = Sema_act_on_binary_expr(p->sema, lhs, operator, rhs);
+    }
+
+    return lhs;
+}
+
+// or_expr:
+//  or_expr '|' xor_expr
+//  xor_expr
+static ExprNode *Parser_parse_or_expr(Parser *p) {
+    assert(p);
+
+    // TODO: or_expr
+    return Parser_parse_equality_expr(p);
+}
+
+// logical_and_expr:
+//  logical_and_expr '||' or_expr
+//  or_expr
+static ExprNode *Parser_parse_logical_and_expr(Parser *p) {
+    assert(p);
+
+    // or_expr
+    ExprNode *lhs = Parser_parse_or_expr(p);
+
+    while (Parser_current(p)->kind == TokenKind_and_and) {
+        // '|'
+        const Token *operator= Parser_consume(p);
+
+        // or_expr
+        ExprNode *rhs = Parser_parse_or_expr(p);
+
+        lhs = Sema_act_on_binary_expr(p->sema, lhs, operator, rhs);
+    }
+
+    return lhs;
+}
+
+// logical_or_expr:
+//  logical_or_expr '||' logical_and_expr
+//  logical_and_expr
+static ExprNode *Parser_parse_logical_or_expr(Parser *p) {
+    assert(p);
+
+    // logical_and_expr
+    ExprNode *lhs = Parser_parse_logical_and_expr(p);
+
+    while (Parser_current(p)->kind == TokenKind_or_or) {
+        // '||'
+        const Token *operator= Parser_consume(p);
+
+        // logical_and_expr
+        ExprNode *rhs = Parser_parse_logical_and_expr(p);
+
+        lhs = Sema_act_on_binary_expr(p->sema, lhs, operator, rhs);
+    }
+
+    return lhs;
+}
+
 // conditional_expr:
-//  TODO: conditional_expr rule
+//  logical_or_expr '?' comma_expression ':' conditional_expr
+//  logical_or_expr
 static ExprNode *Parser_parse_conditional_expr(Parser *p) {
     assert(p);
 
-    // TODO: conditional_expr rule
-    return Parser_parse_additive_expr(p);
+    // logical_or_expr
+    ExprNode *condition = Parser_parse_logical_or_expr(p);
+
+    // ['?' comma_expression ':' conditional_expr]
+    if (Parser_current(p)->kind != '?') {
+        return condition;
+    }
+
+    // '?'
+    Parser_expect(p, '?');
+
+    // comma_expression
+    ExprNode *if_true = Parser_parse_comma_expr(p);
+
+    // ':'
+    Parser_expect(p, ':');
+
+    // conditional_expr
+    ExprNode *if_false = Parser_parse_conditional_expr(p);
+
+    (void)if_true;
+    (void)if_false;
+    UNIMPLEMENTED();
 }
 
 // assign_expr:

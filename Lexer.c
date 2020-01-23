@@ -119,6 +119,46 @@ Token *Lexer_read(Lexer *l) {
                 t->kind = '-';
             }
             break;
+        } else if (c == '=') {
+            buffer[len++] = Lexer_consume(l);
+
+            if (Lexer_current(l) == '=') {
+                buffer[len++] = Lexer_consume(l);
+                t->kind = TokenKind_equal;
+            } else {
+                t->kind = '=';
+            }
+            break;
+        } else if (c == '!') {
+            buffer[len++] = Lexer_consume(l);
+
+            if (Lexer_current(l) == '=') {
+                buffer[len++] = Lexer_consume(l);
+                t->kind = TokenKind_not_equal;
+            } else {
+                t->kind = '!';
+            }
+            break;
+        } else if (c == '&') {
+            buffer[len++] = Lexer_consume(l);
+
+            if (Lexer_current(l) == '&') {
+                buffer[len++] = Lexer_consume(l);
+                t->kind = TokenKind_and_and;
+            } else {
+                t->kind = '&';
+            }
+            break;
+        } else if (c == '|') {
+            buffer[len++] = Lexer_consume(l);
+
+            if (Lexer_current(l) == '|') {
+                buffer[len++] = Lexer_consume(l);
+                t->kind = TokenKind_or_or;
+            } else {
+                t->kind = '|';
+            }
+            break;
         } else {
             // .
             t->kind = buffer[len++] = Lexer_consume(l);

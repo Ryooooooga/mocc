@@ -197,6 +197,7 @@ size_t Type_sizeof(const Type *type);
 size_t Type_alignof(const Type *type);
 
 bool Type_equals(const Type *a, const Type *b);
+bool Type_is_scalar(const Type *type);
 bool Type_is_incomplete_type(const Type *type);
 bool Type_is_function_pointer_type(const Type *type);
 

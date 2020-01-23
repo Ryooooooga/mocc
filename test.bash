@@ -204,6 +204,51 @@ try "c$LINENO" '
     int main(void) { a = 1; b = 2; return a + b; }
     ' 3
 
+try "c$LINENO" 'int main(void) { return 1 && 1; }' 1
+try "c$LINENO" 'int main(void) { return 0 && 1; }' 0
+try "c$LINENO" 'int main(void) { return 1 && 0; }' 0
+try "c$LINENO" 'int main(void) { return 0 && 0; }' 0
+
+try "c$LINENO" 'int main(void) { return 1 || 1; }' 1
+try "c$LINENO" 'int main(void) { return 0 || 1; }' 1
+try "c$LINENO" 'int main(void) { return 1 || 0; }' 1
+try "c$LINENO" 'int main(void) { return 0 || 0; }' 0
+
+try "c$LINENO" '
+    int f(void) { return 1; }
+    int main(void) {
+        return 1 && f();
+    }
+    ' 1
+
+try "c$LINENO" '
+    void abort(void);
+    int g(void) { abort(); }
+    int main(void) {
+        return 0 && g();
+    }
+    ' 0
+
+try "c$LINENO" '
+    int f(void) { return 1; }
+    int main(void) {
+        return 1 || f();
+    }
+    ' 1
+
+try "c$LINENO" '
+    void abort(void);
+    int g(void) { abort(); }
+    int main(void) {
+        return 1 || g();
+    }
+    ' 1
+
+try "c$LINENO" 'int main(void) { return 2 == 2; }' 1
+try "c$LINENO" 'int main(void) { return 2 == 1; }' 0
+try "c$LINENO" 'int main(void) { return 2 != 2; }' 0
+try "c$LINENO" 'int main(void) { return 2 != 1; }' 1
+
 try "c$LINENO" '
     int f(int x, int y);
     int main(void) { return f(10, 20); }

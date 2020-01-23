@@ -31,6 +31,10 @@ TOKEN_KW1(while)
 TOKEN_KW1(return)
 
 TOKEN_DELIM(arrow, "->")
+TOKEN_DELIM(equal, "==")
+TOKEN_DELIM(not_equal, "!=")
+TOKEN_DELIM(and_and, "&&")
+TOKEN_DELIM(or_or, "||")
 
 #undef TOKEN
 #undef TOKEN_KW

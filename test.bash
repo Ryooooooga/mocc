@@ -19,6 +19,8 @@ try() {
 
     local exit_code
 
+    echo "$test_name"
+
     echo -n "$input" > "$c"
 
     "./build/$BUILD_TYPE/mocc" "$(cat "$c")" > "$asm"

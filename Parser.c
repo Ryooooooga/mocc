@@ -531,8 +531,21 @@ static ExprNode *Parser_parse_unary_expr(Parser *p) {
 static ExprNode *Parser_parse_multiplicative_expr(Parser *p) {
     assert(p);
 
-    // TODO: multiplicative_expr rule
-    return Parser_parse_unary_expr(p);
+    // unary_expr
+    ExprNode *lhs = Parser_parse_unary_expr(p);
+
+    while (Parser_current(p)->kind == '*' || Parser_current(p)->kind == '/' ||
+           Parser_current(p)->kind == '%') {
+        // '*' | '/' | '%'
+        const Token *operator= Parser_consume(p);
+
+        // unary_expr
+        ExprNode *rhs = Parser_parse_unary_expr(p);
+
+        lhs = Sema_act_on_binary_expr(p->sema, lhs, operator, rhs);
+    }
+
+    return lhs;
 }
 
 // additive_expr:
@@ -768,6 +781,29 @@ static StmtNode *Parser_parse_if_stmt(Parser *p) {
     }
 
     return Sema_act_on_if_stmt(p->sema, condition, if_true, if_false);
+}
+
+// while_stmt:
+//  'while' '(' comma_expr ')' stmt
+static StmtNode *Parser_parse_while_stmt(Parser *p) {
+    assert(p);
+
+    // 'while'
+    Parser_expect(p, TokenKind_kw_while);
+
+    // '('
+    Parser_expect(p, '(');
+
+    // comma_expr
+    ExprNode *condition = Parser_parse_comma_expr(p);
+
+    // ')'
+    Parser_expect(p, ')');
+
+    // stmt
+    StmtNode *body = Parser_parse_stmt(p);
+
+    return Sema_act_on_while_stmt(p->sema, condition, body);
 }
 
 // return_stmt:
@@ -1050,6 +1086,10 @@ static StmtNode *Parser_parse_stmt(Parser *p) {
     case TokenKind_kw_if:
         // if_stmt
         return Parser_parse_if_stmt(p);
+
+    case TokenKind_kw_while:
+        // while_stmt
+        return Parser_parse_while_stmt(p);
 
     case TokenKind_kw_return:
         // return_stmt

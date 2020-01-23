@@ -254,6 +254,17 @@ IfStmtNode_new(ExprNode *condition, StmtNode *if_true, StmtNode *if_false) {
     return p;
 }
 
+WhileStmtNode *WhileStmtNode_new(ExprNode *condition, StmtNode *body) {
+    assert(condition);
+    assert(body);
+
+    WhileStmtNode *p = WhileStmtNode_alloc();
+    p->condition = condition;
+    p->body = body;
+
+    return p;
+}
+
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value) {
     ReturnStmtNode *p = ReturnStmtNode_alloc();
     p->return_value = return_value;

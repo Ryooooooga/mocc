@@ -778,6 +778,21 @@ ExprNode *Sema_act_on_binary_expr(
         op = BinaryOp_sub;
         break;
 
+    case '*':
+        // Promotion
+        Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
+
+        // Type check
+        if (lhs->result_type->kind == TypeKind_int &&
+            rhs->result_type->kind == TypeKind_int) {
+        } else {
+            ERROR("invalid operands to binary -\n");
+        }
+
+        type = s->int_type;
+        op = BinaryOp_mul;
+        break;
+
     case TokenKind_equal:
     case TokenKind_not_equal:
         // Conversion
@@ -871,10 +886,30 @@ StmtNode *Sema_act_on_if_stmt(
     // Conversion
     Sema_decay_conversion(s, &condition);
 
-    // TODO: Type check
+    // Type check
+    if (!Type_is_scalar(condition->result_type)) {
+        ERROR("invalid condition type");
+    }
 
     IfStmtNode *node = IfStmtNode_new(condition, if_true, if_false);
     return IfStmtNode_base(node);
+}
+
+StmtNode *Sema_act_on_while_stmt(Sema *s, ExprNode *condition, StmtNode *body) {
+    assert(s);
+    assert(condition);
+    assert(body);
+
+    // Conversion
+    Sema_decay_conversion(s, &condition);
+
+    // Type check
+    if (!Type_is_scalar(condition->result_type)) {
+        ERROR("invalid condition type");
+    }
+
+    WhileStmtNode *node = WhileStmtNode_new(condition, body);
+    return WhileStmtNode_base(node);
 }
 
 StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value) {

@@ -343,6 +343,16 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  push rax\n");
         break;
 
+    case BinaryOp_mul:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  imul rax, rdi\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
     case BinaryOp_equal:
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
@@ -566,6 +576,30 @@ static void CodeGen_gen_IfStmt(CodeGen *g, IfStmtNode *p) {
 
     // End if
     fprintf(g->fp, ".L%d:\n", end_label);
+}
+
+static void CodeGen_gen_WhileStmt(CodeGen *g, WhileStmtNode *p) {
+    assert(g);
+    assert(p);
+
+    int loop_label = CodeGen_next_label(g);
+    int condition_label = CodeGen_next_label(g);
+
+    fprintf(g->fp, "  jmp .L%d\n", condition_label);
+
+    // Body
+    fprintf(g->fp, ".L%d:\n", loop_label);
+
+    CodeGen_gen_stmt(g, p->body);
+
+    // Condition
+    fprintf(g->fp, ".L%d:\n", condition_label);
+
+    CodeGen_gen_expr(g, p->condition);
+
+    fprintf(g->fp, "  pop rax\n");
+    fprintf(g->fp, "  cmp rax, 0\n");
+    fprintf(g->fp, "  jne .L%d\n", loop_label);
 }
 
 static void CodeGen_gen_ReturnStmt(CodeGen *g, ReturnStmtNode *p) {

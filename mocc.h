@@ -411,6 +411,8 @@ CompoundStmtNode *CompoundStmtNode_new(Vec(StmtNode) * statements);
 IfStmtNode *
 IfStmtNode_new(ExprNode *condition, StmtNode *if_true, StmtNode *if_false);
 
+WhileStmtNode *WhileStmtNode_new(ExprNode *condition, StmtNode *body);
+
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value);
 
 DeclStmtNode *
@@ -528,6 +530,8 @@ ExprNode *Sema_act_on_assign_expr(
 // Statements
 StmtNode *Sema_act_on_if_stmt(
     Sema *s, ExprNode *condition, StmtNode *if_true, StmtNode *if_false);
+
+StmtNode *Sema_act_on_while_stmt(Sema *s, ExprNode *condition, StmtNode *body);
 
 StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value);
 

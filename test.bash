@@ -139,6 +139,14 @@ try "c$LINENO" '
 
 try "c$LINENO" '
     int main(void) {
+        int f = 1, i = 4;
+        while (i) { f = f * i; i = i - 1; }
+        return f;
+    }
+    ' 24
+
+try "c$LINENO" '
+    int main(void) {
         int a = 5, *p = &a;
         return p[0];
     }' 5

@@ -314,7 +314,7 @@ static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
         break;
 
     default:
-        ERROR("unknown unary op %d", p->operator);
+        ERROR("unknown unary op %d\n", p->operator);
     }
 }
 
@@ -350,6 +350,54 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  pop rdi\n");
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  imul rax, rdi\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_lesser_than:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, rdi\n");
+        fprintf(g->fp, "  setl al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_lesser_equal:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, rdi\n");
+        fprintf(g->fp, "  setle al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_greater_than:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, rdi\n");
+        fprintf(g->fp, "  setg al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_greater_equal:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, rdi\n");
+        fprintf(g->fp, "  setge al\n");
+        fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
         break;
 
@@ -422,7 +470,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
     }
 
     default:
-        ERROR("unknown binary op %d", p->operator);
+        ERROR("unknown binary op %d\n", p->operator);
     }
 }
 
@@ -584,6 +632,7 @@ static void CodeGen_gen_WhileStmt(CodeGen *g, WhileStmtNode *p) {
 
     int loop_label = CodeGen_next_label(g);
     int condition_label = CodeGen_next_label(g);
+    int end_label = CodeGen_next_label(g);
 
     fprintf(g->fp, "  jmp .L%d\n", condition_label);
 
@@ -600,6 +649,54 @@ static void CodeGen_gen_WhileStmt(CodeGen *g, WhileStmtNode *p) {
     fprintf(g->fp, "  pop rax\n");
     fprintf(g->fp, "  cmp rax, 0\n");
     fprintf(g->fp, "  jne .L%d\n", loop_label);
+
+    fprintf(g->fp, ".L%d:\n", end_label);
+}
+
+static void CodeGen_gen_ForStmt(CodeGen *g, ForStmtNode *p) {
+    assert(g);
+    assert(p);
+
+    int loop_label = CodeGen_next_label(g);
+    int condition_label = CodeGen_next_label(g);
+    int step_label = CodeGen_next_label(g);
+    int end_label = CodeGen_next_label(g);
+
+    // Initializer
+    if (p->initializer != NULL) {
+        CodeGen_gen_stmt(g, p->initializer);
+    }
+
+    fprintf(g->fp, "  jmp .L%d\n", condition_label);
+
+    // Body
+    fprintf(g->fp, ".L%d:\n", loop_label);
+
+    CodeGen_gen_stmt(g, p->body);
+
+    // Step
+    fprintf(g->fp, ".L%d:\n", step_label);
+
+    if (p->step != NULL) {
+        CodeGen_gen_expr(g, p->step);
+
+        fprintf(g->fp, "  pop rax\n");
+    }
+
+    // Condition
+    fprintf(g->fp, ".L%d:\n", condition_label);
+
+    if (p->condition != NULL) {
+        CodeGen_gen_expr(g, p->condition);
+
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, 0\n");
+        fprintf(g->fp, "  jne .L%d\n", loop_label);
+    } else {
+        fprintf(g->fp, "  jmp .L%d\n", loop_label);
+    }
+
+    fprintf(g->fp, ".L%d:\n", end_label);
 }
 
 static void CodeGen_gen_ReturnStmt(CodeGen *g, ReturnStmtNode *p) {

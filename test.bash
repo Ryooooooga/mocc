@@ -147,6 +147,22 @@ try "c$LINENO" '
 
 try "c$LINENO" '
     int main(void) {
+        int sum = 0, i;
+        for (i=0; i<10; i=i+1) sum=sum+i;
+        return sum;
+    }
+    ' 45
+
+try "c$LINENO" '
+    int main(void) {
+        int sum = 0;
+        for (int i=0; i<=10; i=i+1) sum=sum+i;
+        return sum;
+    }
+    ' 55
+
+try "c$LINENO" '
+    int main(void) {
         int a = 5, *p = &a;
         return p[0];
     }' 5

@@ -265,6 +265,22 @@ WhileStmtNode *WhileStmtNode_new(ExprNode *condition, StmtNode *body) {
     return p;
 }
 
+ForStmtNode *ForStmtNode_new(
+    StmtNode *initializer,
+    ExprNode *condition,
+    ExprNode *step,
+    StmtNode *body) {
+    assert(body);
+
+    ForStmtNode *p = ForStmtNode_alloc();
+    p->initializer = initializer;
+    p->condition = condition;
+    p->step = step;
+    p->body = body;
+
+    return p;
+}
+
 ReturnStmtNode *ReturnStmtNode_new(ExprNode *return_value) {
     ReturnStmtNode *p = ReturnStmtNode_alloc();
     p->return_value = return_value;

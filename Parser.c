@@ -74,6 +74,8 @@ static ExprNode *Parser_parse_comma_expr(Parser *p);
 static StmtNode *Parser_parse_stmt(Parser *p);
 static DeclaratorNode *
 Parser_parse_declarator(Parser *p, DeclSpecNode *decl_spec);
+static DeclaratorNode *
+Parser_parse_init_declarator(Parser *p, DeclSpecNode *decl_spec);
 
 // struct_type:
 //  'struct' identifier [member_list]
@@ -571,6 +573,17 @@ static ExprNode *Parser_parse_additive_expr(Parser *p) {
     return lhs;
 }
 
+// shift_expr:
+//  shift_expr '<<' additive_expr
+//  shift_expr '>>' additive_expr
+//  additive_expr
+static ExprNode *Parser_parse_shift_expr(Parser *p) {
+    assert(p);
+
+    // TODO: shift_expr
+    return Parser_parse_additive_expr(p);
+}
+
 // relational_expr:
 //  relational_expr '<' shift_expr
 //  relational_expr '>' shift_expr
@@ -580,8 +593,23 @@ static ExprNode *Parser_parse_additive_expr(Parser *p) {
 static ExprNode *Parser_parse_relational_expr(Parser *p) {
     assert(p);
 
-    // TODO: relational_expr
-    return Parser_parse_additive_expr(p);
+    // shift_expr
+    ExprNode *lhs = Parser_parse_shift_expr(p);
+
+    while (Parser_current(p)->kind == '<' ||
+           Parser_current(p)->kind == TokenKind_lesser_equal ||
+           Parser_current(p)->kind == '>' ||
+           Parser_current(p)->kind == TokenKind_greater_equal) {
+        // '<' | '<=' | '>' | '>='
+        const Token *operator= Parser_consume(p);
+
+        // shift_expr
+        ExprNode *rhs = Parser_parse_shift_expr(p);
+
+        lhs = Sema_act_on_binary_expr(p->sema, lhs, operator, rhs);
+    }
+
+    return lhs;
 }
 
 // equality_expr:
@@ -804,6 +832,87 @@ static StmtNode *Parser_parse_while_stmt(Parser *p) {
     StmtNode *body = Parser_parse_stmt(p);
 
     return Sema_act_on_while_stmt(p->sema, condition, body);
+}
+
+// for_stmt:
+//  'for' '(' [decl_or_expr] ';' [comma_expr] ';' [comma_expr] ')' stmt
+//
+// decl_or_expr:
+//  type_spec [init_declarator (',' init_declarator)*]
+//  comma_expr
+static StmtNode *Parser_parse_for_stmt(Parser *p) {
+    assert(p);
+
+    Sema_act_on_for_stmt_start(p->sema);
+
+    // 'for'
+    Parser_expect(p, TokenKind_kw_for);
+
+    // '('
+    Parser_expect(p, '(');
+
+    // [decl_or_expr]
+    StmtNode *initializer = NULL;
+
+    if (Parser_is_decl_spec(p, Parser_current(p))) {
+        // decl_or_expr
+        // type_spec
+        DeclSpecNode *decl_spec = Parser_parse_type_spec(p, StorageClass_none);
+
+        // [init_declarator (',' init_declarator)*]
+        Vec(DeclaratorNode) *declarators = Vec_new(DeclaratorNode)();
+
+        if (Parser_current(p)->kind != ';') {
+            // init_declarator
+            Vec_push(DeclaratorNode)(
+                declarators, Parser_parse_init_declarator(p, decl_spec));
+
+            // (',' init_declarator)*
+            while (Parser_current(p)->kind == ',') {
+                // ','
+                Parser_expect(p, ',');
+
+                // init_declarator
+                Vec_push(DeclaratorNode)(
+                    declarators, Parser_parse_init_declarator(p, decl_spec));
+            }
+        }
+
+        initializer = Sema_act_on_decl_stmt(p->sema, decl_spec, declarators);
+    } else if (Parser_current(p)->kind != ';') {
+        // comma_expr
+        ExprNode *expr = Parser_parse_comma_expr(p);
+        initializer = Sema_act_on_expr_stmt(p->sema, expr);
+    }
+
+    // ';'
+    Parser_expect(p, ';');
+
+    // [comma_expr]
+    ExprNode *condition = NULL;
+
+    if (Parser_current(p)->kind != ';') {
+        condition = Parser_parse_comma_expr(p);
+    }
+
+    // ';'
+    Parser_expect(p, ';');
+
+    // [comma_expr]
+    ExprNode *step = NULL;
+
+    if (Parser_current(p)->kind != ')') {
+        step = Parser_parse_comma_expr(p);
+    }
+
+    // ')'
+    Parser_expect(p, ')');
+
+    // stmt
+    StmtNode *body = Parser_parse_stmt(p);
+
+    return Sema_act_on_for_stmt_end(
+        p->sema, initializer, condition, step, body);
 }
 
 // return_stmt:
@@ -1090,6 +1199,10 @@ static StmtNode *Parser_parse_stmt(Parser *p) {
     case TokenKind_kw_while:
         // while_stmt
         return Parser_parse_while_stmt(p);
+
+    case TokenKind_kw_for:
+        // for_stmt
+        return Parser_parse_for_stmt(p);
 
     case TokenKind_kw_return:
         // return_stmt

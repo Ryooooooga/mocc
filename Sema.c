@@ -793,6 +793,35 @@ ExprNode *Sema_act_on_binary_expr(
         op = BinaryOp_mul;
         break;
 
+    case '<':
+    case TokenKind_lesser_equal:
+    case '>':
+    case TokenKind_greater_equal:
+        // Conversion
+        Sema_integer_promotion(s, &lhs);
+        Sema_integer_promotion(s, &rhs);
+
+        // TODO: Type check
+        if (!Type_equals(lhs->result_type, rhs->result_type) ||
+            !Type_is_scalar(lhs->result_type)) {
+            ERROR("invalid operands to binary %s\n", operator->text);
+        }
+
+        type = s->int_type;
+
+        if (operator->kind == '<') {
+            op = BinaryOp_lesser_than;
+        } else if (operator->kind == TokenKind_lesser_equal) {
+            op = BinaryOp_lesser_equal;
+        } else if (operator->kind == '>') {
+            op = BinaryOp_greater_than;
+        } else if (operator->kind == TokenKind_greater_equal) {
+            op = BinaryOp_greater_equal;
+        } else {
+            UNREACHABLE();
+        }
+        break;
+
     case TokenKind_equal:
     case TokenKind_not_equal:
         // Conversion
@@ -800,7 +829,8 @@ ExprNode *Sema_act_on_binary_expr(
         Sema_integer_promotion(s, &rhs);
 
         // TODO: Type check
-        if (!Type_equals(lhs->result_type, rhs->result_type)) {
+        if (!Type_equals(lhs->result_type, rhs->result_type) ||
+            !Type_is_scalar(lhs->result_type)) {
             ERROR("invalid operands to binary %s\n", operator->text);
         }
 
@@ -910,6 +940,37 @@ StmtNode *Sema_act_on_while_stmt(Sema *s, ExprNode *condition, StmtNode *body) {
 
     WhileStmtNode *node = WhileStmtNode_new(condition, body);
     return WhileStmtNode_base(node);
+}
+
+void Sema_act_on_for_stmt_start(Sema *s) {
+    assert(s);
+
+    // Enter the 'for' scope
+    Sema_push_scope_stack(s);
+}
+
+StmtNode *Sema_act_on_for_stmt_end(
+    Sema *s,
+    StmtNode *initializer,
+    ExprNode *condition,
+    ExprNode *step,
+    StmtNode *body) {
+    assert(s);
+    assert(body);
+
+    // Leave the 'for' scope
+    Sema_pop_scope_stack(s);
+
+    // Conversion
+    Sema_decay_conversion(s, &condition);
+
+    // Type check
+    if (!Type_is_scalar(condition->result_type)) {
+        ERROR("invalid condition type\n");
+    }
+
+    ForStmtNode *node = ForStmtNode_new(initializer, condition, step, body);
+    return ForStmtNode_base(node);
 }
 
 StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value) {

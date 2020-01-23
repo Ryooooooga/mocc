@@ -70,6 +70,21 @@ IdentifierExprNode *IdentifierExprNode_new(
     return p;
 }
 
+EnumeratorExprNode *EnumeratorExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    Symbol *symbol,
+    int value) {
+    assert(symbol);
+
+    EnumeratorExprNode *p =
+        EnumeratorExprNode_alloc(result_type, value_category);
+    p->symbol = symbol;
+    p->value = value;
+
+    return p;
+}
+
 IntegerExprNode *IntegerExprNode_new(
     Type *result_type, ValueCategory value_category, long long value) {
     IntegerExprNode *p = IntegerExprNode_alloc(result_type, value_category);
@@ -461,6 +476,16 @@ MemberDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators) {
     return p;
 }
 
+EnumeratorDeclNode *EnumeratorDeclNode_new(Symbol *symbol, ExprNode *value) {
+    assert(symbol);
+
+    EnumeratorDeclNode *p = EnumeratorDeclNode_alloc();
+    p->symbol = symbol;
+    p->value = value;
+
+    return p;
+}
+
 // Misc
 DeclSpecNode *DeclSpecNode_new(StorageClass storage_class, Type *base_type) {
     assert(base_type);
@@ -533,6 +558,10 @@ static void Node_dump_StorageClass(StorageClass x, FILE *fp, size_t depth) {
 
     case StorageClass_typedef:
         text = "typedef";
+        break;
+
+    case StorageClass_enum:
+        text = "enum";
         break;
 
     default:

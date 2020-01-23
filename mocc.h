@@ -131,6 +131,7 @@ VEC_DECL(StmtNode, struct StmtNode *)
 VEC_DECL(DeclaratorNode, struct DeclaratorNode *)
 VEC_DECL(DeclNode, struct DeclNode *)
 VEC_DECL(MemberDeclNode, struct MemberDeclNode *)
+VEC_DECL(EnumeratorDeclNode, struct EnumeratorDeclNode *)
 
 // File
 char *File_read(const char *path);
@@ -149,6 +150,7 @@ typedef enum TypeKind {
     TypeKind_function,
     TypeKind_array,
     TypeKind_struct,
+    TypeKind_enum,
 } TypeKind;
 
 typedef struct Type Type;
@@ -171,6 +173,11 @@ struct Type {
     struct Symbol *struct_symbol;
     Vec(MemberDeclNode) * member_decls;
     Vec(Symbol) * member_symbols;
+
+    // For struct type
+    Type *underlying_type;
+    struct Symbol *enum_symbol;
+    Vec(EnumeratorDeclNode) * enumerators;
 };
 
 Type *VoidType_new(void);
@@ -192,6 +199,9 @@ Type *StructType_new(void);
 bool StructType_is_defined(const Type *struct_type);
 struct Symbol *
 StructType_find_member(const Type *struct_type, const char *member_name);
+
+Type *
+EnumType_new(Type *underlying_type, Vec(EnumeratorDeclNode) * enumerators);
 
 size_t Type_sizeof(const Type *type);
 size_t Type_alignof(const Type *type);
@@ -221,12 +231,16 @@ typedef struct Token {
 typedef enum StorageClass {
     StorageClass_none,
     StorageClass_typedef,
+    StorageClass_enum,
 } StorageClass;
 
 typedef struct Symbol {
     const char *name;
     StorageClass storage_class;
     Type *type;
+
+    // For enumerators
+    int enum_value;
 
     // For functions
     bool has_body;
@@ -326,6 +340,9 @@ typedef enum ImplicitCastOp {
 // Expressions
 IdentifierExprNode *IdentifierExprNode_new(
     Type *result_type, ValueCategory value_category, Symbol *symbol);
+
+EnumeratorExprNode *EnumeratorExprNode_new(
+    Type *result_type, ValueCategory value_category, Symbol *symbol, int value);
 
 IntegerExprNode *IntegerExprNode_new(
     Type *result_type, ValueCategory value_category, long long value);
@@ -431,6 +448,8 @@ FunctionDeclNode *FunctionDeclNode_new(
 MemberDeclNode *
 MemberDeclNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
 
+EnumeratorDeclNode *EnumeratorDeclNode_new(Symbol *symbol, ExprNode *value);
+
 // Miscs
 DeclSpecNode *DeclSpecNode_new(StorageClass storage_class, Type *base_type);
 
@@ -467,6 +486,14 @@ Type *Sema_act_on_struct_type_end_of_member_list(
 
 MemberDeclNode *Sema_act_on_struct_type_member_decl(
     Sema *s, DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
+
+Type *Sema_act_on_enum_type_reference(Sema *s, const Token *identifier);
+void Sema_act_on_enum_type_start_of_list(Sema *s, const Token *identifier);
+Type *Sema_act_on_enum_type_end_of_list(
+    Sema *s, const Token *identifier, Vec(EnumeratorDeclNode) * enumerators);
+
+EnumeratorDeclNode *
+Sema_act_on_enumerator(Sema *s, const Token *identifier, ExprNode *value);
 
 bool Sema_is_typedef_name(Sema *s, const Token *identifier);
 Type *Sema_act_on_typedef_name(Sema *s, const Token *identifier);

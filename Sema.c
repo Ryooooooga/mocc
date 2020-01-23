@@ -3,20 +3,24 @@
 struct Sema {
     Scope *current_variable_scope;
     Scope *current_struct_scope;
+    Scope *current_enum_scope;
     Vec(Symbol) * local_variables;
     Type *return_type;
     Type *char_type;
     Type *int_type;
+    int next_enumerator;
 };
 
 Sema *Sema_new(void) {
     Sema *s = malloc(sizeof(Sema));
     s->current_variable_scope = Scope_new(NULL);
     s->current_struct_scope = Scope_new(NULL);
+    s->current_enum_scope = Scope_new(NULL);
     s->local_variables = NULL;
     s->return_type = NULL;
     s->char_type = CharType_new();
     s->int_type = IntType_new();
+    s->next_enumerator = -1;
 
     return s;
 }
@@ -26,6 +30,7 @@ static void Sema_push_scope_stack(Sema *s) {
 
     s->current_variable_scope = Scope_new(s->current_variable_scope);
     s->current_struct_scope = Scope_new(s->current_struct_scope);
+    s->current_enum_scope = Scope_new(s->current_enum_scope);
 }
 
 static void Sema_pop_scope_stack(Sema *s) {
@@ -35,6 +40,7 @@ static void Sema_pop_scope_stack(Sema *s) {
 
     s->current_variable_scope = Scope_parent_scope(s->current_variable_scope);
     s->current_struct_scope = Scope_parent_scope(s->current_struct_scope);
+    s->current_enum_scope = Scope_parent_scope(s->current_enum_scope);
 }
 
 static void Sema_push_scope_stack_members(Sema *s) {
@@ -83,6 +89,24 @@ static void Sema_register_struct_symbol(Sema *s, Symbol *symbol) {
 
     if (!Scope_try_register(s->current_struct_scope, symbol)) {
         ERROR("struct %s is already declared in this scope\n", symbol->name);
+    }
+}
+
+static Symbol *Sema_find_enum_symbol(Sema *s, const char *name) {
+    assert(s);
+    assert(s->current_enum_scope);
+    assert(name);
+
+    return Scope_find(s->current_enum_scope, name, true);
+}
+
+static void Sema_register_enum_symbol(Sema *s, Symbol *symbol) {
+    assert(s);
+    assert(s->current_enum_scope);
+    assert(symbol);
+
+    if (!Scope_try_register(s->current_enum_scope, symbol)) {
+        ERROR("enum %s is already declared in this scope\n", symbol->name);
     }
 }
 
@@ -159,7 +183,8 @@ static void Sema_integer_promotion(Sema *s, ExprNode **expression) {
 
     switch ((*expression)->result_type->kind) {
     case TypeKind_char:
-        // char or short -> int
+    case TypeKind_enum:
+        // char, short or enum -> int
         *expression = Sema_implicit_cast(
             s,
             s->int_type,
@@ -203,9 +228,11 @@ static void Sema_assignment_conversion(
     switch (destination_type->kind) {
     case TypeKind_char:
     case TypeKind_int:
+    case TypeKind_enum:
         switch (from_type->kind) {
         case TypeKind_char:
         case TypeKind_int:
+        case TypeKind_enum:
             // int -> char or short
             *expression = Sema_implicit_cast(
                 s,
@@ -342,6 +369,76 @@ MemberDeclNode *Sema_act_on_struct_type_member_decl(
     return MemberDeclNode_new(decl_spec, declarators);
 }
 
+Type *Sema_act_on_enum_type_reference(Sema *s, const Token *identifier) {
+    assert(s);
+    assert(identifier);
+
+    Symbol *symbol = Sema_find_enum_symbol(s, identifier->text);
+
+    if (symbol == NULL) {
+        ERROR("enum type %s is not defined\n", identifier->text);
+    }
+
+    return symbol->type;
+}
+
+void Sema_act_on_enum_type_start_of_list(Sema *s, const Token *identifier) {
+    assert(s);
+
+    if (identifier != NULL) {
+        if (Sema_find_enum_symbol(s, identifier->text) != NULL) {
+            ERROR("redifinition of enum type %s\n", identifier->text);
+        }
+    }
+
+    s->next_enumerator = 0;
+}
+
+Type *Sema_act_on_enum_type_end_of_list(
+    Sema *s, const Token *identifier, Vec(EnumeratorDeclNode) * enumerators) {
+    assert(s);
+    assert(enumerators);
+
+    if (Vec_len(EnumeratorDeclNode)(enumerators) == 0) {
+        ERROR("enum cannot be empty\n");
+    }
+
+    Type *type = EnumType_new(s->int_type, enumerators);
+
+    if (identifier != NULL) {
+        type->enum_symbol =
+            Symbol_new(identifier->text, StorageClass_none, type);
+
+        // Register the enum symbol
+        Sema_register_enum_symbol(s, type->enum_symbol);
+    }
+
+    return type;
+}
+
+EnumeratorDeclNode *
+Sema_act_on_enumerator(Sema *s, const Token *identifier, ExprNode *value) {
+    assert(s);
+    assert(identifier);
+
+    // TODO: Register the symbol
+    Symbol *symbol =
+        Symbol_new(identifier->text, StorageClass_enum, s->int_type);
+
+    Sema_register_symbol(s, symbol);
+
+    if (value == NULL) {
+        symbol->enum_value = s->next_enumerator;
+    } else {
+        assert(value->kind == NodeKind_IntegerExpr);
+        symbol->enum_value = IntegerExprNode_ccast(value)->value;
+    }
+
+    s->next_enumerator = symbol->enum_value + 1;
+
+    return EnumeratorDeclNode_new(symbol, value);
+}
+
 static Symbol *Sema_find_typedef_name(Sema *s, const char *name) {
     assert(s);
     assert(name);
@@ -383,13 +480,20 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
 
     // Look up the symbol from context
     Symbol *symbol = Sema_find_symbol(s, identifier->text);
+
     if (symbol == NULL) {
         ERROR("undeclared identifier %s\n", identifier->text);
     }
 
     assert(symbol->type != NULL);
 
-    // TODO: enumerator
+    if (symbol->storage_class == StorageClass_enum) {
+        // Identifier is an enumerator
+        EnumeratorExprNode *node = EnumeratorExprNode_new(
+            symbol->type, ValueCategory_rvalue, symbol, symbol->enum_value);
+        return EnumeratorExprNode_base(node);
+    }
+
     IdentifierExprNode *node =
         IdentifierExprNode_new(symbol->type, ValueCategory_lvalue, symbol);
     return IdentifierExprNode_base(node);
@@ -681,8 +785,7 @@ ExprNode *Sema_act_on_binary_expr(
         Sema_integer_promotion(s, &rhs);
 
         // TODO: Type check
-        if (!Type_is_scalar(lhs->result_type) ||
-            !Type_is_scalar(rhs->result_type)) {
+        if (!Type_equals(lhs->result_type, rhs->result_type)) {
             ERROR("invalid operands to binary %s\n", operator->text);
         }
 

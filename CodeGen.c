@@ -139,6 +139,7 @@ static void CodeGen_store(CodeGen *g, const Type *type) {
         break;
 
     case TypeKind_int:
+    case TypeKind_enum:
         fprintf(g->fp, "  pop rdi\n");
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  mov [rdi], eax\n");
@@ -191,6 +192,13 @@ static void CodeGen_gen_IdentifierExpr(CodeGen *g, IdentifierExprNode *p) {
     assert(p);
 
     CodeGen_load_address(g, p->symbol->address);
+}
+
+static void CodeGen_gen_EnumeratorExpr(CodeGen *g, EnumeratorExprNode *p) {
+    assert(g);
+    assert(p);
+
+    fprintf(g->fp, "  push %d\n", p->value);
 }
 
 static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
@@ -436,6 +444,7 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
             break;
 
         case TypeKind_int:
+        case TypeKind_enum:
             fprintf(g->fp, "  pop rax\n");
             fprintf(g->fp, "  mov eax, [rax]\n");
             fprintf(g->fp, "  push rax\n");
@@ -473,12 +482,19 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
             break;
 
         case TypeKind_int:
+        case TypeKind_enum:
             switch (p->expression->result_type->kind) {
             case TypeKind_char:
                 // char -> int
                 fprintf(g->fp, "  pop rax\n");
                 fprintf(g->fp, "  movsx eax, al\n");
                 fprintf(g->fp, "  push rax\n");
+                break;
+
+            case TypeKind_int:
+            case TypeKind_enum:
+                // enum -> int or int -> enum
+                // Do nothing
                 break;
 
             default:
@@ -688,6 +704,7 @@ CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
             break;
 
         case TypeKind_int:
+        case TypeKind_enum:
             fprintf(
                 g->fp,
                 "  mov [rbp%+d], %s\n",
@@ -704,7 +721,7 @@ CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
             break;
 
         default:
-            ERROR("unknown type");
+            ERROR("unknown type\n");
         }
     }
 }

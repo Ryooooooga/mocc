@@ -56,6 +56,7 @@ static bool Parser_is_decl_spec(Parser *p, const Token *t) {
     case TokenKind_kw_char:
     case TokenKind_kw_int:
     case TokenKind_kw_struct:
+    case TokenKind_kw_enum:
         return true;
 
     case TokenKind_identifier:
@@ -99,11 +100,11 @@ static Type *Parser_parse_struct_type(Parser *p) {
     Type *type =
         Sema_act_on_struct_type_start_of_member_list(p->sema, identifier);
 
-    // '{'
-    Parser_expect(p, '{');
-
     // member_list
     Vec(MemberDeclNode) *member_decls = Vec_new(MemberDeclNode)();
+
+    // '{'
+    Parser_expect(p, '{');
 
     while (Parser_current(p)->kind != '}') {
         // member_decl
@@ -143,6 +144,79 @@ static Type *Parser_parse_struct_type(Parser *p) {
 
     return Sema_act_on_struct_type_end_of_member_list(
         p->sema, type, member_decls);
+}
+
+// enumerator:
+//  identifier ['=' assign_expr]
+EnumeratorDeclNode *Parser_parse_enumerator(Parser *p) {
+    assert(p);
+
+    // identifier
+    const Token *identifier = Parser_expect(p, TokenKind_identifier);
+
+    // ['=' assign_expr]
+    ExprNode *value = NULL;
+
+    if (Parser_current(p)->kind == '=') {
+        // '='
+        Parser_expect(p, '=');
+
+        // assign_expr
+        value = Parser_parse_assign_expr(p);
+    }
+
+    return Sema_act_on_enumerator(p->sema, identifier, value);
+}
+
+// enum_type:
+//  'enum' identifier [enumerator_list]
+//  'enum' enumerator_list
+//
+// enumerator_list:
+//  '{' enumerator (',' enumerator)* [','] '}'
+static Type *Parser_parse_enum_type(Parser *p) {
+    assert(p);
+
+    // 'enum'
+    Parser_expect(p, TokenKind_kw_enum);
+
+    // TODO: Enum definition without name
+    const Token *identifier = Parser_expect(p, TokenKind_identifier);
+
+    // [enumerator_list]
+    if (Parser_current(p)->kind != '{') {
+        return Sema_act_on_enum_type_reference(p->sema, identifier);
+    }
+
+    Sema_act_on_enum_type_start_of_list(p->sema, identifier);
+
+    // enumerator_list
+    Vec(EnumeratorDeclNode) *enumerators = Vec_new(EnumeratorDeclNode)();
+
+    // '{'
+    Parser_expect(p, '{');
+
+    // enumerator
+    Vec_push(EnumeratorDeclNode)(enumerators, Parser_parse_enumerator(p));
+
+    // (',' enumerator)*
+    while (Parser_current(p)->kind == ',' && Parser_peek(p)->kind != '}') {
+        // ','
+        Parser_expect(p, ',');
+
+        // enumerator
+        Vec_push(EnumeratorDeclNode)(enumerators, Parser_parse_enumerator(p));
+    }
+
+    // [',']
+    if (Parser_current(p)->kind == ',') {
+        Parser_expect(p, ',');
+    }
+
+    // '}'
+    Parser_expect(p, '}');
+
+    return Sema_act_on_enum_type_end_of_list(p->sema, identifier, enumerators);
 }
 
 // type_spec:
@@ -193,6 +267,11 @@ Parser_parse_type_spec(Parser *p, StorageClass storage_class) {
     case TokenKind_kw_struct:
         // 'struct'
         base_type = Parser_parse_struct_type(p);
+        break;
+
+    case TokenKind_kw_enum:
+        // 'enum'
+        base_type = Parser_parse_enum_type(p);
         break;
 
     case TokenKind_identifier: {

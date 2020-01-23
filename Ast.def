@@ -43,6 +43,11 @@ EXPR_NODE(Identifier)
     NODE_MEMBER_F(Symbol *, symbol, Symbol)
 NODE_END()
 
+EXPR_NODE(Enumerator)
+    NODE_MEMBER_F(Symbol *, symbol, Symbol)
+    NODE_MEMBER(int, value)
+NODE_END()
+
 EXPR_NODE(Integer)
     NODE_MEMBER_F(long long, value, int)
 NODE_END()
@@ -168,6 +173,11 @@ NODE_END()
 DECL_NODE(Member)
     NODE_MEMBER_F(DeclSpecNode *, decl_spec, DeclSpec)
     NODE_MEMBER_F(Vec(DeclaratorNode) *, declarators, Declarators)
+NODE_END()
+
+DECL_NODE(Enumerator)
+    NODE_MEMBER_F(Symbol *, symbol, Symbol)
+    NODE_MEMBER_F(ExprNode *, value, Expr)
 NODE_END()
 
 // Misc

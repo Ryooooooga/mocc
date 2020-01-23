@@ -11,6 +11,9 @@ static Type *Type_new(TypeKind kind) {
     t->struct_symbol = NULL;
     t->member_decls = NULL;
     t->member_symbols = NULL;
+    t->underlying_type = NULL;
+    t->enum_symbol = NULL;
+    t->enumerators = NULL;
 
     return t;
 }
@@ -130,6 +133,19 @@ StructType_find_member(const Type *struct_type, const char *member_name) {
     return NULL;
 }
 
+Type *
+EnumType_new(Type *underlying_type, Vec(EnumeratorDeclNode) * enumerators) {
+    assert(underlying_type);
+    assert(enumerators);
+
+    Type *type = Type_new(TypeKind_enum);
+    type->underlying_type = underlying_type;
+    type->enum_symbol = NULL;
+    type->enumerators = enumerators;
+
+    return type;
+}
+
 size_t Type_sizeof(const Type *type) {
     assert(type);
 
@@ -162,6 +178,8 @@ size_t Type_sizeof(const Type *type) {
 
         return size;
     }
+    case TypeKind_enum:
+        return Type_sizeof(type->underlying_type);
     default:
         UNREACHABLE();
     }
@@ -196,6 +214,8 @@ size_t Type_alignof(const Type *type) {
 
         return align;
     }
+    case TypeKind_enum:
+        return Type_alignof(type->underlying_type);
     default:
         UNREACHABLE();
     }
@@ -251,6 +271,7 @@ bool Type_equals(const Type *a, const Type *b) {
                    ArrayType_element_type(a), ArrayType_element_type(b));
 
     case TypeKind_struct:
+    case TypeKind_enum:
         return false;
 
     default:

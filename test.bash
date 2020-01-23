@@ -295,3 +295,13 @@ try "c$LINENO" '
     struct S { int x; };
     int main(void) { S s; s.x = 13; return s.x; }
     ' 13
+
+try "c$LINENO" '
+    typedef enum E { A, B, C = 5, D, } E;
+    int main(void) {
+        enum E e1 = D;
+        E e2 = e1;
+        return A == 0 && B == 1 && C == 5 && D == 6 &&
+            e1 == D && e2 == D;
+    }
+    ' 1

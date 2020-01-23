@@ -1,11 +1,13 @@
-FROM ubuntu:18.04
+FROM alpine:3.8
 
 COPY . /app
 WORKDIR /app
 
-RUN apt-get update && apt-get upgrade -y \
-    && apt-get install -y \
-    build-essential \
+RUN apk add --no-cache \
+    bash \
+    gcc \
+    libc-dev \
+    make \
     && make BUILD_TYPE=release
 
 CMD [ "/app/build/release/mocc" ]

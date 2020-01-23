@@ -7,17 +7,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macOS-latest
-        cc:
-          - gcc
-          - clang
+        target:
+          - ubuntu-gcc
+          - ubuntu-clang
+          - macOS-clang
         build-type:
           - debug
           - release
+        include:
+          - target: ubuntu-gcc
+            os: ubuntu-latest
+            cc: gcc
+          - target: ubuntu-clang
+            os: ubuntu-latest
+            cc: clang
+          - target: macOS-clang
+            os: macOS-latest
+            cc: clang
 
-    name: Build ${{ matrix.build-type }} - ${{ matrix.os }} - ${{ matrix.cc }}
+    name: Build ${{ matrix.build-type }} - ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
 
     steps:

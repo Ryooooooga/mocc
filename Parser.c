@@ -995,6 +995,7 @@ Parser_parse_function_declarator(Parser *p, DeclaratorNode *declarator) {
 
     // Parameters
     Vec(DeclaratorNode) *parameters = Vec_new(DeclaratorNode)();
+    bool is_var_arg = false;
 
     if (Parser_current(p)->kind == ')') {
         // <empty>
@@ -1013,7 +1014,14 @@ Parser_parse_function_declarator(Parser *p, DeclaratorNode *declarator) {
             // ','
             Parser_expect(p, ',');
 
-            // TODO: ...
+            if (Parser_current(p)->kind == TokenKind_var_arg) {
+                // '...'
+                Parser_expect(p, TokenKind_var_arg);
+
+                is_var_arg = true;
+                break;
+            }
+
             // parameter_decl
             Vec_push(DeclaratorNode)(
                 parameters, Parser_parse_parameter_decl(p));
@@ -1024,7 +1032,7 @@ Parser_parse_function_declarator(Parser *p, DeclaratorNode *declarator) {
     Parser_expect(p, ')');
 
     return Sema_act_on_function_declarator_end_of_parameter_list(
-        p->sema, declarator, parameters);
+        p->sema, declarator, parameters, is_var_arg);
 }
 
 // postfix_declarator:

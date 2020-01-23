@@ -258,8 +258,16 @@ static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
     // Callee
     CodeGen_gen_expr(g, p->callee);
 
-    fprintf(g->fp, "  pop rax\n");
-    fprintf(g->fp, "  call rax\n");
+    fprintf(g->fp, "  pop r10\n");
+
+    Type *pointer_type = p->callee->result_type;
+    Type *function_type = PointerType_pointee_type(pointer_type);
+
+    if (FunctionType_is_var_arg(function_type)) {
+        fprintf(g->fp, "  mov rax, 0\n");
+    }
+
+    fprintf(g->fp, "  call r10\n");
     fprintf(g->fp, "  push rax\n");
 }
 
@@ -351,6 +359,28 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  imul rax, rdi\n");
         fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_div:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cqo\n");
+        fprintf(g->fp, "  idiv rdi\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
+    case BinaryOp_mod:
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
+
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cqo\n");
+        fprintf(g->fp, "  idiv rdi\n");
+        fprintf(g->fp, "  push rdx\n");
         break;
 
     case BinaryOp_lesser_than:

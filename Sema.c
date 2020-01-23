@@ -262,6 +262,14 @@ static void Sema_assignment_conversion(
     Sema_decay_conversion(s, expression);
 }
 
+static void Sema_default_argument_promotion(Sema *s, ExprNode **expression) {
+    assert(s);
+    assert(expression);
+    assert(*expression);
+
+    Sema_integer_promotion(s, expression);
+}
+
 // Types
 Type *Sema_act_on_struct_type_reference(Sema *s, const Token *identifier) {
     assert(s);
@@ -569,12 +577,12 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
     const Vec(Type) *parameter_types =
         FunctionType_parameter_types(function_type);
     size_t num_parameters = Vec_len(Type)(parameter_types);
-    bool var_arg = false; // TODO: var args
+    bool is_var_arg = FunctionType_is_var_arg(function_type);
 
     size_t num_arguments = Vec_len(ExprNode)(arguments);
 
     if (num_arguments < num_parameters) {
-        if (var_arg) {
+        if (is_var_arg) {
             ERROR(
                 "too few arguments to function call, expected at least %zu, "
                 "have %zu\n",
@@ -586,7 +594,7 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
                 num_parameters,
                 num_arguments);
         }
-    } else if (num_arguments > num_parameters && !var_arg) {
+    } else if (num_arguments > num_parameters && !is_var_arg) {
         ERROR(
             "too much arguments to function call, expected %zu, have %zu\n",
             num_parameters,
@@ -602,7 +610,8 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
 
             Sema_assignment_conversion(s, parameter_type, &argument);
         } else {
-            TODO("default argument promotion");
+            // Default argument promotion
+            Sema_default_argument_promotion(s, &argument);
         }
 
         Vec_set(ExprNode)(arguments, i, argument);
@@ -779,6 +788,8 @@ ExprNode *Sema_act_on_binary_expr(
         break;
 
     case '*':
+    case '/':
+    case '%':
         // Promotion
         Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
 
@@ -790,7 +801,16 @@ ExprNode *Sema_act_on_binary_expr(
         }
 
         type = s->int_type;
-        op = BinaryOp_mul;
+
+        if (operator->kind == '*') {
+            op = BinaryOp_mul;
+        } else if (operator->kind == '/') {
+            op = BinaryOp_div;
+        } else if (operator->kind == '%') {
+            op = BinaryOp_mod;
+        } else {
+            UNREACHABLE();
+        }
         break;
 
     case '<':
@@ -1045,7 +1065,10 @@ void Sema_act_on_function_declarator_start_of_parameter_list(Sema *s) {
 }
 
 DeclaratorNode *Sema_act_on_function_declarator_end_of_parameter_list(
-    Sema *s, DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters) {
+    Sema *s,
+    DeclaratorNode *declarator,
+    Vec(DeclaratorNode) * parameters,
+    bool is_var_arg) {
     assert(s);
     assert(declarator);
     assert(parameters);
@@ -1054,7 +1077,7 @@ DeclaratorNode *Sema_act_on_function_declarator_end_of_parameter_list(
     Sema_pop_scope_stack(s);
 
     FunctionDeclaratorNode *node =
-        FunctionDeclaratorNode_new(declarator, parameters);
+        FunctionDeclaratorNode_new(declarator, parameters, is_var_arg);
     return FunctionDeclaratorNode_base(node);
 }
 
@@ -1163,7 +1186,8 @@ static void Sema_complete_declarator_Function(
         ERROR("function cannot return an array\n");
     }
 
-    base_type = FunctionType_new(base_type, parameter_types);
+    base_type =
+        FunctionType_new(base_type, parameter_types, declarator->is_var_arg);
 
     Sema_complete_declarator(
         s, declarator->declarator, storage_class, base_type);

@@ -164,6 +164,7 @@ struct Type {
     // For function type
     Type *return_type;
     Vec(Type) * parameter_types;
+    bool is_var_arg;
 
     // For array type
     Type *element_type;
@@ -187,9 +188,11 @@ Type *IntType_new(void);
 Type *PointerType_new(Type *pointee_type);
 Type *PointerType_pointee_type(const Type *pointer_type);
 
-Type *FunctionType_new(Type *return_type, Vec(Type) * parameter_types);
+Type *FunctionType_new(
+    Type *return_type, Vec(Type) * parameter_types, bool is_var_arg);
 Type *FunctionType_return_type(const Type *function_type);
 Vec(Type) * FunctionType_parameter_types(const Type *function_type);
+bool FunctionType_is_var_arg(const Type *function_type);
 
 Type *ArrayType_new(Type *element_type, size_t array_length);
 Type *ArrayType_element_type(const Type *array_type);
@@ -430,7 +433,9 @@ ArrayDeclaratorNode *
 ArrayDeclaratorNode_new(DeclaratorNode *declarator, ExprNode *array_size);
 
 FunctionDeclaratorNode *FunctionDeclaratorNode_new(
-    DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters);
+    DeclaratorNode *declarator,
+    Vec(DeclaratorNode) * parameters,
+    bool is_var_arg);
 
 PointerDeclaratorNode *PointerDeclaratorNode_new(DeclaratorNode *declarator);
 
@@ -559,7 +564,10 @@ DeclaratorNode *Sema_act_on_array_declarator(
 
 void Sema_act_on_function_declarator_start_of_parameter_list(Sema *s);
 DeclaratorNode *Sema_act_on_function_declarator_end_of_parameter_list(
-    Sema *s, DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters);
+    Sema *s,
+    DeclaratorNode *declarator,
+    Vec(DeclaratorNode) * parameters,
+    bool is_var_arg);
 
 DeclaratorNode *
 Sema_act_on_pointer_declarator(Sema *s, DeclaratorNode *declarator);

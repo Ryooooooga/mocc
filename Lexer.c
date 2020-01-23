@@ -179,6 +179,22 @@ Token *Lexer_read(Lexer *l) {
                 t->kind = '|';
             }
             break;
+        } else if (c == '.') {
+            buffer[len++] = Lexer_consume(l);
+
+            if (Lexer_current(l) == '.') {
+                buffer[len++] = Lexer_consume(l);
+
+                if (Lexer_current(l) == '.') {
+                    buffer[len++] = Lexer_consume(l);
+                    t->kind = TokenKind_var_arg;
+                } else {
+                    t->kind = TokenKind_dot_dot;
+                }
+            } else {
+                t->kind = '.';
+            }
+            break;
         } else {
             // .
             t->kind = buffer[len++] = Lexer_consume(l);

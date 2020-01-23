@@ -359,13 +359,16 @@ static Vec(DeclaratorNode) *
 }
 
 FunctionDeclaratorNode *FunctionDeclaratorNode_new(
-    DeclaratorNode *declarator, Vec(DeclaratorNode) * parameters) {
+    DeclaratorNode *declarator,
+    Vec(DeclaratorNode) * parameters,
+    bool is_var_arg) {
     assert(declarator);
     assert(parameters);
 
     FunctionDeclaratorNode *p = FunctionDeclaratorNode_alloc();
     p->declarator = declarator;
     p->parameters = parameters;
+    p->is_var_arg = is_var_arg;
 
     return p;
 }
@@ -550,6 +553,13 @@ static void Node_dump_Symbol(const Symbol *x, FILE *fp, size_t depth) {
 
     Node_dump_indent(fp, depth);
     fprintf(fp, "(symbol %s)\n", x->name);
+}
+
+static void Node_dump_bool(bool x, FILE *fp, size_t depth) {
+    assert(fp);
+
+    Node_dump_indent(fp, depth);
+    fprintf(fp, "(bool %s)\n", x ? "true" : "false");
 }
 
 static void Node_dump_int(long long x, FILE *fp, size_t depth) {

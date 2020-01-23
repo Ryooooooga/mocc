@@ -47,13 +47,15 @@ Type *PointerType_pointee_type(const Type *pointer_type) {
     return pointer_type->pointee_type;
 }
 
-Type *FunctionType_new(Type *return_type, Vec(Type) * parameter_types) {
+Type *FunctionType_new(
+    Type *return_type, Vec(Type) * parameter_types, bool is_var_arg) {
     assert(return_type);
     assert(parameter_types);
 
     Type *type = Type_new(TypeKind_function);
     type->return_type = return_type;
     type->parameter_types = parameter_types;
+    type->is_var_arg = is_var_arg;
 
     return type;
 }
@@ -72,6 +74,13 @@ Vec(Type) * FunctionType_parameter_types(const Type *function_type) {
     assert(function_type->parameter_types != NULL);
 
     return function_type->parameter_types;
+}
+
+bool FunctionType_is_var_arg(const Type *function_type) {
+    assert(function_type);
+    assert(function_type->kind == TypeKind_function);
+
+    return function_type->is_var_arg;
 }
 
 Type *ArrayType_new(Type *element_type, size_t array_length) {

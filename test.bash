@@ -75,6 +75,11 @@ try "c$LINENO" '
         return a + a - 6 - 3;
     }' 5
 
+try "c$LINENO" 'int main(void) { return 17 / 5; }' 3
+try "c$LINENO" 'int main(void) { return 17 / 12; }' 1
+try "c$LINENO" 'int main(void) { return 17 % 5; }' 2
+try "c$LINENO" 'int main(void) { return 17 % 12; }' 5
+
 try "c$LINENO" '
     int main(void) {
         int a;
@@ -329,3 +334,13 @@ try "c$LINENO" '
             e1 == D && e2 == D;
     }
     ' 1
+
+try "c$LINENO" '
+    int strcmp(const char *a, const char *b);
+    int sprintf(char *buffer, const char *format, ...);
+    int main(void) {
+        char buffer[256];
+        sprintf(buffer, "%s, %s! %d", "Hello", "world", 42);
+        return strcmp(buffer, "Hello, world! 42");
+    }
+    ' 0

@@ -36,6 +36,7 @@ void test_Parser(void) {
         "      (DirectDeclarator\n"
         "        (symbol main)\n"
         "      )\n"
+        "      (bool false)\n"
         "    )\n"
         "    (CompoundStmt\n"
         "      (ReturnStmt\n"

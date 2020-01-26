@@ -225,9 +225,11 @@ enum {
 
 typedef struct Token {
     TokenKind kind;
-    char *text;   // For identifer and number
+    char *text;
     char *string; // For string
     size_t string_len;
+    bool is_bol;
+    bool has_spaces;
 } Token;
 
 // Symbol

@@ -83,4 +83,18 @@ void test_Preprocessor(void) {
             {.kind = '-', "-"},
             {.kind = '\0', ""},
         });
+
+    check_pp(
+        "empty-directive",
+        "#\n"
+        "A B\n"
+        "#\n"
+        "C\n"
+        "#",
+        (TestToken[]){
+            {.kind = TokenKind_identifier, "A"},
+            {.kind = TokenKind_identifier, "B"},
+            {.kind = TokenKind_identifier, "C"},
+            {.kind = '\0', ""},
+        });
 }

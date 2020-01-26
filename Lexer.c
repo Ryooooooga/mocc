@@ -4,6 +4,7 @@ struct Lexer {
     const char *filename;
     const char *text;
     size_t cursor;
+    bool is_bol;
 };
 
 Lexer *Lexer_new(const char *filename, const char *text) {
@@ -14,6 +15,7 @@ Lexer *Lexer_new(const char *filename, const char *text) {
     l->filename = filename;
     l->text = text;
     l->cursor = 0;
+    l->is_bol = true;
 
     return l;
 }
@@ -39,6 +41,8 @@ Token *Lexer_read(Lexer *l) {
     t->text = NULL;
     t->string = NULL;
     t->string_len = 0;
+    t->is_bol = false;
+    t->has_spaces = false;
 
     char buffer[1024]; // TODO: Dynamic buffer
     char str[1024];    // TODO: Dynamic buffer
@@ -50,9 +54,18 @@ Token *Lexer_read(Lexer *l) {
         if (c == '\0') {
             t->kind = '\0';
             break;
+        } else if (c == '\n') {
+            // \s
+            Lexer_consume(l);
+
+            l->is_bol = true;
+            t->has_spaces = true;
+            continue;
         } else if (isspace(c)) {
             // \s
             Lexer_consume(l);
+
+            t->has_spaces = true;
             continue;
         } else if (c == '\"') {
             // '\"'
@@ -204,5 +217,8 @@ Token *Lexer_read(Lexer *l) {
 
     buffer[len] = '\0';
     t->text = strdup(buffer);
+    t->is_bol = l->is_bol;
+
+    l->is_bol = false;
     return t;
 }

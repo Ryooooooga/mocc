@@ -52,6 +52,7 @@ Token *Lexer_read(Lexer *l) {
         const char c = Lexer_current(l);
 
         if (c == '\0') {
+            l->is_bol = true;
             t->kind = '\0';
             break;
         } else if (c == '\n') {

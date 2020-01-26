@@ -3,6 +3,7 @@
 VEC_DEFINE(String)
 VEC_DEFINE(size_t)
 VEC_DEFINE(Token)
+VEC_DEFINE(Macro)
 VEC_DEFINE(Type)
 VEC_DEFINE(Symbol)
 VEC_DEFINE(ExprNode)

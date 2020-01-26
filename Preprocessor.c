@@ -1,6 +1,7 @@
 #include "mocc.h"
 
 typedef struct Preprocessor {
+    Vec(Macro) * macros;
     Vec(Token) * result;
     Vec(Token) * queue;
     const char *filename;
@@ -13,6 +14,7 @@ Preprocessor_init(Preprocessor *pp, const char *filename, const char *text) {
     assert(filename);
     assert(text);
 
+    pp->macros = Vec_new(Macro)();
     pp->result = Vec_new(Token)();
     pp->queue = Vec_new(Token)();
     pp->filename = filename;
@@ -69,11 +71,11 @@ static void Preprocessor_parse_directive(Preprocessor *pp) {
     Preprocessor_consume(pp);
 
     Token *directive = Preprocessor_current(pp);
-
-    if (directive->is_bol || directive->kind == '\0') {
+    if (directive->is_bol) {
+        // # <empty>
         return;
     } else {
-        ERROR("unknown preprocessor directive %s\n", directive->text);
+        ERROR("unknown preprocessor directive #%s\n", directive->text);
     }
 }
 

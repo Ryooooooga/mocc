@@ -124,6 +124,7 @@
 VEC_DECL(String, const char *)
 VEC_DECL(size_t, size_t)
 VEC_DECL(Token, struct Token *)
+VEC_DECL(Macro, struct Macro *)
 VEC_DECL(Type, struct Type *)
 VEC_DECL(Symbol, struct Symbol *)
 VEC_DECL(ExprNode, struct ExprNode *)
@@ -476,6 +477,12 @@ Lexer *Lexer_new(const char *filename, const char *text);
 Token *Lexer_read(Lexer *l);
 
 // Preprocessor
+typedef struct Macro {
+    char *name;
+    Vec(String) * parameters;
+    Vec(Token) * replacements;
+} Macro;
+
 Vec(Token) * Preprocessor_read(const char *filename, const char *text);
 
 // Parser

@@ -231,6 +231,8 @@ typedef struct Token {
     size_t string_len;
     bool is_bol;
     bool has_spaces;
+
+    Vec(String) * hidden_set;
 } Token;
 
 // Symbol
@@ -478,10 +480,13 @@ Token *Lexer_read(Lexer *l);
 
 // Preprocessor
 typedef struct Macro {
-    char *name;
+    const char *name;
     Vec(String) * parameters;
-    Vec(Token) * replacements;
+    Vec(Token) * contents;
 } Macro;
+
+Macro *Macro_new_simple(const char *name, Vec(Token) * contents);
+bool Macro_is_function(const Macro *m);
 
 Vec(Token) * Preprocessor_read(const char *filename, const char *text);
 

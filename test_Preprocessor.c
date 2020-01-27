@@ -18,7 +18,9 @@ static void check_pp(
         ERROR("%s: Preprocessor_read() == NULL\n", test_name);
     }
 
-    for (size_t i = 0; i < Vec_len(Token)(tokens); i++) {
+    size_t len = Vec_len(Token)(tokens);
+
+    for (size_t i = 0; i < len; i++) {
         const Token *t = Vec_get(Token)(tokens, i);
         if (t == NULL) {
             ERROR("%s: tokens[%zu] == NULL\n", test_name, i);
@@ -39,6 +41,10 @@ static void check_pp(
                 expected_tokens[i].text,
                 t->text);
         }
+    }
+
+    if (len == 0 || Vec_get(Token)(tokens, len - 1)->kind != '\0') {
+        ERROR("%s: tokens must be ended with EOF\n", test_name);
     }
 }
 
@@ -91,6 +97,42 @@ void test_Preprocessor(void) {
         "#\n"
         "C\n"
         "#",
+        (TestToken[]){
+            {.kind = TokenKind_identifier, "A"},
+            {.kind = TokenKind_identifier, "B"},
+            {.kind = TokenKind_identifier, "C"},
+            {.kind = '\0', ""},
+        });
+
+    check_pp(
+        "define-directive",
+        "#define A (a b)\n"
+        "#define B A c A\n"
+        "#define C\n"
+        "A B C",
+        (TestToken[]){
+            {.kind = '(', "("},
+            {.kind = TokenKind_identifier, "a"},
+            {.kind = TokenKind_identifier, "b"},
+            {.kind = ')', ")"},
+            {.kind = '(', "("},
+            {.kind = TokenKind_identifier, "a"},
+            {.kind = TokenKind_identifier, "b"},
+            {.kind = ')', ")"},
+            {.kind = TokenKind_identifier, "c"},
+            {.kind = '(', "("},
+            {.kind = TokenKind_identifier, "a"},
+            {.kind = TokenKind_identifier, "b"},
+            {.kind = ')', ")"},
+            {.kind = '\0', ""},
+        });
+
+    check_pp(
+        "define-recursive",
+        "#define A A\n"
+        "#define B C\n"
+        "#define C B\n"
+        "A B C",
         (TestToken[]){
             {.kind = TokenKind_identifier, "A"},
             {.kind = TokenKind_identifier, "B"},

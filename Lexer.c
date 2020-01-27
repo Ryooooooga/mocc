@@ -43,6 +43,7 @@ Token *Lexer_read(Lexer *l) {
     t->string_len = 0;
     t->is_bol = false;
     t->has_spaces = false;
+    t->hidden_set = Vec_new(String)();
 
     char buffer[1024]; // TODO: Dynamic buffer
     char str[1024];    // TODO: Dynamic buffer

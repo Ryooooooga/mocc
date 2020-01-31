@@ -51,24 +51,29 @@ bool Macro_is_function(const Macro *m) {
 }
 
 typedef struct Preprocessor {
+    Vec(String) * include_paths;
     Vec(Macro) * macros;
-    Vec(Token) * result;
+    Vec(Token) * output;
+
     Vec(Token) * queue;
-    const char *filename;
+    const char *path;
     Lexer *lexer;
 } Preprocessor;
 
-static void
-Preprocessor_init(Preprocessor *pp, const char *filename, const char *text) {
-    assert(pp);
-    assert(filename);
-    assert(text);
+static Token *
+Preprocessor_read_file(Preprocessor *pp, const char *path, const char *text);
 
+static void Preprocessor_init(Preprocessor *pp, Vec(String) * include_paths) {
+    assert(pp);
+    assert(include_paths);
+
+    pp->include_paths = include_paths;
     pp->macros = Vec_new(Macro)();
-    pp->result = Vec_new(Token)();
-    pp->queue = Vec_new(Token)();
-    pp->filename = filename;
-    pp->lexer = Lexer_new(filename, text);
+    pp->output = Vec_new(Token)();
+
+    pp->queue = NULL;
+    pp->path = NULL;
+    pp->lexer = NULL;
 }
 
 static const Token *Preprocessor_current(Preprocessor *pp) {
@@ -181,6 +186,58 @@ static void Preprocessor_parse_define(Preprocessor *pp) {
     Preprocessor_define_macro(pp, macro);
 }
 
+static void Preprocessor_open_file(
+    const Preprocessor *pp, const char *hint, char **path, char **text) {
+    assert(pp);
+    assert(hint);
+    assert(path);
+    assert(text);
+
+    // TODO: current directory
+
+    for (size_t i = 0; i < Vec_len(String)(pp->include_paths); i++) {
+        const char *dir = Vec_get(String)(pp->include_paths, i);
+        *path = Path_join(dir, hint);
+        *text = File_read(*path);
+
+        fprintf(stderr, "%s\n", *path);
+
+        if (*text != NULL) {
+            return;
+        }
+    }
+
+    ERROR("could not open file %s\n", hint);
+}
+
+static void Preprocessor_parse_include(Preprocessor *pp) {
+    assert(pp);
+    assert(strcmp(Preprocessor_current(pp)->text, "include") == 0);
+
+    // 'include'
+    Preprocessor_consume(pp);
+
+    // String literal (TODO: macro, system path)
+    const Token *include_file = Preprocessor_consume(pp);
+
+    if (include_file->is_bol) {
+        ERROR("missing filename after #include\n");
+    } else if (include_file->kind != TokenKind_string) {
+        ERROR("expected string literal after #include\n");
+    }
+
+    if (!Preprocessor_current(pp)->is_bol) {
+        ERROR("extra tokens after #include %s\n", include_file->text);
+    }
+
+    const char *hint = include_file->string;
+    char *path;
+    char *text;
+
+    Preprocessor_open_file(pp, hint, &path, &text);
+    Preprocessor_read_file(pp, path, text);
+}
+
 static void Preprocessor_parse_directive(Preprocessor *pp) {
     assert(pp);
     assert(Preprocessor_current(pp)->kind == '#');
@@ -195,6 +252,9 @@ static void Preprocessor_parse_directive(Preprocessor *pp) {
     } else if (strcmp(directive->text, "define") == 0) {
         // # define
         Preprocessor_parse_define(pp);
+    } else if (strcmp(directive->text, "include") == 0) {
+        // # include
+        Preprocessor_parse_include(pp);
     } else {
         ERROR("unknown preprocessor directive #%s\n", directive->text);
     }
@@ -208,12 +268,12 @@ static void Preprocessor_expand_kw(Preprocessor *pp, Token *t) {
 #define TOKEN_KW(name, text_)                                                  \
     if (strcmp(t->text, text_) == 0) {                                         \
         t->kind = TokenKind_##name;                                            \
-        Vec_push(Token)(pp->result, t);                                        \
+        Vec_push(Token)(pp->output, t);                                        \
         return;                                                                \
     }
 #include "Token.def"
 
-    Vec_push(Token)(pp->result, t);
+    Vec_push(Token)(pp->output, t);
 }
 
 static void Preprocessor_expand_simple_macro(
@@ -257,28 +317,56 @@ static void Preprocessor_expand_identifier(Preprocessor *pp) {
     }
 }
 
-Vec(Token) * Preprocessor_read(const char *filename, const char *text) {
-    assert(filename);
+static Token *
+Preprocessor_read_file(Preprocessor *pp, const char *path, const char *text) {
+    assert(pp);
+    assert(path);
+    assert(text);
+
+    Vec(Token) *prev_queue = pp->queue;
+    Lexer *prev_lexer = pp->lexer;
+    const char *prev_path = pp->path;
+
+    pp->queue = Vec_new(Token)();
+    pp->lexer = Lexer_new(path, text);
+    pp->path = path;
+
+    const Token *t;
+    while ((t = Preprocessor_current(pp))->kind != '\0') {
+        if (t->kind == '#' && t->is_bol) {
+            // Preprocessor directive
+            Preprocessor_parse_directive(pp);
+        } else if (t->kind == TokenKind_identifier) {
+            // Expand identifiers
+            Preprocessor_expand_identifier(pp);
+        } else {
+            // Other tokens
+            Token *token = Preprocessor_consume(pp);
+            Vec_push(Token)(pp->output, token);
+        }
+    }
+
+    Token *eof = Preprocessor_consume(pp);
+
+    pp->queue = prev_queue;
+    pp->lexer = prev_lexer;
+    pp->path = prev_path;
+
+    return eof;
+}
+
+Vec(Token) *
+    Preprocessor_read(
+        Vec(String) * include_paths, const char *path, const char *text) {
+    assert(include_paths);
+    assert(path);
     assert(text);
 
     Preprocessor pp;
-    Preprocessor_init(&pp, filename, text);
+    Preprocessor_init(&pp, include_paths);
 
-    const Token *t;
-    do {
-        t = Preprocessor_current(&pp);
-        if (t->kind == '#' && t->is_bol) {
-            // Preprocessor directive
-            Preprocessor_parse_directive(&pp);
-        } else if (t->kind == TokenKind_identifier) {
-            // Expand identifiers
-            Preprocessor_expand_identifier(&pp);
-        } else {
-            // Other tokens
-            Token *token = Preprocessor_consume(&pp);
-            Vec_push(Token)(pp.result, token);
-        }
-    } while (t->kind != '\0');
+    Token *eof = Preprocessor_read_file(&pp, path, text);
+    Vec_push(Token)(pp.output, eof);
 
-    return pp.result;
+    return pp.output;
 }

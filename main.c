@@ -21,10 +21,11 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
+    Vec(String) *include_paths = Vec_new(String)();
     const char *filename = "<input>";
     const char *text = argv[1]; // TODO: Read from file
 
-    Vec(Token) *tokens = Preprocessor_read(filename, text);
+    Vec(Token) *tokens = Preprocessor_read(include_paths, filename, text);
     Parser *p = Parser_new(tokens);
 
     TranslationUnitNode *node = Parser_parse(p);

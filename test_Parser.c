@@ -6,7 +6,7 @@ check_parser(const char *test_name, const char *text, const char *expected) {
     assert(text);
     assert(expected);
 
-    Vec(Token) *tokens = Preprocessor_read(test_name, text);
+    Vec(Token) *tokens = Preprocessor_read(Vec_new(String)(), test_name, text);
 
     Parser *p = Parser_new(tokens);
     if (p == NULL) {

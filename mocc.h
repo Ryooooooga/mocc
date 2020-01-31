@@ -491,7 +491,9 @@ typedef struct Macro {
 Macro *Macro_new_simple(const char *name, Vec(Token) * contents);
 bool Macro_is_function(const Macro *m);
 
-Vec(Token) * Preprocessor_read(const char *filename, const char *text);
+Vec(Token) *
+    Preprocessor_read(
+        Vec(String) * include_paths, const char *filename, const char *text);
 
 // Parser
 typedef struct Parser Parser;

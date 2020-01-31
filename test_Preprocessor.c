@@ -13,7 +13,10 @@ static void check_pp(
     assert(text);
     assert(expected_tokens);
 
-    Vec(Token) *tokens = Preprocessor_read(test_name, text);
+    Vec(String) *include_paths = Vec_new(String)();
+    Vec_push(String)(include_paths, "test");
+
+    Vec(Token) *tokens = Preprocessor_read(include_paths, test_name, text);
     if (tokens == NULL) {
         ERROR("%s: Preprocessor_read() == NULL\n", test_name);
     }
@@ -137,6 +140,23 @@ void test_Preprocessor(void) {
             {.kind = TokenKind_identifier, "A"},
             {.kind = TokenKind_identifier, "B"},
             {.kind = TokenKind_identifier, "C"},
+            {.kind = '\0', ""},
+        });
+
+    check_pp(
+        "include",
+        "#include \"test.h\"\n"
+        "DEFINED_IN_test_h",
+        (TestToken[]){
+            {.kind = TokenKind_kw_int, "int"},
+            {.kind = TokenKind_identifier, "hello"},
+            {.kind = '(', "("},
+            {.kind = TokenKind_kw_void, "void"},
+            {.kind = ')', ")"},
+            {.kind = ';', ";"},
+            {.kind = TokenKind_identifier, "defined"},
+            {.kind = TokenKind_identifier, "in"},
+            {.kind = TokenKind_identifier, "test_h"},
             {.kind = '\0', ""},
         });
 }

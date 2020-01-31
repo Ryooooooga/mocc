@@ -8,6 +8,7 @@ LDFLAGS ?=
 SRCS = \
 	main.c \
 	Vec.c \
+	Path.c \
 	File.c \
 	Type.c \
 	Symbol.c \
@@ -19,6 +20,7 @@ SRCS = \
 	Sema.c \
 	CodeGen.c \
 	test_Vec.c \
+	test_Path.c \
 	test_File.c \
 	test_Ast.c \
 	test_Lexer.c \

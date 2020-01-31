@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(argv[1], "--test") == 0) {
         test_Vec();
+        test_Path();
         test_File();
         test_Ast();
         test_Lexer();

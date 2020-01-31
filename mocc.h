@@ -134,6 +134,9 @@ VEC_DECL(DeclNode, struct DeclNode *)
 VEC_DECL(MemberDeclNode, struct MemberDeclNode *)
 VEC_DECL(EnumeratorDeclNode, struct EnumeratorDeclNode *)
 
+// Path
+char *Path_join(const char *dir, const char *rel_path);
+
 // File
 char *File_read(const char *path);
 
@@ -616,6 +619,7 @@ void CodeGen_gen(TranslationUnitNode *p, FILE *fp);
 #define ERROR(...) (fprintf(stderr, __VA_ARGS__), exit(1))
 
 void test_Vec(void);
+void test_Path(void);
 void test_File(void);
 void test_Ast(void);
 void test_Lexer(void);

@@ -136,6 +136,7 @@ VEC_DECL(EnumeratorDeclNode, struct EnumeratorDeclNode *)
 
 // Path
 char *Path_join(const char *dir, const char *rel_path);
+char *Path_dir(const char *path);
 
 // File
 char *File_read(const char *path);

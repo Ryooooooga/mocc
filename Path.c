@@ -21,3 +21,14 @@ char *Path_join(const char *dir, const char *rel_path) {
 
     return path;
 }
+
+char *Path_dir(const char *path) {
+    assert(path);
+
+    size_t len = strlen(path);
+    while (len > 0 && path[len - 1] != '/') {
+        len--;
+    }
+
+    return strndup(path, len);
+}

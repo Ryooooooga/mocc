@@ -214,14 +214,20 @@ static void Preprocessor_open_file(
     assert(path);
     assert(text);
 
-    // TODO: current directory
+    // Load from the current directory
+    const char *dir = Path_dir(pp->path);
+    *path = Path_join(dir, hint);
+    *text = File_read(*path);
 
+    if (*text != NULL) {
+        return;
+    }
+
+    // Load from include directories
     for (size_t i = 0; i < Vec_len(String)(pp->include_paths); i++) {
-        const char *dir = Vec_get(String)(pp->include_paths, i);
+        dir = Vec_get(String)(pp->include_paths, i);
         *path = Path_join(dir, hint);
         *text = File_read(*path);
-
-        fprintf(stderr, "%s\n", *path);
 
         if (*text != NULL) {
             return;

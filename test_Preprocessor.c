@@ -144,6 +144,19 @@ void test_Preprocessor(void) {
         });
 
     check_pp(
+        "function-macro",
+        "#define F() f(x)\n"
+        "F F()",
+        (TestToken[]){
+            {.kind = TokenKind_identifier, "F"},
+            {.kind = TokenKind_identifier, "f"},
+            {.kind = '(', "("},
+            {.kind = TokenKind_identifier, "x"},
+            {.kind = ')', ")"},
+            {.kind = '\0', ""},
+        });
+
+    check_pp(
         "include",
         "#include \"test.h\"\n"
         "DEFINED_IN_test_h",

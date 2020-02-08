@@ -33,13 +33,14 @@ static bool Token_contains_in_hidden_set(const Token *t, const char *name) {
     return false;
 }
 
-Macro *Macro_new_simple(const char *name, Vec(Token) * contents) {
+Macro *
+Macro_new(const char *name, Vec(String) * parameters, Vec(Token) * contents) {
     assert(name);
     assert(contents);
 
     Macro *m = malloc(sizeof(Macro));
     m->name = name;
-    m->parameters = NULL;
+    m->parameters = parameters;
     m->contents = contents;
     return m;
 }
@@ -167,10 +168,30 @@ static void Preprocessor_parse_define(Preprocessor *pp) {
         ERROR("macro name must be an identifier\n");
     }
 
+    Vec(String) *parameters = NULL;
+
     // ['(']
     const Token *t = Preprocessor_current(pp);
     if (t->kind == '(' && !t->is_bol && !t->has_spaces) {
-        TODO("function macro");
+        // '('
+        Preprocessor_consume(pp);
+
+        // parameters
+        parameters = Vec_new(String)();
+
+        // [identifier]
+        t = Preprocessor_current(pp);
+        if (t->kind == TokenKind_identifier && !t->is_bol) {
+            UNIMPLEMENTED();
+        }
+
+        // ')'
+        t = Preprocessor_current(pp);
+        if (t->kind != ')' || t->is_bol) {
+            ERROR("unexpected end of line, expected ')'\n");
+        }
+
+        Preprocessor_consume(pp);
     }
 
     Vec(Token) *contents = Vec_new(Token)();
@@ -181,7 +202,7 @@ static void Preprocessor_parse_define(Preprocessor *pp) {
     }
 
     // Register the macro
-    Macro *macro = Macro_new_simple(identifier->text, contents);
+    Macro *macro = Macro_new(identifier->text, parameters, contents);
 
     Preprocessor_define_macro(pp, macro);
 }
@@ -276,11 +297,56 @@ static void Preprocessor_expand_kw(Preprocessor *pp, Token *t) {
     Vec_push(Token)(pp->output, t);
 }
 
+static void Preprocessor_expand_function_macro(
+    Preprocessor *pp, const Macro *m, Token *macro_token) {
+    assert(pp);
+    assert(m);
+    assert(Macro_is_function(m));
+    assert(macro_token);
+
+    // '('
+    const Token *t = Preprocessor_current(pp);
+    if (t->kind != '(') {
+        Preprocessor_expand_kw(pp, macro_token);
+        return;
+    }
+
+    Preprocessor_consume(pp);
+
+    // Macro arguments
+    if (Vec_len(String)(m->parameters) != 0) {
+        UNIMPLEMENTED();
+    }
+
+    // ')'
+    t = Preprocessor_current(pp);
+    if (t->kind != ')') {
+        ERROR("missing ')' near %s\n", t->text);
+    }
+
+    Preprocessor_consume(pp);
+
+    // Expand the function macro
+    Vec(Token) *tokens = Vec_new(Token)();
+
+    for (size_t i = 0; i < Vec_len(Token)(m->contents); i++) {
+        const Token *src_token = Vec_get(Token)(m->contents, i);
+
+        Token *t = Token_clone_with_hidden(src_token, macro_token->hidden_set);
+        Vec_push(String)(t->hidden_set, m->name);
+
+        Vec_push(Token)(tokens, t);
+    }
+
+    Preprocessor_insert_tokens(pp, tokens, 0);
+}
+
 static void Preprocessor_expand_simple_macro(
-    Preprocessor *pp, const Macro *m, const Token *macro_token) {
+    Preprocessor *pp, const Macro *m, Token *macro_token) {
     assert(pp);
     assert(m);
     assert(!Macro_is_function(m));
+    assert(macro_token);
 
     Vec(Token) *tokens = Vec_new(Token)();
 
@@ -310,7 +376,7 @@ static void Preprocessor_expand_identifier(Preprocessor *pp) {
         Preprocessor_expand_kw(pp, t);
     } else if (Macro_is_function(m)) {
         // `t` is a function macro
-        UNIMPLEMENTED();
+        Preprocessor_expand_function_macro(pp, m, t);
     } else {
         // `t` is a non-function macro
         Preprocessor_expand_simple_macro(pp, m, t);

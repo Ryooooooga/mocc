@@ -23,7 +23,7 @@ try() {
 
     echo -n "$input" > "$c"
 
-    "./build/$BUILD_TYPE/mocc" "$(cat "$c")" > "$asm"
+    "./build/$BUILD_TYPE/mocc" "$c" > "$asm"
     exit_code="$?"
     if [ "$exit_code" -ne 0 ]; then
         echo "$test_name: compilation failed with exit code $exit_code"

@@ -22,8 +22,12 @@ int main(int argc, char *argv[]) {
     }
 
     Vec(String) *include_paths = Vec_new(String)();
-    const char *filename = "<input>";
-    const char *text = argv[1]; // TODO: Read from file
+    const char *filename = argv[1];
+    const char *text = File_read(filename);
+
+    if (text == NULL) {
+        ERROR("cannot open file %s\n", filename);
+    }
 
     Vec(Token) *tokens = Preprocessor_read(include_paths, filename, text);
     Parser *p = Parser_new(tokens);

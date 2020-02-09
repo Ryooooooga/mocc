@@ -242,6 +242,7 @@ typedef struct Token {
 // Symbol
 typedef enum StorageClass {
     StorageClass_none,
+    StorageClass_static,
     StorageClass_typedef,
     StorageClass_enum,
 } StorageClass;

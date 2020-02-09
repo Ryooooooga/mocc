@@ -936,7 +936,9 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     Symbol *symbol = DeclaratorNode_symbol(p->declarator);
     symbol->address = NativeAddress_new_label(symbol->name);
 
-    fprintf(g->fp, "  .global %s%s\n", GLOBAL_PREFIX, symbol->name);
+    if (symbol->storage_class != StorageClass_static) {
+        fprintf(g->fp, "  .global %s%s\n", GLOBAL_PREFIX, symbol->name);
+    }
     fprintf(g->fp, "%s%s:\n", GLOBAL_PREFIX, symbol->name);
 
     // Prolog

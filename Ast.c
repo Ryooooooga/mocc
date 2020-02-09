@@ -607,6 +607,10 @@ static void Node_dump_StorageClass(StorageClass x, FILE *fp, size_t depth) {
         text = "none";
         break;
 
+    case StorageClass_static:
+        text = "static";
+        break;
+
     case StorageClass_typedef:
         text = "typedef";
         break;

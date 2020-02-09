@@ -296,6 +296,7 @@ Parser_parse_type_spec(Parser *p, StorageClass storage_class) {
 //  [storage_class] type_spec
 //
 // storage_class:
+//  'static'
 //  'typedef'
 static DeclSpecNode *Parser_parse_decl_spec(Parser *p) {
     assert(p);
@@ -304,6 +305,13 @@ static DeclSpecNode *Parser_parse_decl_spec(Parser *p) {
     StorageClass storage_class;
 
     switch (Parser_current(p)->kind) {
+    case TokenKind_kw_static:
+        // 'static'
+        Parser_expect(p, TokenKind_kw_static);
+
+        storage_class = StorageClass_static;
+        break;
+
     case TokenKind_kw_typedef:
         // 'typedef'
         Parser_expect(p, TokenKind_kw_typedef);

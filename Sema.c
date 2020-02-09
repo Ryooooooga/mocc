@@ -46,14 +46,14 @@ static void Sema_pop_scope_stack(Sema *s) {
 static void Sema_push_scope_stack_members(Sema *s) {
     assert(s);
 
-    s->current_struct_scope = Scope_new(s->current_struct_scope);
+    s->current_variable_scope = Scope_new(s->current_variable_scope);
 }
 
 static void Sema_pop_scope_stack_members(Sema *s) {
     assert(s);
-    assert(s->current_struct_scope);
+    assert(s->current_variable_scope);
 
-    s->current_struct_scope = Scope_parent_scope(s->current_struct_scope);
+    s->current_variable_scope = Scope_parent_scope(s->current_variable_scope);
 }
 
 static Symbol *Sema_find_symbol(Sema *s, const char *name) {

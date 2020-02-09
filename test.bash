@@ -324,6 +324,7 @@ try "c$LINENO" '
 try "c$LINENO" '
     typedef struct S S;
     struct S { int x; };
+    struct S2 { int x; };
     int main(void) { S s; s.x = 13; return s.x; }
     ' 13
 

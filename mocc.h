@@ -320,6 +320,7 @@ typedef enum ImplicitCastOp {
     ImplicitCastOp_function_to_function_pointer,
     ImplicitCastOp_array_to_pointer,
     ImplicitCastOp_integral_cast,
+    ImplicitCastOp_pointer_to_pointer_cast,
 } ImplicitCastOp;
 
 // clang-format off

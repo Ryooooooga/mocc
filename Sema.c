@@ -249,6 +249,16 @@ static void Sema_assignment_conversion(
 
     case TypeKind_pointer:
         switch (from_type->kind) {
+        case TypeKind_pointer:
+            // T* -> U*
+            *expression = Sema_implicit_cast(
+                s,
+                destination_type,
+                ValueCategory_rvalue,
+                ImplicitCastOp_pointer_to_pointer_cast,
+                *expression);
+            break;
+
         default:
             UNREACHABLE();
         }

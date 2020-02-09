@@ -602,6 +602,9 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
         }
         break;
 
+    case ImplicitCastOp_pointer_to_pointer_cast:
+        break;
+
     default:
         ERROR("unknown implicit cast operator %d\n", p->operator);
     }

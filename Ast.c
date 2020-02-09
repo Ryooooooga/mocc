@@ -86,7 +86,7 @@ EnumeratorExprNode *EnumeratorExprNode_new(
 }
 
 IntegerExprNode *IntegerExprNode_new(
-    Type *result_type, ValueCategory value_category, long long value) {
+    Type *result_type, ValueCategory value_category, int value) {
     IntegerExprNode *p = IntegerExprNode_alloc(result_type, value_category);
     p->value = value;
 
@@ -562,11 +562,11 @@ static void Node_dump_bool(bool x, FILE *fp, size_t depth) {
     fprintf(fp, "(bool %s)\n", x ? "true" : "false");
 }
 
-static void Node_dump_int(long long x, FILE *fp, size_t depth) {
+static void Node_dump_int(int x, FILE *fp, size_t depth) {
     assert(fp);
 
     Node_dump_indent(fp, depth);
-    fprintf(fp, "(int %lld)\n", x);
+    fprintf(fp, "(int %d)\n", x);
 }
 
 static void Node_dump_string(const char *x, FILE *fp, size_t depth) {

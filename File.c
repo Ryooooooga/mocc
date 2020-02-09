@@ -9,7 +9,7 @@ char *File_read(const char *path) {
     }
 
     fseek(fp, 0, SEEK_END);
-    long ssize = ftell(fp);
+    int ssize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
 
     if (ssize < 0) {

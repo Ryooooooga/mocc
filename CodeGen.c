@@ -205,7 +205,7 @@ static void CodeGen_gen_IntegerExpr(CodeGen *g, IntegerExprNode *p) {
     assert(g);
     assert(p);
 
-    fprintf(g->fp, "  push %lld\n", p->value);
+    fprintf(g->fp, "  push %d\n", p->value);
 }
 
 static void CodeGen_gen_StringExpr(CodeGen *g, StringExprNode *p) {

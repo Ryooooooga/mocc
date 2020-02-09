@@ -49,7 +49,7 @@ EXPR_NODE(Enumerator)
 NODE_END()
 
 EXPR_NODE(Integer)
-    NODE_MEMBER_F(long long, value, int)
+    NODE_MEMBER_F(int, value, int)
 NODE_END()
 
 EXPR_NODE(String)

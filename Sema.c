@@ -512,7 +512,7 @@ ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
     assert(integer);
     assert(integer->kind == TokenKind_number);
 
-    long long value = atoll(integer->text); // TODO: conversion
+    int value = atoi(integer->text); // TODO: conversion
 
     IntegerExprNode *node =
         IntegerExprNode_new(s->int_type, ValueCategory_rvalue, value);
@@ -1148,7 +1148,7 @@ static void Sema_complete_declarator_Array(
     }
 
     // TODO: constant value
-    long long length = IntegerExprNode_ccast(declarator->array_size)->value;
+    int length = IntegerExprNode_ccast(declarator->array_size)->value;
 
     if (length <= 0) {
         ERROR("array must have a positive length\n");

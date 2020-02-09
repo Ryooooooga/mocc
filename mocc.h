@@ -356,8 +356,8 @@ IdentifierExprNode *IdentifierExprNode_new(
 EnumeratorExprNode *EnumeratorExprNode_new(
     Type *result_type, ValueCategory value_category, Symbol *symbol, int value);
 
-IntegerExprNode *IntegerExprNode_new(
-    Type *result_type, ValueCategory value_category, long long value);
+IntegerExprNode *
+IntegerExprNode_new(Type *result_type, ValueCategory value_category, int value);
 
 StringExprNode *StringExprNode_new(
     Type *result_type,

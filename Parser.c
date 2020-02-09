@@ -352,10 +352,28 @@ static ExprNode *Parser_parse_string_expr(Parser *p) {
     return Sema_act_on_string_expr(p->sema, string);
 }
 
+// paren_expr:
+//  '(' comma_expr ')'
+static ExprNode *Parser_parse_paren_expr(Parser *p) {
+    assert(p);
+
+    // '('
+    Parser_expect(p, '(');
+
+    // comma_expr
+    ExprNode *expression = Parser_parse_comma_expr(p);
+
+    // ')'
+    Parser_expect(p, ')');
+
+    return expression;
+}
+
 // primary_expr:
 //  identifier_expr
 //  number_expr
 //  string_expr
+//  paren_expr
 static ExprNode *Parser_parse_primary_expr(Parser *p) {
     assert(p);
 
@@ -372,6 +390,10 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
     case TokenKind_string:
         // string_expr
         return Parser_parse_string_expr(p);
+
+    case '(':
+        // paren_expr
+        return Parser_parse_paren_expr(p);
 
     default:
         ERROR("unexpected token %s, expected expression\n", t->text);

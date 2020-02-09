@@ -167,6 +167,20 @@ ArrowExprNode *ArrowExprNode_new(
     return p;
 }
 
+SizeofExprNode *SizeofExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    Type *type,
+    ExprNode *expression) {
+    assert(type);
+
+    SizeofExprNode *p = SizeofExprNode_alloc(result_type, value_category);
+    p->type = type;
+    p->expression = expression;
+
+    return p;
+}
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,

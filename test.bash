@@ -225,6 +225,10 @@ try "c$LINENO" '
         return a;
     }' 3
 
+try "c$LINENO" 'int main(void) { return sizeof 0; }' 4
+try "c$LINENO" 'int main(void) { return sizeof(char); }' 1
+try "c$LINENO" 'int main(void) { return sizeof(int); }' 4
+
 try "c$LINENO" '
     int;
     int main(void) { return 0; }

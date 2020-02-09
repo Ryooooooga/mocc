@@ -389,6 +389,12 @@ ArrowExprNode *ArrowExprNode_new(
     ExprNode *parent,
     Symbol *member_symbol);
 
+SizeofExprNode *SizeofExprNode_new(
+    Type *result_type,
+    ValueCategory value_category,
+    Type *type,
+    ExprNode *expression);
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,
@@ -545,6 +551,9 @@ Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier);
 
 ExprNode *
 Sema_act_on_arrow_expr(Sema *s, ExprNode *parent, const Token *identifier);
+
+ExprNode *Sema_act_on_sizeof_expr_type(Sema *s, Type *type);
+ExprNode *Sema_act_on_sizeof_expr_expr(Sema *s, ExprNode *expression);
 
 ExprNode *
 Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand);

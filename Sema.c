@@ -693,6 +693,32 @@ Sema_act_on_arrow_expr(Sema *s, ExprNode *parent, const Token *identifier) {
     return ArrowExprNode_base(node);
 }
 
+ExprNode *Sema_act_on_sizeof_expr_type(Sema *s, Type *type) {
+    assert(s);
+    assert(type);
+
+    if (Type_is_incomplete_type(type)) {
+        ERROR("cannot get size of incomplete type\n");
+    }
+
+    SizeofExprNode *node =
+        SizeofExprNode_new(s->int_type, ValueCategory_rvalue, type, NULL);
+    return SizeofExprNode_base(node);
+}
+
+ExprNode *Sema_act_on_sizeof_expr_expr(Sema *s, ExprNode *expression) {
+    assert(s);
+    assert(expression);
+
+    if (Type_is_incomplete_type(expression->result_type)) {
+        ERROR("cannot get size of incomplete type\n");
+    }
+
+    SizeofExprNode *node = SizeofExprNode_new(
+        s->int_type, ValueCategory_rvalue, expression->result_type, expression);
+    return SizeofExprNode_base(node);
+}
+
 ExprNode *
 Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
     assert(s);

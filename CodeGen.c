@@ -308,6 +308,13 @@ static void CodeGen_gen_ArrowExpr(CodeGen *g, ArrowExprNode *p) {
     fprintf(g->fp, "  push rax\n");
 }
 
+static void CodeGen_gen_SizeofExpr(CodeGen *g, SizeofExprNode *p) {
+    assert(g);
+    assert(p);
+
+    fprintf(g->fp, "  push %zu\n", Type_sizeof(p->type));
+}
+
 static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
     assert(g);
     assert(p);

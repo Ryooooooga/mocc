@@ -1,16 +1,11 @@
 #include "mocc.h"
 
 void display_usage(const char *program) {
-    fprintf(stderr, "%s <INPUT>\n", program);
+    fprintf(stderr, "%s <INPUT> <OUTPUT>\n", program);
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        display_usage(argv[0]);
-        exit(1);
-    }
-
-    if (strcmp(argv[1], "--test") == 0) {
+    if (argc == 2 && strcmp(argv[1], "--test") == 0) {
         test_Vec();
         test_Path();
         test_File();
@@ -21,19 +16,32 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    Vec(String) *include_paths = Vec_new(String)();
-    const char *filename = argv[1];
-    const char *text = File_read(filename);
-
-    if (text == NULL) {
-        ERROR("cannot open file %s\n", filename);
+    if (argc != 3) {
+        display_usage(argv[0]);
+        exit(1);
     }
 
-    Vec(Token) *tokens = Preprocessor_read(include_paths, filename, text);
+    Vec(String) *include_paths = Vec_new(String)();
+    const char *input = argv[1];
+    const char *output = argv[2];
+
+    const char *text = File_read(input);
+    if (text == (const char *)NULL) {
+        ERROR("cannot open file %s\n", input);
+    }
+
+    FILE *fp = fopen(output, "w");
+    if (fp == (FILE *)NULL) {
+        ERROR("cannot open file %s\n", output);
+    }
+
+    Vec(Token) *tokens = Preprocessor_read(include_paths, input, text);
     Parser *p = Parser_new(tokens);
 
     TranslationUnitNode *node = Parser_parse(p);
-    CodeGen_gen(node, stdout);
+    CodeGen_gen(node, fp);
+
+    fclose(fp);
 
     return 0;
 }

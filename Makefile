@@ -36,7 +36,7 @@ all: ${TARGET}
 
 test: ${TARGET}
 	./${TARGET} --test
-	./test.bash
+	MOCC=${TARGET} ./test.bash
 
 clean:
 	${RM} -r ${BUILD_DIR} tmp/*

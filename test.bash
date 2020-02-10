@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 BUILD_TYPE=${BUILD_TYPE:-debug}
 
-if [ ! -f "./build/$BUILD_TYPE/mocc" ]; then
+if [ ! -f "$MOCC" ]; then
     echo "type 'make BUILD_TYPE=\"$BUILD_TYPE\"' before run test"
     exit 1
 fi
@@ -23,7 +23,7 @@ try() {
 
     echo -n "$input" > "$c"
 
-    "./build/$BUILD_TYPE/mocc" "$c" > "$asm"
+    "$MOCC" "$c" "$asm"
     exit_code="$?"
     if [ "$exit_code" -ne 0 ]; then
         echo "$test_name: compilation failed with exit code $exit_code"

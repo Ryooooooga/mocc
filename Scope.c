@@ -38,6 +38,7 @@ Symbol *Scope_find(Scope *s, const char *name, bool recursive) {
 bool Scope_try_register(Scope *s, Symbol *symbol) {
     assert(s);
     assert(symbol);
+    assert(symbol->name);
 
     if (Scope_find(s, symbol->name, false) != NULL) {
         return false;

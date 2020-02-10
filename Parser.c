@@ -73,7 +73,7 @@ static ExprNode *Parser_parse_assign_expr(Parser *p);
 static ExprNode *Parser_parse_comma_expr(Parser *p);
 static StmtNode *Parser_parse_stmt(Parser *p);
 static DeclaratorNode *
-Parser_parse_declarator(Parser *p, DeclSpecNode *decl_spec);
+Parser_parse_declarator(Parser *p, DeclSpecNode *decl_spec, bool may_abstract);
 static DeclaratorNode *
 Parser_parse_init_declarator(Parser *p, DeclSpecNode *decl_spec);
 
@@ -119,7 +119,7 @@ static Type *Parser_parse_struct_type(Parser *p) {
         if (Parser_current(p)->kind != ';') {
             // declarator
             Vec_push(DeclaratorNode)(
-                declarators, Parser_parse_declarator(p, decl_spec));
+                declarators, Parser_parse_declarator(p, decl_spec, false));
 
             // (',' declarator)*
             while (Parser_current(p)->kind == ',') {
@@ -128,7 +128,7 @@ static Type *Parser_parse_struct_type(Parser *p) {
 
                 // declarator
                 Vec_push(DeclaratorNode)(
-                    declarators, Parser_parse_declarator(p, decl_spec));
+                    declarators, Parser_parse_declarator(p, decl_spec, false));
             }
         }
 
@@ -1034,8 +1034,16 @@ static StmtNode *Parser_parse_return_stmt(Parser *p) {
 
 // direct_declarator:
 //  identifier
-static DeclaratorNode *Parser_parse_direct_declarator(Parser *p) {
+//
+// abstract_direct_declarator:
+//  <empty>
+static DeclaratorNode *
+Parser_parse_direct_declarator(Parser *p, bool may_abstract) {
     assert(p);
+
+    if (may_abstract && Parser_current(p)->kind != TokenKind_identifier) {
+        return Sema_act_on_abstract_direct_declarator(p->sema);
+    }
 
     // TODO: direct declarator rule
     const Token *identifier = Parser_expect(p, TokenKind_identifier);
@@ -1044,6 +1052,7 @@ static DeclaratorNode *Parser_parse_direct_declarator(Parser *p) {
 }
 
 // parameter_decl:
+//  type_spec declarator
 //  type_spec abstract_declarator
 static DeclaratorNode *Parser_parse_parameter_decl(Parser *p) {
     assert(p);
@@ -1051,8 +1060,8 @@ static DeclaratorNode *Parser_parse_parameter_decl(Parser *p) {
     // type_spec
     DeclSpecNode *decl_spec = Parser_parse_type_spec(p, StorageClass_none);
 
-    // TODO: abstract_declarator
-    DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec);
+    // declarator | abstract_declarator
+    DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec, true);
 
     return Sema_act_on_parameter_decl(p->sema, declarator);
 }
@@ -1135,11 +1144,13 @@ Parser_parse_function_declarator(Parser *p, DeclaratorNode *declarator) {
 //  array_declarator
 //  function_declarator
 //  direct_declarator
-static DeclaratorNode *Parser_parse_postfix_declarator(Parser *p) {
+static DeclaratorNode *
+Parser_parse_postfix_declarator(Parser *p, bool may_abstract) {
     assert(p);
 
     // direct_declarator
-    DeclaratorNode *declarator = Parser_parse_direct_declarator(p);
+    DeclaratorNode *declarator =
+        Parser_parse_direct_declarator(p, may_abstract);
 
     while (1) {
         switch (Parser_current(p)->kind) {
@@ -1162,19 +1173,21 @@ static DeclaratorNode *Parser_parse_postfix_declarator(Parser *p) {
 // pointer_declarator:
 //  '*' pointer_declarator
 //  postfix_declarator
-static DeclaratorNode *Parser_parse_pointer_declarator(Parser *p) {
+static DeclaratorNode *
+Parser_parse_pointer_declarator(Parser *p, bool may_abstract) {
     assert(p);
 
     if (Parser_current(p)->kind != '*') {
         // postfix_declarator
-        return Parser_parse_postfix_declarator(p);
+        return Parser_parse_postfix_declarator(p, may_abstract);
     }
 
     // '*'
     Parser_expect(p, '*');
 
     // pointer_declarator
-    DeclaratorNode *declarator = Parser_parse_pointer_declarator(p);
+    DeclaratorNode *declarator =
+        Parser_parse_pointer_declarator(p, may_abstract);
 
     return Sema_act_on_pointer_declarator(p->sema, declarator);
 }
@@ -1182,12 +1195,13 @@ static DeclaratorNode *Parser_parse_pointer_declarator(Parser *p) {
 // declarator:
 //  pointer_declarator
 static DeclaratorNode *
-Parser_parse_declarator(Parser *p, DeclSpecNode *decl_spec) {
+Parser_parse_declarator(Parser *p, DeclSpecNode *decl_spec, bool may_abstract) {
     assert(p);
     assert(decl_spec);
 
     // pointer_declarator
-    DeclaratorNode *declarator = Parser_parse_pointer_declarator(p);
+    DeclaratorNode *declarator =
+        Parser_parse_pointer_declarator(p, may_abstract);
 
     return Sema_act_on_declarator_completed(p->sema, decl_spec, declarator);
 }
@@ -1216,7 +1230,7 @@ Parser_parse_init_declarator(Parser *p, DeclSpecNode *decl_spec) {
     assert(decl_spec);
 
     // declarator
-    DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec);
+    DeclaratorNode *declarator = Parser_parse_declarator(p, decl_spec, false);
 
     if (Parser_current(p)->kind != '=') {
         return declarator;

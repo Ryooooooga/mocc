@@ -161,6 +161,10 @@ STMT_NODE(Expr)
 NODE_END()
 
 // Declarator
+DECLARATOR_NODE(AbstractDirect)
+    NODE_MEMBER_F(Symbol *, symbol, Symbol)
+NODE_END()
+
 DECLARATOR_NODE(Direct)
     NODE_MEMBER(const char *, name)
     NODE_MEMBER_F(Symbol *, symbol, Symbol)

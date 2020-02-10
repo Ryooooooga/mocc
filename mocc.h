@@ -447,6 +447,8 @@ DeclStmtNode_new(DeclSpecNode *decl_spec, Vec(DeclaratorNode) * declarators);
 ExprStmtNode *ExprStmtNode_new(ExprNode *expression);
 
 // Declarators
+AbstractDirectDeclaratorNode *AbstractDirectDeclaratorNode_new(void);
+
 DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name);
 
 ArrayDeclaratorNode *
@@ -594,6 +596,8 @@ StmtNode *Sema_act_on_decl_stmt(
 StmtNode *Sema_act_on_expr_stmt(Sema *s, ExprNode *expression);
 
 // Declarators
+DeclaratorNode *Sema_act_on_abstract_direct_declarator(Sema *s);
+
 DeclaratorNode *Sema_act_on_direct_declarator(Sema *s, const Token *identifier);
 
 DeclaratorNode *Sema_act_on_array_declarator(

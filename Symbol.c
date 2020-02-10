@@ -1,7 +1,6 @@
 #include "mocc.h"
 
 Symbol *Symbol_new(const char *name, StorageClass storage_class, Type *type) {
-    assert(name);
     assert(type);
 
     Symbol *s = malloc(sizeof(Symbol));

@@ -133,6 +133,7 @@ StructType_find_member(const Type *struct_type, const char *member_name) {
 
     for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols); i++) {
         Symbol *symbol = Vec_get(Symbol)(struct_type->member_symbols, i);
+        assert(symbol->name);
 
         if (strcmp(symbol->name, member_name) == 0) {
             return symbol;

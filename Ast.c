@@ -334,6 +334,28 @@ ExprStmtNode *ExprStmtNode_new(ExprNode *expression) {
 }
 
 // Declarators
+AbstractDirectDeclaratorNode *AbstractDirectDeclaratorNode_new(void) {
+    AbstractDirectDeclaratorNode *p = AbstractDirectDeclaratorNode_alloc();
+    p->symbol = NULL;
+
+    return p;
+}
+
+static Symbol *
+AbstractDirectDeclaratorNode_symbol(const AbstractDirectDeclaratorNode *p) {
+    assert(p);
+
+    return p->symbol;
+}
+
+static Vec(DeclaratorNode) * AbstractDirectDeclaratorNode_parameters(
+                                 const AbstractDirectDeclaratorNode *p) {
+    assert(p);
+
+    (void)p;
+    return NULL;
+}
+
 DirectDeclaratorNode *DirectDeclaratorNode_new(const char *name) {
     assert(name);
 

@@ -294,6 +294,12 @@ try "c$LINENO" '
     ' 30
 
 try "c$LINENO" '
+    int f(int, int);
+    int main(void) { return f(10, 20); }
+    int f(int a, int b) { return a + b; }
+    ' 30
+
+try "c$LINENO" '
     typedef int size_t;
     size_t strlen(const char *s);
     int main(void) { return strlen("hello\n"); }

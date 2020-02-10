@@ -69,7 +69,8 @@ static void Sema_register_symbol(Sema *s, Symbol *symbol) {
     assert(s->current_variable_scope);
     assert(symbol);
 
-    if (!Scope_try_register(s->current_variable_scope, symbol)) {
+    if (symbol->name &&
+        !Scope_try_register(s->current_variable_scope, symbol)) {
         ERROR("%s is already declared in this scope\n", symbol->name);
     }
 }
@@ -86,6 +87,7 @@ static void Sema_register_struct_symbol(Sema *s, Symbol *symbol) {
     assert(s);
     assert(s->current_struct_scope);
     assert(symbol);
+    assert(symbol->name);
 
     if (!Scope_try_register(s->current_struct_scope, symbol)) {
         ERROR("struct %s is already declared in this scope\n", symbol->name);
@@ -104,6 +106,7 @@ static void Sema_register_enum_symbol(Sema *s, Symbol *symbol) {
     assert(s);
     assert(s->current_enum_scope);
     assert(symbol);
+    assert(symbol->name);
 
     if (!Scope_try_register(s->current_enum_scope, symbol)) {
         ERROR("enum %s is already declared in this scope\n", symbol->name);
@@ -1093,6 +1096,15 @@ StmtNode *Sema_act_on_expr_stmt(Sema *s, ExprNode *expression) {
 }
 
 // Declarators
+DeclaratorNode *Sema_act_on_abstract_direct_declarator(Sema *s) {
+    assert(s);
+
+    (void)s;
+
+    AbstractDirectDeclaratorNode *node = AbstractDirectDeclaratorNode_new();
+    return AbstractDirectDeclaratorNode_base(node);
+}
+
 DeclaratorNode *
 Sema_act_on_direct_declarator(Sema *s, const Token *identifier) {
     assert(s);
@@ -1156,6 +1168,20 @@ static void Sema_complete_declarator(
     DeclaratorNode *declarator,
     StorageClass storage_class,
     Type *base_type);
+
+static void Sema_complete_declarator_AbstractDirect(
+    Sema *s,
+    AbstractDirectDeclaratorNode *declarator,
+    StorageClass storage_class,
+    Type *base_type) {
+    assert(s);
+    assert(declarator);
+    assert(base_type);
+
+    (void)s;
+
+    declarator->symbol = Symbol_new(NULL, storage_class, base_type);
+}
 
 static void Sema_complete_declarator_Direct(
     Sema *s,

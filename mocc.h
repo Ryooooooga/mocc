@@ -5,6 +5,7 @@
 #define _GNU_SOURCE
 #endif
 
+#ifndef MOCC
 #include <assert.h>
 #include <ctype.h>
 #include <stdalign.h>
@@ -13,6 +14,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#else
+// <assert.h>
+#define assert(x) ((void)0)
+
+// <stddef.h>
+typedef int size_t;
+#define NULL ((void *)0)
+
+// <stdbool.h>
+typedef int bool;
+#define true 1
+#define false 0
+
+// <stdlib.h>
+void *malloc(size_t size);
+
+// <stdio.h>
+typedef struct FILE FILE;
+FILE *fopen(const char *path, const char *mode);
+
+// <string.h>
+size_t strlen(const char *s);
+char *strcpy(char *s1, const char *s2);
+#endif
 
 // Macros
 #define UNREACHABLE()                                                          \

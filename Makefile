@@ -34,7 +34,7 @@ OBJS = ${SRCS:%=${BUILD_DIR}/${BUILD_TYPE}/%.o}
 TARGET = ${BUILD_DIR}/${BUILD_TYPE}/mocc
 
 SRCS2 = \
-	main.c \
+	${BUILD_DIR}/${SRC_DIR}/main.s \
 	${BUILD_DIR}/${SRC_DIR}/Vec.s \
 	${BUILD_DIR}/${SRC_DIR}/Path.s \
 	${BUILD_DIR}/${SRC_DIR}/File.s \
@@ -97,7 +97,7 @@ ${BUILD_DIR}/${SRC_DIR}/%.c: %.c mocc.h
 ${BUILD_DIR}/${SRC_DIR}/%.s: ${BUILD_DIR}/${SRC_DIR}/%.c ${TARGET}
 	@echo "compiling $<"
 	@mkdir -p ${@D}
-	@${TARGET} $< > $@
+	@${TARGET} $< $@
 
 .PHONY: all test clean
 

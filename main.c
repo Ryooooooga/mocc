@@ -1,10 +1,10 @@
 #include "mocc.h"
 
 void display_usage(const char *program) {
-    fprintf(stderr, "%s <INPUT> <OUTPUT>\n", program);
+    printf("%s <INPUT> <OUTPUT>\n", program);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "--test") == 0) {
         test_Vec();
         test_Path();

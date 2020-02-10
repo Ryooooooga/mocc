@@ -56,6 +56,7 @@ char *strndup(const char *s, size_t n);
 
 // Macros
 #ifndef MOCC
+#define ERROR(...) (fprintf(stderr, __VA_ARGS__), exit(1))
 #define UNREACHABLE()                                                          \
     (fprintf(stderr, "unreachable\nat %s(%d)\n", __FILE__, __LINE__), exit(1))
 #define UNIMPLEMENTED()                                                        \
@@ -63,9 +64,10 @@ char *strndup(const char *s, size_t n);
 #define TODO(s)                                                                \
     (fprintf(stderr, "todo: " s "\nat %s(%d)\n", __FILE__, __LINE__), exit(1))
 #else
-#define UNREACHABLE() ((void)0)
-#define UNIMPLEMENTED() ((void)0)
-#define TODO(s) ((void)0)
+#define ERROR(...) (exit(1))
+#define UNREACHABLE() (exit(1))
+#define UNIMPLEMENTED() (exit(1))
+#define TODO(s) (exit(1))
 #endif
 
 // Vec
@@ -693,8 +695,6 @@ DeclNode *Sema_act_on_function_decl_end_of_body(
 void CodeGen_gen(TranslationUnitNode *p, FILE *fp);
 
 // Tests
-#define ERROR(...) (fprintf(stderr, __VA_ARGS__), exit(1))
-
 void test_Vec(void);
 void test_Path(void);
 void test_File(void);

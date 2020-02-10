@@ -923,6 +923,11 @@ static void CodeGen_gen_global_decl(CodeGen *g, GlobalDeclNode *p) {
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(p->declarators); i++) {
         DeclaratorNode *declarator = Vec_get(DeclaratorNode)(p->declarators, i);
         Symbol *symbol = DeclaratorNode_symbol(declarator);
+
+        if (symbol->storage_class == StorageClass_typedef) {
+            continue;
+        }
+
         assert(symbol->name);
 
         Type *type = symbol->type;

@@ -173,6 +173,8 @@ size_t Type_sizeof(const Type *type) {
         return Type_sizeof(ArrayType_element_type(type)) *
                ArrayType_length(type);
     case TypeKind_struct: {
+        assert(StructType_is_defined(type));
+
         size_t size = 0;
 
         for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols); i++) {
@@ -211,6 +213,8 @@ size_t Type_alignof(const Type *type) {
     case TypeKind_array:
         return Type_alignof(ArrayType_element_type(type));
     case TypeKind_struct: {
+        assert(StructType_is_defined(type));
+
         size_t align = 0;
 
         for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols); i++) {

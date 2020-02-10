@@ -550,6 +550,24 @@ ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer) {
     return IntegerExprNode_base(node);
 }
 
+ExprNode *Sema_act_on_character_expr(Sema *s, const Token *character) {
+    assert(s);
+    assert(character);
+    assert(character->kind == TokenKind_character);
+
+    if (character->string_len == 0) {
+        ERROR("empty character literal\n");
+    } else if (character->string_len > 1) {
+        ERROR("multiple characters in character literal\n");
+    }
+
+    int value = character->string[0];
+
+    IntegerExprNode *node =
+        IntegerExprNode_new(s->int_type, ValueCategory_rvalue, value);
+    return IntegerExprNode_base(node);
+}
+
 ExprNode *Sema_act_on_string_expr(Sema *s, const Token *string) {
     assert(s);
     assert(string);

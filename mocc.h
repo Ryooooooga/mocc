@@ -547,6 +547,8 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier);
 
 ExprNode *Sema_act_on_integer_expr(Sema *s, const Token *integer);
 
+ExprNode *Sema_act_on_character_expr(Sema *s, const Token *character);
+
 ExprNode *Sema_act_on_string_expr(Sema *s, const Token *string);
 
 ExprNode *Sema_act_on_subscript_expr(Sema *s, ExprNode *array, ExprNode *index);

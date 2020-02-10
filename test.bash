@@ -49,6 +49,9 @@ try() {
 
 try "c$LINENO" 'int main(void) { return 0; }' 0
 try "c$LINENO" 'int main(void) { return 42; }' 42
+try "c$LINENO" "int main(void) { return 'A'; }" 65
+try "c$LINENO" "int main(void) { return '\0'; }" 0
+try "c$LINENO" "int main(void) { return '\n'; }" 10
 
 try "c$LINENO" '
     int main(void) {

@@ -33,6 +33,33 @@ static char Lexer_consume(Lexer *l) {
     return l->text[l->cursor++];
 }
 
+static char Lexer_read_char(Lexer *l, char *buffer, size_t *len) {
+    assert(l);
+
+    if (Lexer_current(l) == '\0' || Lexer_current(l) == '\n') {
+        ERROR("unterminated literal\n");
+    }
+
+    if (Lexer_current(l) == '\\') {
+        // '\\'
+        buffer[(*len)++] = Lexer_consume(l);
+
+        switch ((buffer[(*len)++] = Lexer_consume(l))) {
+        case '0':
+            return '\0';
+
+        case 'n':
+            return '\n';
+
+        default:
+            ERROR("unknown escape sequence\n");
+        }
+    } else {
+        // .
+        return buffer[(*len)++] = Lexer_consume(l);
+    }
+}
+
 Token *Lexer_read(Lexer *l) {
     assert(l);
 
@@ -69,35 +96,26 @@ Token *Lexer_read(Lexer *l) {
 
             t->has_spaces = true;
             continue;
+        } else if (c == '\'') {
+            // '\''
+            buffer[len++] = Lexer_consume(l);
+
+            while (Lexer_current(l) != '\'') {
+                str[t->string_len++] = Lexer_read_char(l, buffer, &len);
+            }
+
+            // '\''
+            buffer[len++] = Lexer_consume(l);
+
+            t->kind = TokenKind_character;
+            t->string = strndup(str, t->string_len);
+            break;
         } else if (c == '\"') {
             // '\"'
             buffer[len++] = Lexer_consume(l);
 
             while (Lexer_current(l) != '\"') {
-                if (Lexer_current(l) == '\0' || Lexer_current(l) == '\n') {
-                    ERROR("unterminated string literal\n");
-                }
-
-                if (Lexer_current(l) == '\\') {
-                    // '\\'
-                    buffer[len++] = Lexer_consume(l);
-
-                    switch ((buffer[len++] = Lexer_consume(l))) {
-                    case '0':
-                        str[t->string_len++] = '\0';
-                        break;
-
-                    case 'n':
-                        str[t->string_len++] = '\n';
-                        break;
-
-                    default:
-                        ERROR("unknown escape sequence\n");
-                    }
-                } else {
-                    // .
-                    str[t->string_len++] = buffer[len++] = Lexer_consume(l);
-                }
+                str[t->string_len++] = Lexer_read_char(l, buffer, &len);
             }
 
             // '\"'

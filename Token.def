@@ -16,6 +16,7 @@
 
 TOKEN(identifier, "identifier")
 TOKEN(number, "number")
+TOKEN(character, "character")
 TOKEN(string, "string")
 
 TOKEN_KW1(static)

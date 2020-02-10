@@ -781,7 +781,23 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
     switch (operator->kind) {
     case '+':
     case '-':
-        TODO("unary + -");
+        // Conversion
+        Sema_integer_promotion(s, &operand);
+
+        if (operand->result_type->kind != TypeKind_int) {
+            ERROR("invalid operand of unary %s\n", operator->text);
+        }
+
+        type = operand->result_type;
+        value_category = ValueCategory_rvalue;
+
+        if (operator->kind == '+') {
+            op = UnaryOp_positive;
+        } else if (operator->kind == '-') {
+            op = UnaryOp_negative;
+        } else {
+            UNREACHABLE();
+        }
         break;
 
     case '!':

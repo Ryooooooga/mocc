@@ -86,6 +86,8 @@ EXPR_NODE(Cast)
     NODE_MEMBER_F(ExprNode *, expression, Expr)
 NODE_END()
 
+UNARY_OP(positive)
+UNARY_OP(negative)
 UNARY_OP(address_of)
 UNARY_OP(indirection)
 

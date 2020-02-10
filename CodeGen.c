@@ -329,6 +329,15 @@ static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
     CodeGen_gen_expr(g, p->operand);
 
     switch (p->operator) {
+    case UnaryOp_positive:
+        break;
+
+    case UnaryOp_negative:
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  neg rax\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
     case UnaryOp_address_of:
         break;
 

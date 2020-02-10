@@ -47,15 +47,8 @@ try() {
     rm "$c" "$asm" "$bin"
 }
 
-try "c$LINENO" '
-    int main(void) {
-        return 0;
-    }' 0
-
-try "c$LINENO" '
-    int main(void) {
-        return 42;
-    }' 42
+try "c$LINENO" 'int main(void) { return 0; }' 0
+try "c$LINENO" 'int main(void) { return 42; }' 42
 
 try "c$LINENO" '
     int main(void) {
@@ -288,6 +281,9 @@ try "c$LINENO" 'int main(void) { return 2 == 2; }' 1
 try "c$LINENO" 'int main(void) { return 2 == 1; }' 0
 try "c$LINENO" 'int main(void) { return 2 != 2; }' 0
 try "c$LINENO" 'int main(void) { return 2 != 1; }' 1
+try "c$LINENO" 'int main(void) { return +2 == 2; }' 1
+try "c$LINENO" 'int main(void) { return -2 == 0-2; }' 1
+try "c$LINENO" 'int main(void) { return - -2 == 2; }' 1
 
 try "c$LINENO" '
     int f(int x, int y);

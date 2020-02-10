@@ -52,6 +52,9 @@ static bool Parser_is_decl_spec(Parser *p, const Token *t) {
     assert(t);
 
     switch (t->kind) {
+    case TokenKind_kw_static:
+    case TokenKind_kw_typedef:
+    case TokenKind_kw_const:
     case TokenKind_kw_void:
     case TokenKind_kw_char:
     case TokenKind_kw_int:

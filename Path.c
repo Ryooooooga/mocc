@@ -27,7 +27,7 @@ char *Path_dir(const char *path) {
 
     size_t len = strlen(path);
     while (len > 0 && path[len - 1] != '/') {
-        len--;
+        len = len - 1;
     }
 
     return strndup(path, len);

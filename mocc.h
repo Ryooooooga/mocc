@@ -37,6 +37,8 @@ FILE *fopen(const char *path, const char *mode);
 // <string.h>
 size_t strlen(const char *s);
 char *strcpy(char *s1, const char *s2);
+char *strcat(char *s1, const char *s2);
+char *strndup(const char *s, size_t n);
 #endif
 
 // Macros

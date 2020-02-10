@@ -880,6 +880,8 @@ static ExprNode *Parser_parse_comma_expr(Parser *p) {
 static StmtNode *Parser_parse_compound_stmt(Parser *p) {
     assert(p);
 
+    Sema_act_on_compound_stmt_begin(p->sema);
+
     // '{'
     Parser_expect(p, '{');
 
@@ -895,7 +897,7 @@ static StmtNode *Parser_parse_compound_stmt(Parser *p) {
     // '}'
     Parser_expect(p, '}');
 
-    return CompoundStmtNode_base(CompoundStmtNode_new(statements));
+    return Sema_act_on_compound_stmt_end(p->sema, statements);
 }
 
 // if_stmt:

@@ -1047,6 +1047,23 @@ ExprNode *Sema_act_on_assign_expr(
 }
 
 // Statements
+void Sema_act_on_compound_stmt_begin(Sema *s) {
+    assert(s);
+
+    // Enter the local scope
+    Sema_push_scope_stack(s);
+}
+
+StmtNode *Sema_act_on_compound_stmt_end(Sema *s, Vec(StmtNode) * statements) {
+    assert(s);
+
+    // Leave the local scope
+    Sema_pop_scope_stack(s);
+
+    CompoundStmtNode *node = CompoundStmtNode_new(statements);
+    return CompoundStmtNode_base(node);
+}
+
 StmtNode *Sema_act_on_if_stmt(
     Sema *s, ExprNode *condition, StmtNode *if_true, StmtNode *if_false) {
     assert(s);

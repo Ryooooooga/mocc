@@ -578,6 +578,9 @@ ExprNode *Sema_act_on_assign_expr(
     Sema *s, ExprNode *lhs, const Token *operator, ExprNode *rhs);
 
 // Statements
+void Sema_act_on_compound_stmt_begin(Sema *s);
+StmtNode *Sema_act_on_compound_stmt_end(Sema *s, Vec(StmtNode) * statements);
+
 StmtNode *Sema_act_on_if_stmt(
     Sema *s, ExprNode *condition, StmtNode *if_true, StmtNode *if_false);
 

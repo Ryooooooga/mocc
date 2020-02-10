@@ -161,38 +161,36 @@ size_t Type_sizeof(const Type *type) {
     assert(type);
     assert(!Type_is_incomplete_type(type));
 
-    switch (type->kind) {
-    case TypeKind_void:
-    case TypeKind_function:
-        return 0;
-    case TypeKind_char:
-        return sizeof(char);
-    case TypeKind_int:
-        return sizeof(int);
-    case TypeKind_pointer:
-        return sizeof(void *);
-    case TypeKind_array:
+    if (type->kind == TypeKind_char) {
+        return 1;
+    } else if (type->kind == TypeKind_int) {
+        return 4;
+    } else if (type->kind == TypeKind_pointer) {
+        return 8;
+    } else if (type->kind == TypeKind_array) {
         return Type_sizeof(ArrayType_element_type(type)) *
                ArrayType_length(type);
-    case TypeKind_struct: {
+    } else if (type->kind == TypeKind_struct) {
         size_t size = 0;
 
-        for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols); i++) {
+        for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols);
+             i = i + 1) {
             Symbol *symbol = Vec_get(Symbol)(type->member_symbols, i);
             size_t member_size = Type_sizeof(symbol->type);
             size_t member_align = Type_alignof(symbol->type);
-            size_t padding = size % member_align == 0
-                                 ? 0
-                                 : member_align - size % member_align;
+            size_t padding = 0;
 
-            size += padding + member_size;
+            if (size % member_align != 0) {
+                padding = member_align - size % member_align;
+            }
+
+            size = size + padding + member_size;
         }
 
         return size;
-    }
-    case TypeKind_enum:
+    } else if (type->kind == TypeKind_enum) {
         return Type_sizeof(type->underlying_type);
-    default:
+    } else {
         UNREACHABLE();
     }
 }
@@ -201,22 +199,19 @@ size_t Type_alignof(const Type *type) {
     assert(type);
     assert(!Type_is_incomplete_type(type));
 
-    switch (type->kind) {
-    case TypeKind_void:
-    case TypeKind_function:
-        return 0;
-    case TypeKind_char:
-        return alignof(char);
-    case TypeKind_int:
-        return alignof(int);
-    case TypeKind_pointer:
-        return alignof(void *);
-    case TypeKind_array:
+    if (type->kind == TypeKind_char) {
+        return 1;
+    } else if (type->kind == TypeKind_int) {
+        return 4;
+    } else if (type->kind == TypeKind_pointer) {
+        return 8;
+    } else if (type->kind == TypeKind_array) {
         return Type_alignof(ArrayType_element_type(type));
-    case TypeKind_struct: {
+    } else if (type->kind == TypeKind_struct) {
         size_t align = 0;
 
-        for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols); i++) {
+        for (size_t i = 0; i < Vec_len(Symbol)(type->member_symbols);
+             i = i + 1) {
             Symbol *symbol = Vec_get(Symbol)(type->member_symbols, i);
             size_t member_align = Type_alignof(symbol->type);
 
@@ -226,10 +221,9 @@ size_t Type_alignof(const Type *type) {
         }
 
         return align;
-    }
-    case TypeKind_enum:
+    } else if (type->kind == TypeKind_enum) {
         return Type_alignof(type->underlying_type);
-    default:
+    } else {
         UNREACHABLE();
     }
 }
@@ -246,17 +240,13 @@ bool Type_equals(const Type *a, const Type *b) {
         return false;
     }
 
-    switch (a->kind) {
-    case TypeKind_void:
-    case TypeKind_char:
-    case TypeKind_int:
+    if (a->kind == TypeKind_void || a->kind == TypeKind_char ||
+        a->kind == TypeKind_int) {
         return true;
-
-    case TypeKind_pointer:
+    } else if (a->kind == TypeKind_pointer) {
         return Type_equals(
             PointerType_pointee_type(a), PointerType_pointee_type(b));
-
-    case TypeKind_function: {
+    } else if (a->kind == TypeKind_function) {
         const Vec(Type) *a_params = FunctionType_parameter_types(a);
         const Vec(Type) *b_params = FunctionType_parameter_types(b);
 
@@ -268,7 +258,7 @@ bool Type_equals(const Type *a, const Type *b) {
             return false;
         }
 
-        for (size_t i = 0; i < Vec_len(Type)(a_params); i++) {
+        for (size_t i = 0; i < Vec_len(Type)(a_params); i = i + 1) {
             const Type *a_param = Vec_get(Type)(a_params, i);
             const Type *b_param = Vec_get(Type)(b_params, i);
 
@@ -279,18 +269,13 @@ bool Type_equals(const Type *a, const Type *b) {
 
         return Type_equals(
             FunctionType_return_type(a), FunctionType_return_type(b));
-    }
-
-    case TypeKind_array:
+    } else if (a->kind == TypeKind_array) {
         return ArrayType_length(a) == ArrayType_length(b) &&
                Type_equals(
                    ArrayType_element_type(a), ArrayType_element_type(b));
-
-    case TypeKind_struct:
-    case TypeKind_enum:
+    } else if (a->kind == TypeKind_struct || a->kind == TypeKind_enum) {
         return false;
-
-    default:
+    } else {
         UNREACHABLE();
     }
 }
@@ -298,28 +283,14 @@ bool Type_equals(const Type *a, const Type *b) {
 bool Type_is_scalar(const Type *type) {
     assert(type);
 
-    switch (type->kind) {
-    case TypeKind_char:
-    case TypeKind_int:
-    case TypeKind_pointer:
-        return true;
-
-    default:
-        return false;
-    }
+    return type->kind == TypeKind_char || type->kind == TypeKind_int ||
+           type->kind == TypeKind_pointer;
 }
 
 bool Type_is_incomplete_type(const Type *type) {
     assert(type);
 
-    switch (type->kind) {
-    case TypeKind_void:
-    case TypeKind_function:
-        return true;
-
-    default:
-        return false;
-    }
+    return type->kind == TypeKind_void || type->kind == TypeKind_function;
 }
 
 bool Type_is_function_pointer_type(const Type *type) {

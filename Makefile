@@ -38,7 +38,7 @@ SRCS2 = \
 	${BUILD_DIR}/${SRC_DIR}/Vec.s \
 	${BUILD_DIR}/${SRC_DIR}/Path.s \
 	${BUILD_DIR}/${SRC_DIR}/File.s \
-	Type.c \
+	${BUILD_DIR}/${SRC_DIR}/Type.s \
 	${BUILD_DIR}/${SRC_DIR}/Symbol.s \
 	${BUILD_DIR}/${SRC_DIR}/Scope.s \
 	Ast.c \

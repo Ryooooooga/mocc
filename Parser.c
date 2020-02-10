@@ -526,7 +526,7 @@ static ExprNode *Parser_parse_postfix_expr(Parser *p) {
 static ExprNode *Parser_parse_unary_expr(Parser *p);
 
 // sizeof_expr:
-//  'sizeof' '(' type_spec ')'
+//  'sizeof' '(' type_spec  abstract_declarator ')'
 //  'sizeof' unary_expr
 static ExprNode *Parser_parse_sizeof_expr(Parser *p) {
     assert(p);
@@ -539,8 +539,10 @@ static ExprNode *Parser_parse_sizeof_expr(Parser *p) {
         // '('
         Parser_expect(p, '(');
 
-        // type
+        // type_spec
         DeclSpecNode *decl_spec = Parser_parse_type_spec(p, StorageClass_none);
+
+        // TODO: abstract_declarator
 
         // ')'
         Parser_expect(p, ')');
@@ -554,18 +556,48 @@ static ExprNode *Parser_parse_sizeof_expr(Parser *p) {
     }
 }
 
+// cast_expr
+//  '(' type_spec abstract_declarator ')' unary_expr
+static ExprNode *Parser_parse_cast_expr(Parser *p) {
+    assert(p);
+
+    // '('
+    Parser_expect(p, '(');
+
+    // type_spec
+    DeclSpecNode *decl_spec = Parser_parse_type_spec(p, StorageClass_none);
+
+    // TODO: abstract_declarator
+
+    // ')'
+    Parser_expect(p, ')');
+
+    // unary_expr
+    ExprNode *expression = Parser_parse_unary_expr(p);
+
+    return Sema_act_on_cast_expr(p->sema, decl_spec->base_type, expression);
+}
+
 // unary_expr:
 //  '+' unary_expr
 //  '-' unary_expr
 //  '!' unary_expr
 //  '&' unary_expr
 //  '*' unary_expr
-//  'sizeof' unary_expr
+//  sizeof_expr
+//  cast_expr
 //  postfix_expr
 static ExprNode *Parser_parse_unary_expr(Parser *p) {
     assert(p);
 
-    switch (Parser_current(p)->kind) {
+    const Token *t = Parser_current(p);
+
+    if (t->kind == '(' && Parser_is_decl_spec(p, Parser_peek(p))) {
+        // cast_expr
+        return Parser_parse_cast_expr(p);
+    }
+
+    switch (t->kind) {
     case '+':
     case '-':
     case '!':

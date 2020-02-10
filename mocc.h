@@ -222,7 +222,7 @@ bool Type_is_function_pointer_type(const Type *type);
 // Token
 typedef int TokenKind;
 
-enum {
+enum TokenKind {
     TokenKind_unused = 256,
 #define TOKEN(name, text) TokenKind_##name,
 #include "Token.def"
@@ -397,6 +397,9 @@ SizeofExprNode *SizeofExprNode_new(
     Type *type,
     ExprNode *expression);
 
+CastExprNode *CastExprNode_new(
+    Type *result_type, ValueCategory value_category, ExprNode *expression);
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,
@@ -556,6 +559,9 @@ Sema_act_on_arrow_expr(Sema *s, ExprNode *parent, const Token *identifier);
 
 ExprNode *Sema_act_on_sizeof_expr_type(Sema *s, Type *type);
 ExprNode *Sema_act_on_sizeof_expr_expr(Sema *s, ExprNode *expression);
+
+ExprNode *
+Sema_act_on_cast_expr(Sema *s, Type *destination_type, ExprNode *expression);
 
 ExprNode *
 Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand);

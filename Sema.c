@@ -226,6 +226,10 @@ static void Sema_assignment_conversion(
     }
 
     switch (destination_type->kind) {
+    case TypeKind_void:
+        // T -> void
+        break;
+
     case TypeKind_char:
     case TypeKind_int:
     case TypeKind_enum:
@@ -727,6 +731,25 @@ ExprNode *Sema_act_on_sizeof_expr_expr(Sema *s, ExprNode *expression) {
     SizeofExprNode *node = SizeofExprNode_new(
         s->int_type, ValueCategory_rvalue, expression->result_type, expression);
     return SizeofExprNode_base(node);
+}
+
+ExprNode *
+Sema_act_on_cast_expr(Sema *s, Type *destination_type, ExprNode *expression) {
+    assert(s);
+    assert(destination_type);
+    assert(expression);
+
+    if (destination_type->kind != TypeKind_void &&
+        Type_is_incomplete_type(expression->result_type)) {
+        ERROR("cannot cast to incomplete type\n");
+    }
+
+    // Conversion
+    Sema_assignment_conversion(s, destination_type, &expression);
+
+    CastExprNode *node =
+        CastExprNode_new(destination_type, ValueCategory_rvalue, expression);
+    return CastExprNode_base(node);
 }
 
 ExprNode *

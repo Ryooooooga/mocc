@@ -181,6 +181,16 @@ SizeofExprNode *SizeofExprNode_new(
     return p;
 }
 
+CastExprNode *CastExprNode_new(
+    Type *result_type, ValueCategory value_category, ExprNode *expression) {
+    assert(expression);
+
+    CastExprNode *p = CastExprNode_alloc(result_type, value_category);
+    p->expression = expression;
+
+    return p;
+}
+
 UnaryExprNode *UnaryExprNode_new(
     Type *result_type,
     ValueCategory value_category,

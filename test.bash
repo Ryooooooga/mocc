@@ -230,6 +230,7 @@ try "c$LINENO" 'int main(void) { (void)0; return 0; }' 0
 try "c$LINENO" 'int main(void) { return (char)257; }' 1
 try "c$LINENO" 'int main(void) { (void *)0; return 0; }' 0
 try "c$LINENO" 'int main(void) { (const void *)0; return 0; }' 0
+try "c$LINENO" 'int main(void) { return !0 == 1 && !1 == 0 && !2 == 0; }' 1
 
 try "c$LINENO" '
     int;

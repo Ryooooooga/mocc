@@ -338,6 +338,14 @@ static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
         fprintf(g->fp, "  push rax\n");
         break;
 
+    case UnaryOp_not:
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  cmp rax, 0\n");
+        fprintf(g->fp, "  sete al\n");
+        fprintf(g->fp, "  movsx rax, al\n");
+        fprintf(g->fp, "  push rax\n");
+        break;
+
     case UnaryOp_address_of:
         break;
 

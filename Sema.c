@@ -819,7 +819,17 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
         break;
 
     case '!':
-        TODO("unary !");
+        // Conversion
+        Sema_decay_conversion(s, &operand);
+
+        // Type check
+        if (!Type_is_scalar(operand->result_type)) {
+            ERROR("invalid operand type of unary !\n");
+        }
+
+        type = s->int_type;
+        value_category = ValueCategory_rvalue;
+        op = UnaryOp_not;
         break;
 
     case '&':
@@ -1048,7 +1058,7 @@ StmtNode *Sema_act_on_if_stmt(
 
     // Type check
     if (!Type_is_scalar(condition->result_type)) {
-        ERROR("invalid condition type");
+        ERROR("invalid condition type\n");
     }
 
     IfStmtNode *node = IfStmtNode_new(condition, if_true, if_false);
@@ -1065,7 +1075,7 @@ StmtNode *Sema_act_on_while_stmt(Sema *s, ExprNode *condition, StmtNode *body) {
 
     // Type check
     if (!Type_is_scalar(condition->result_type)) {
-        ERROR("invalid condition type");
+        ERROR("invalid condition type\n");
     }
 
     WhileStmtNode *node = WhileStmtNode_new(condition, body);

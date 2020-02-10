@@ -40,7 +40,7 @@ SRCS2 = \
 	${BUILD_DIR}/${SRC_DIR}/File.s \
 	Type.c \
 	${BUILD_DIR}/${SRC_DIR}/Symbol.s \
-	Scope.c \
+	${BUILD_DIR}/${SRC_DIR}/Scope.s \
 	Ast.c \
 	Lexer.c \
 	Preprocessor.c \

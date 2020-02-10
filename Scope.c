@@ -23,16 +23,18 @@ Symbol *Scope_find(Scope *s, const char *name, bool recursive) {
     assert(s);
     assert(name);
 
-    for (size_t i = 0; i < Vec_len(Symbol)(s->symbols); i++) {
+    for (size_t i = 0; i < Vec_len(Symbol)(s->symbols); i = i + 1) {
         Symbol *symbol = Vec_get(Symbol)(s->symbols, i);
         if (strcmp(symbol->name, name) == 0) {
             return symbol;
         }
     }
 
-    return recursive && s->parent_scope != NULL
-               ? Scope_find(s->parent_scope, name, true)
-               : NULL;
+    if (recursive && s->parent_scope) {
+        return Scope_find(s->parent_scope, name, true);
+    }
+
+    return NULL;
 }
 
 bool Scope_try_register(Scope *s, Symbol *symbol) {
@@ -40,7 +42,7 @@ bool Scope_try_register(Scope *s, Symbol *symbol) {
     assert(symbol);
     assert(symbol->name);
 
-    if (Scope_find(s, symbol->name, false) != NULL) {
+    if (Scope_find(s, symbol->name, false)) {
         return false;
     }
 

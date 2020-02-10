@@ -232,6 +232,7 @@ try "c$LINENO" 'int main(void) { return sizeof(void *); }' 8
 
 try "c$LINENO" 'int main(void) { (void)0; return 0; }' 0
 try "c$LINENO" 'int main(void) { return (char)257; }' 1
+try "c$LINENO" 'int main(void) { (void *)0; return 0; }' 0
 
 try "c$LINENO" '
     int;

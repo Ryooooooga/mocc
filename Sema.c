@@ -256,6 +256,20 @@ static void Sema_assignment_conversion(
 
     case TypeKind_pointer:
         switch (from_type->kind) {
+        case TypeKind_char:
+        case TypeKind_int:
+        case TypeKind_enum:
+            // int -> T*
+            Sema_integer_promotion(s, expression);
+
+            *expression = Sema_implicit_cast(
+                s,
+                destination_type,
+                ValueCategory_rvalue,
+                ImplicitCastOp_integer_to_pointer_cast,
+                *expression);
+            break;
+
         case TypeKind_pointer:
             // T* -> U*
             *expression = Sema_implicit_cast(

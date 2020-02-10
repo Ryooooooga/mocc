@@ -609,6 +609,9 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
         }
         break;
 
+    case ImplicitCastOp_integer_to_pointer_cast:
+        break;
+
     case ImplicitCastOp_pointer_to_pointer_cast:
         break;
 

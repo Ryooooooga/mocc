@@ -718,6 +718,10 @@ static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
         text = "integral_cast";
         break;
 
+    case ImplicitCastOp_integer_to_pointer_cast:
+        text = "integer_to_pointer_cast";
+        break;
+
     case ImplicitCastOp_pointer_to_pointer_cast:
         text = "pointer_to_pointer_cast";
         break;

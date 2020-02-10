@@ -31,6 +31,8 @@ typedef int bool;
 
 // <stdlib.h>
 void *malloc(size_t size);
+void *realloc(void *ptr, size_t size);
+void exit(int);
 
 // <stdio.h>
 #define SEEK_SET 0
@@ -41,6 +43,8 @@ void fclose(FILE *fp);
 int fseek(FILE *fp, long off, int origin);
 long ftell(FILE *fp);
 size_t fread(void *buf, size_t size, size_t n, FILE *fp);
+int fprintf(FILE *fp, const char *fmt, ...);
+int printf(const char *fmt, ...);
 
 // <string.h>
 size_t strlen(const char *s);
@@ -134,13 +138,14 @@ char *strndup(const char *s, size_t n);
         if (v->len == v->cap) {                                                \
             Vec_reserve(T)(v, v->cap * 2);                                     \
         }                                                                      \
-        v->ptr[v->len++] = x;                                                  \
+        v->ptr[v->len] = x;                                                    \
+        v->len = v->len + 1;                                                   \
     }                                                                          \
                                                                                \
     Vec_Element(T) Vec_pop(T)(Vec(T) * v) {                                    \
         assert(v);                                                             \
         assert(v->len > 0);                                                    \
-        return v->ptr[--v->len];                                               \
+        return v->ptr[v->len = v->len - 1];                                    \
     }                                                                          \
                                                                                \
     void Vec_reserve(T)(Vec(T) * v, size_t cap) {                              \

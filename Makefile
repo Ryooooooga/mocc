@@ -35,7 +35,7 @@ TARGET = ${BUILD_DIR}/${BUILD_TYPE}/mocc
 
 SRCS2 = \
 	main.c \
-	Vec.c \
+	${BUILD_DIR}/${SRC_DIR}/Vec.s \
 	${BUILD_DIR}/${SRC_DIR}/Path.s \
 	${BUILD_DIR}/${SRC_DIR}/File.s \
 	Type.c \

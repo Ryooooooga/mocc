@@ -41,7 +41,7 @@ SRCS2 = \
 	${BUILD_DIR}/${SRC_DIR}/Type.s \
 	${BUILD_DIR}/${SRC_DIR}/Symbol.s \
 	${BUILD_DIR}/${SRC_DIR}/Scope.s \
-	Ast.c \
+	${BUILD_DIR}/${SRC_DIR}/Ast.s \
 	Lexer.c \
 	Preprocessor.c \
 	Parser.c \
@@ -55,6 +55,8 @@ SRCS2 = \
 	test_Preprocessor.c \
 	test_Parser.c \
 	# -- SRCS2
+
+.SECONDARY: ${SRCS2}
 
 OBJS2 = ${SRCS2:%=${BUILD_DIR}/${BUILD_TYPE}/%.o}
 

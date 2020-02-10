@@ -430,7 +430,10 @@ static Vec(DeclaratorNode) *
     assert(p);
 
     Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(p->declarator);
-    return parameters == NULL ? p->parameters : parameters;
+    if (parameters) {
+        return parameters;
+    }
+    return p->parameters;
 }
 
 PointerDeclaratorNode *PointerDeclaratorNode_new(DeclaratorNode *declarator) {
@@ -483,29 +486,25 @@ static Vec(DeclaratorNode) *
 Symbol *DeclaratorNode_symbol(const DeclaratorNode *p) {
     assert(p);
 
-    switch (p->kind) {
 #define DECLARATOR_NODE(name)                                                  \
-    case NodeKind_##name##Declarator:                                          \
-        return name##DeclaratorNode_symbol(name##DeclaratorNode_ccast(p));
+    if (p->kind == NodeKind_##name##Declarator) {                              \
+        return name##DeclaratorNode_symbol(name##DeclaratorNode_ccast(p));     \
+    }
 #include "Ast.def"
 
-    default:
-        UNREACHABLE();
-    }
+    UNREACHABLE();
 }
 
 Vec(DeclaratorNode) * DeclaratorNode_parameters(const DeclaratorNode *p) {
     assert(p);
 
-    switch (p->kind) {
 #define DECLARATOR_NODE(name)                                                  \
-    case NodeKind_##name##Declarator:                                          \
-        return name##DeclaratorNode_parameters(name##DeclaratorNode_ccast(p));
+    if (p->kind == NodeKind_##name##Declarator) {                              \
+        return name##DeclaratorNode_parameters(name##DeclaratorNode_ccast(p)); \
+    }
 #include "Ast.def"
 
-    default:
-        UNREACHABLE();
-    }
+    UNREACHABLE();
 }
 
 // Declarations
@@ -588,7 +587,7 @@ static void Node_dump_impl(const Node *p, FILE *fp, size_t depth);
 static void Node_dump_indent(FILE *fp, size_t depth) {
     assert(fp);
 
-    for (size_t i = 0; i < depth; i++) {
+    for (size_t i = 0; i < depth; i = i + 1) {
         fprintf(fp, "  ");
     }
 }
@@ -605,7 +604,11 @@ static void Node_dump_bool(bool x, FILE *fp, size_t depth) {
     assert(fp);
 
     Node_dump_indent(fp, depth);
-    fprintf(fp, "(bool %s)\n", x ? "true" : "false");
+    if (x) {
+        fprintf(fp, "(bool true)\n");
+    } else {
+        fprintf(fp, "(bool false)\n");
+    }
 }
 
 static void Node_dump_int(int x, FILE *fp, size_t depth) {
@@ -634,24 +637,15 @@ static void Node_dump_StorageClass(StorageClass x, FILE *fp, size_t depth) {
     assert(fp);
 
     const char *text;
-    switch (x) {
-    case StorageClass_none:
+    if (x == StorageClass_none) {
         text = "none";
-        break;
-
-    case StorageClass_static:
+    } else if (x == StorageClass_static) {
         text = "static";
-        break;
-
-    case StorageClass_typedef:
+    } else if (x == StorageClass_typedef) {
         text = "typedef";
-        break;
-
-    case StorageClass_enum:
+    } else if (x == StorageClass_enum) {
         text = "enum";
-        break;
-
-    default:
+    } else {
         UNREACHABLE();
     }
 
@@ -663,14 +657,13 @@ static void Node_dump_UnaryOp(UnaryOp x, FILE *fp, size_t depth) {
     assert(fp);
 
     const char *text;
-    switch (x) {
+    if (false) {
 #define UNARY_OP(name)                                                         \
-    case UnaryOp_##name:                                                       \
-        text = #name;                                                          \
-        break;
+    }                                                                          \
+    else if (x == UnaryOp_##name) {                                            \
+        text = #name;
 #include "Ast.def"
-
-    default:
+    } else {
         UNREACHABLE();
     }
 
@@ -682,14 +675,13 @@ static void Node_dump_BinaryOp(BinaryOp x, FILE *fp, size_t depth) {
     assert(fp);
 
     const char *text;
-    switch (x) {
+    if (false) {
 #define BINARY_OP(name)                                                        \
-    case BinaryOp_##name:                                                      \
-        text = #name;                                                          \
-        break;
+    }                                                                          \
+    else if (x == BinaryOp_##name) {                                           \
+        text = #name;
 #include "Ast.def"
-
-    default:
+    } else {
         UNREACHABLE();
     }
 
@@ -701,32 +693,19 @@ static void Node_dump_ImplicitCastOp(ImplicitCastOp x, FILE *fp, size_t depth) {
     assert(fp);
 
     const char *text;
-    switch (x) {
-    case ImplicitCastOp_lvalue_to_rvalue:
+    if (x == ImplicitCastOp_lvalue_to_rvalue) {
         text = "lvalue_to_rvalue";
-        break;
-
-    case ImplicitCastOp_function_to_function_pointer:
+    } else if (x == ImplicitCastOp_function_to_function_pointer) {
         text = "function_to_function_pointer";
-        break;
-
-    case ImplicitCastOp_array_to_pointer:
+    } else if (x == ImplicitCastOp_array_to_pointer) {
         text = "array_to_pointer";
-        break;
-
-    case ImplicitCastOp_integral_cast:
+    } else if (x == ImplicitCastOp_integral_cast) {
         text = "integral_cast";
-        break;
-
-    case ImplicitCastOp_integer_to_pointer_cast:
+    } else if (x == ImplicitCastOp_integer_to_pointer_cast) {
         text = "integer_to_pointer_cast";
-        break;
-
-    case ImplicitCastOp_pointer_to_pointer_cast:
+    } else if (x == ImplicitCastOp_pointer_to_pointer_cast) {
         text = "pointer_to_pointer_cast";
-        break;
-
-    default:
+    } else {
         UNREACHABLE();
     }
 
@@ -739,7 +718,7 @@ static void Node_dump_Expr(const ExprNode *x, FILE *fp, size_t depth) {
 }
 
 static void Node_dump_Exprs(const Vec(ExprNode) * x, FILE *fp, size_t depth) {
-    for (size_t i = 0; i < Vec_len(ExprNode)(x); i++) {
+    for (size_t i = 0; i < Vec_len(ExprNode)(x); i = i + 1) {
         Node_dump_Expr(Vec_get(ExprNode)(x, i), fp, depth);
     }
 }
@@ -749,7 +728,7 @@ static void Node_dump_Stmt(const StmtNode *x, FILE *fp, size_t depth) {
 }
 
 static void Node_dump_Stmts(const Vec(StmtNode) * x, FILE *fp, size_t depth) {
-    for (size_t i = 0; i < Vec_len(StmtNode)(x); i++) {
+    for (size_t i = 0; i < Vec_len(StmtNode)(x); i = i + 1) {
         Node_dump_Stmt(Vec_get(StmtNode)(x, i), fp, depth);
     }
 }
@@ -761,7 +740,7 @@ Node_dump_Declarator(const DeclaratorNode *x, FILE *fp, size_t depth) {
 
 static void
 Node_dump_Declarators(const Vec(DeclaratorNode) * x, FILE *fp, size_t depth) {
-    for (size_t i = 0; i < Vec_len(DeclaratorNode)(x); i++) {
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(x); i = i + 1) {
         Node_dump_Declarator(Vec_get(DeclaratorNode)(x, i), fp, depth);
     }
 }
@@ -771,7 +750,7 @@ static void Node_dump_Decl(const DeclNode *x, FILE *fp, size_t depth) {
 }
 
 static void Node_dump_Decls(const Vec(DeclNode) * x, FILE *fp, size_t depth) {
-    for (size_t i = 0; i < Vec_len(DeclNode)(x); i++) {
+    for (size_t i = 0; i < Vec_len(DeclNode)(x); i = i + 1) {
         Node_dump_Decl(Vec_get(DeclNode)(x, i), fp, depth);
     }
 }
@@ -783,21 +762,20 @@ static void Node_dump_DeclSpec(const DeclSpecNode *x, FILE *fp, size_t depth) {
 static void Node_dump_impl(const Node *p, FILE *fp, size_t depth) {
     assert(fp);
 
-    if (p == NULL) {
+    if (p == (const Node *)NULL) {
         Node_dump_indent(fp, depth);
         fprintf(fp, "(null)\n");
         return;
     }
 
     // clang-format off
-    switch (p->kind) {
 #define NODE(name, base)                                                       \
-    case NodeKind_##name##base: {                                              \
+    if (p->kind==NodeKind_##name##base) {                                      \
         const name##base##Node *q = name##base##Node_ccast_node(p);            \
         (void)q;                                                               \
                                                                                \
         Node_dump_indent(fp, depth);                                           \
-        fprintf(fp, "(%s\n", #name #base);
+        fprintf(fp, "(%s%s\n", #name, #base);
 
 #define NODE_MEMBER_F(T, x, f)                                                 \
         Node_dump_##f(q->x, fp, depth + 1);
@@ -805,14 +783,12 @@ static void Node_dump_impl(const Node *p, FILE *fp, size_t depth) {
 #define NODE_END()                                                             \
         Node_dump_indent(fp, depth);                                           \
         fprintf(fp, ")\n");                                                    \
-        break;                                                                 \
+        return;                                                                \
     }
 #include "Ast.def"
-
-    default:
-        UNREACHABLE();
-    }
     // clang-format on
+
+    UNREACHABLE();
 }
 
 void Node_dump(const Node *p, FILE *fp) {

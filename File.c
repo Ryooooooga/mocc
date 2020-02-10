@@ -4,7 +4,7 @@ char *File_read(const char *path) {
     assert(path);
 
     FILE *fp = fopen(path, "rb");
-    if (fp == NULL) {
+    if (fp == (FILE *)NULL) {
         return NULL;
     }
 

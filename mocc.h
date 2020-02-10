@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 #else
+#define long int
+
 // <assert.h>
 #define assert(x) ((void)0)
 
@@ -31,11 +33,18 @@ typedef int bool;
 void *malloc(size_t size);
 
 // <stdio.h>
+#define SEEK_SET 0
+#define SEEK_END 2
 typedef struct FILE FILE;
 FILE *fopen(const char *path, const char *mode);
+void fclose(FILE *fp);
+int fseek(FILE *fp, long off, int origin);
+long ftell(FILE *fp);
+size_t fread(void *buf, size_t size, size_t n, FILE *fp);
 
 // <string.h>
 size_t strlen(const char *s);
+int strcmp(const char *s1, const char *s2);
 char *strcpy(char *s1, const char *s2);
 char *strcat(char *s1, const char *s2);
 char *strndup(const char *s, size_t n);

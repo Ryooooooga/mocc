@@ -37,7 +37,7 @@ SRCS2 = \
 	main.c \
 	Vec.c \
 	${BUILD_DIR}/${SRC_DIR}/Path.s \
-	File.c \
+	${BUILD_DIR}/${SRC_DIR}/File.s \
 	Type.c \
 	${BUILD_DIR}/${SRC_DIR}/Symbol.s \
 	Scope.c \

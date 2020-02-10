@@ -42,7 +42,7 @@ Type *PointerType_new(Type *pointee_type) {
 Type *PointerType_pointee_type(const Type *pointer_type) {
     assert(pointer_type);
     assert(pointer_type->kind == TypeKind_pointer);
-    assert(pointer_type->pointee_type != NULL);
+    assert(pointer_type->pointee_type);
 
     return pointer_type->pointee_type;
 }
@@ -63,7 +63,7 @@ Type *FunctionType_new(
 Type *FunctionType_return_type(const Type *function_type) {
     assert(function_type);
     assert(function_type->kind == TypeKind_function);
-    assert(function_type->return_type != NULL);
+    assert(function_type->return_type);
 
     return function_type->return_type;
 }
@@ -71,7 +71,7 @@ Type *FunctionType_return_type(const Type *function_type) {
 Vec(Type) * FunctionType_parameter_types(const Type *function_type) {
     assert(function_type);
     assert(function_type->kind == TypeKind_function);
-    assert(function_type->parameter_types != NULL);
+    assert(function_type->parameter_types);
 
     return function_type->parameter_types;
 }
@@ -119,7 +119,7 @@ bool StructType_is_defined(const Type *struct_type) {
     assert(struct_type);
     assert(struct_type->kind == TypeKind_struct);
 
-    return struct_type->member_symbols != NULL;
+    return struct_type->member_symbols != (Vec(Symbol) *)NULL;
 }
 
 struct Symbol *
@@ -131,7 +131,8 @@ StructType_find_member(const Type *struct_type, const char *member_name) {
 
     assert(struct_type->member_symbols);
 
-    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols); i++) {
+    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols);
+         i = i + 1) {
         Symbol *symbol = Vec_get(Symbol)(struct_type->member_symbols, i);
         assert(symbol->name);
 

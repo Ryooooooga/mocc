@@ -356,10 +356,10 @@ try "c$LINENO" '
 
 try "c$LINENO" '
     int strcmp(const char *a, const char *b);
-    int sprintf(char *buffer, const char *format, ...);
+    int snprintf(char *buffer, int n, const char *format, ...);
     int main(void) {
         char buffer[256];
-        sprintf(buffer, "%s, %s! %d", "Hello", "world", 42);
+        snprintf(buffer, 256, "%s, %s! %d", "Hello", "world", 42);
         return strcmp(buffer, "Hello, world! 42");
     }
     ' 0

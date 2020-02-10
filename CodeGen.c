@@ -985,6 +985,10 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     CodeGen_allocate_parameters(g, parameters, &stack_top);
     CodeGen_allocate_local_variables(g, p->local_variables, &stack_top);
 
+    if (stack_top % 16 != 0) {
+        stack_top = (stack_top / 16 + 1) * 16;
+    }
+
     fprintf(g->fp, "  sub rsp, %d\n", stack_top);
 
     CodeGen_store_parameters(g, parameters);

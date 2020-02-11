@@ -37,13 +37,13 @@ void test_Vec(void) {
     assert(x1 == -1);
     assert(x2 == 3);
 
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 200; i = i + 1) {
         Vec_push(Test)(v, i);
     }
 
     assert(Vec_len(Test)(v) == 200);
 
-    for (int i = 0; i < 200; i++) {
+    for (int i = 0; i < 200; i = i + 1) {
         assert(Vec_get(Test)(v, i) == i);
     }
 }

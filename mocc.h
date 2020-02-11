@@ -45,6 +45,8 @@ long ftell(FILE *fp);
 size_t fread(void *buf, size_t size, size_t n, FILE *fp);
 int fprintf(FILE *fp, const char *fmt, ...);
 int printf(const char *fmt, ...);
+int snprintf(char *buf, size_t size, const char *fmt, ...);
+int remove(const char *path);
 
 // <string.h>
 size_t strlen(const char *s);

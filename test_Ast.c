@@ -9,7 +9,7 @@ void check_Node_dump(
     snprintf(path, 256, "tmp/%s.txt", test_name);
 
     FILE *fp = fopen(path, "w");
-    if (fp == NULL) {
+    if (!fp) {
         ERROR("could not create file %s", path);
     }
 
@@ -17,7 +17,7 @@ void check_Node_dump(
     fclose(fp);
 
     char *actual = File_read(path);
-    if (actual == NULL) {
+    if (!actual) {
         ERROR("could not read file %s", path);
     }
 

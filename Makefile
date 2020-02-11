@@ -47,9 +47,9 @@ SRCS2 = \
 	Parser.c \
 	Sema.c \
 	CodeGen.c \
-	test_Vec.c \
-	test_Path.c \
-	test_File.c \
+	${BUILD_DIR}/${SRC_DIR}/test_Vec.s \
+	${BUILD_DIR}/${SRC_DIR}/test_Path.s \
+	${BUILD_DIR}/${SRC_DIR}/test_File.s \
 	test_Ast.c \
 	test_Lexer.c \
 	test_Preprocessor.c \
@@ -89,7 +89,7 @@ ${BUILD_DIR}/${BUILD_TYPE}/%.c.o: %.c
 ${BUILD_DIR}/${BUILD_TYPE}/%.s.o: %.s
 	@echo "assembling $<"
 	@mkdir -p ${@D}
-	@${CC} ${CFLAGS} -o $@ -c $<
+	@${CC} -o $@ -c $<
 
 ${BUILD_DIR}/${SRC_DIR}/%.c: %.c mocc.h
 	@echo "precompiling $<"

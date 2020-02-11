@@ -3,6 +3,7 @@
 typedef struct {
     TokenKind kind;
     const char *text;
+    bool is_bol;
 } TestToken;
 
 static void check_lexer(
@@ -41,6 +42,14 @@ static void check_lexer(
                 expected_tokens[i].text,
                 t->text);
         }
+        if (t->is_bol != expected_tokens[i].is_bol) {
+            ERROR(
+                "%s[%d]: t->is_bol != %d, actual %d\n",
+                test_name,
+                i,
+                expected_tokens[i].is_bol,
+                t->is_bol);
+        }
     } while (expected_tokens[i++].kind != '\0');
 }
 
@@ -49,40 +58,40 @@ void test_Lexer(void) {
         "empty",
         "",
         (TestToken[]){
-            {.kind = '\0', ""},
+            {.kind = '\0', "", true},
         });
 
     check_lexer(
         "number",
-        "0 1 2 42 100",
+        "0 1 2\n42 100",
         (TestToken[]){
-            {.kind = TokenKind_number, "0"},
-            {.kind = TokenKind_number, "1"},
-            {.kind = TokenKind_number, "2"},
-            {.kind = TokenKind_number, "42"},
-            {.kind = TokenKind_number, "100"},
-            {.kind = '\0', ""},
+            {.kind = TokenKind_number, "0", true},
+            {.kind = TokenKind_number, "1", false},
+            {.kind = TokenKind_number, "2", false},
+            {.kind = TokenKind_number, "42", true},
+            {.kind = TokenKind_number, "100", false},
+            {.kind = '\0', "", true},
         });
 
     check_lexer(
         "identifier",
-        "a bc Xyz if else if0",
+        "a bc Xyz\nif else if0",
         (TestToken[]){
-            {.kind = TokenKind_identifier, "a"},
-            {.kind = TokenKind_identifier, "bc"},
-            {.kind = TokenKind_identifier, "Xyz"},
-            {.kind = TokenKind_identifier, "if"},
-            {.kind = TokenKind_identifier, "else"},
-            {.kind = TokenKind_identifier, "if0"},
-            {.kind = '\0', ""},
+            {.kind = TokenKind_identifier, "a", true},
+            {.kind = TokenKind_identifier, "bc", false},
+            {.kind = TokenKind_identifier, "Xyz", false},
+            {.kind = TokenKind_identifier, "if", true},
+            {.kind = TokenKind_identifier, "else", false},
+            {.kind = TokenKind_identifier, "if0", false},
+            {.kind = '\0', "", true},
         });
 
     check_lexer(
         "operators",
         "+ -",
         (TestToken[]){
-            {.kind = '+', "+"},
-            {.kind = '-', "-"},
-            {.kind = '\0', ""},
+            {.kind = '+', "+", true},
+            {.kind = '-', "-", false},
+            {.kind = '\0', "", true},
         });
 }

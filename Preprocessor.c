@@ -13,7 +13,7 @@ Token_clone_with_hidden(const Token *t, Vec(String) * hidden_set) {
     p->has_spaces = t->has_spaces;
     p->hidden_set = Vec_new(String)();
 
-    for (size_t i = 0; i < Vec_len(String)(hidden_set); i++) {
+    for (size_t i = 0; i < Vec_len(String)(hidden_set); i = i + 1) {
         Vec_push(String)(p->hidden_set, Vec_get(String)(hidden_set, i));
     }
 
@@ -24,7 +24,7 @@ static bool Token_contains_in_hidden_set(const Token *t, const char *name) {
     assert(t);
     assert(name);
 
-    for (size_t i = 0; i < Vec_len(String)(t->hidden_set); i++) {
+    for (size_t i = 0; i < Vec_len(String)(t->hidden_set); i = i + 1) {
         if (strcmp(Vec_get(String)(t->hidden_set, i), name) == 0) {
             return true;
         }
@@ -48,7 +48,7 @@ Macro_new(const char *name, Vec(String) * parameters, Vec(Token) * contents) {
 bool Macro_is_function(const Macro *m) {
     assert(m);
 
-    return m->parameters != NULL;
+    return m->parameters != (Vec(String) *)NULL;
 }
 
 typedef struct Preprocessor {
@@ -95,7 +95,7 @@ static Token *Preprocessor_consume(Preprocessor *pp) {
 
     Token *front = Vec_get(Token)(pp->queue, 0);
 
-    for (size_t i = 1; i < Vec_len(Token)(pp->queue); i++) {
+    for (size_t i = 1; i < Vec_len(Token)(pp->queue); i = i + 1) {
         Token *t = Vec_get(Token)(pp->queue, i);
         Vec_set(Token)(pp->queue, i - 1, t);
     }
@@ -115,11 +115,11 @@ static void Preprocessor_insert_tokens(
 
     Vec_resize(Token)(pp->queue, queue_len + tokens_len);
 
-    for (size_t i = at; i < queue_len; i++) {
+    for (size_t i = at; i < queue_len; i = i + 1) {
         Vec_set(Token)(pp->queue, i + tokens_len, Vec_get(Token)(pp->queue, i));
     }
 
-    for (size_t i = 0; i < tokens_len; i++) {
+    for (size_t i = 0; i < tokens_len; i = i + 1) {
         Vec_set(Token)(pp->queue, i + at, Vec_get(Token)(tokens, i));
     }
 }
@@ -130,7 +130,7 @@ Preprocessor_find_macro(const Preprocessor *pp, const char *name) {
     assert(name);
 
     size_t len = Vec_len(Macro)(pp->macros);
-    for (size_t i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i = i + 1) {
         const Macro *m = Vec_get(Macro)(pp->macros, i);
 
         if (strcmp(m->name, name) == 0) {
@@ -145,7 +145,7 @@ static void Preprocessor_define_macro(Preprocessor *pp, Macro *macro) {
     assert(pp);
     assert(macro);
 
-    if (Preprocessor_find_macro(pp, macro->name) != NULL) {
+    if (Preprocessor_find_macro(pp, macro->name)) {
         ERROR("multiple definition of macro %s\n", macro->name);
     }
 
@@ -219,17 +219,17 @@ static void Preprocessor_open_file(
     *path = Path_join(dir, hint);
     *text = File_read(*path);
 
-    if (*text != NULL) {
+    if (*text) {
         return;
     }
 
     // Load from include directories
-    for (size_t i = 0; i < Vec_len(String)(pp->include_paths); i++) {
+    for (size_t i = 0; i < Vec_len(String)(pp->include_paths); i = i + 1) {
         dir = Vec_get(String)(pp->include_paths, i);
         *path = Path_join(dir, hint);
         *text = File_read(*path);
 
-        if (*text != NULL) {
+        if (*text) {
             return;
         }
     }
@@ -335,7 +335,7 @@ static void Preprocessor_expand_function_macro(
     // Expand the function macro
     Vec(Token) *tokens = Vec_new(Token)();
 
-    for (size_t i = 0; i < Vec_len(Token)(m->contents); i++) {
+    for (size_t i = 0; i < Vec_len(Token)(m->contents); i = i + 1) {
         const Token *src_token = Vec_get(Token)(m->contents, i);
 
         Token *t = Token_clone_with_hidden(src_token, macro_token->hidden_set);
@@ -356,7 +356,7 @@ static void Preprocessor_expand_simple_macro(
 
     Vec(Token) *tokens = Vec_new(Token)();
 
-    for (size_t i = 0; i < Vec_len(Token)(m->contents); i++) {
+    for (size_t i = 0; i < Vec_len(Token)(m->contents); i = i + 1) {
         const Token *src_token = Vec_get(Token)(m->contents, i);
 
         Token *t = Token_clone_with_hidden(src_token, macro_token->hidden_set);
@@ -377,7 +377,7 @@ static void Preprocessor_expand_identifier(Preprocessor *pp) {
     assert(t->kind == TokenKind_identifier);
 
     const Macro *m = Preprocessor_find_macro(pp, t->text);
-    if (m == NULL || Token_contains_in_hidden_set(t, m->name)) {
+    if (!m || Token_contains_in_hidden_set(t, m->name)) {
         // `t` is an identifier or a keyword
         Preprocessor_expand_kw(pp, t);
     } else if (Macro_is_function(m)) {

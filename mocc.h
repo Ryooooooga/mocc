@@ -10,7 +10,6 @@
 #include <ctype.h>
 #include <stdalign.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,14 +19,15 @@
 // <assert.h>
 #define assert(x) ((void)0)
 
+// <ctype.h>
+int isspace(int c);
+int isdigit(int c);
+int isalpha(int c);
+int isalnum(int c);
+
 // <stddef.h>
 typedef int size_t;
 #define NULL ((void *)0)
-
-// <stdbool.h>
-typedef int bool;
-#define true 1
-#define false 0
 
 // <stdlib.h>
 void *malloc(size_t size);
@@ -51,8 +51,13 @@ size_t strlen(const char *s);
 int strcmp(const char *s1, const char *s2);
 char *strcpy(char *s1, const char *s2);
 char *strcat(char *s1, const char *s2);
+char *strdup(const char *s);
 char *strndup(const char *s, size_t n);
 #endif
+
+typedef int bool;
+#define true 1
+#define false 0
 
 // Macros
 #ifndef MOCC
@@ -281,7 +286,7 @@ typedef struct Token {
     TokenKind kind;
     char *text;
     char *string; // For string
-    size_t string_len;
+    int string_len;
     bool is_bol;
     bool has_spaces;
 

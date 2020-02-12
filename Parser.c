@@ -33,7 +33,9 @@ static const Token *Parser_consume(Parser *p) {
     assert(p);
     assert(Parser_current(p)->kind != '\0');
 
-    return Vec_get(Token)(p->tokens, p->cursor++);
+    const Token *t = Vec_get(Token)(p->tokens, p->cursor);
+    p->cursor = p->cursor + 1;
+    return t;
 }
 
 static const Token *Parser_expect(Parser *p, TokenKind kind) {
@@ -51,23 +53,14 @@ static bool Parser_is_decl_spec(Parser *p, const Token *t) {
     assert(p);
     assert(t);
 
-    switch (t->kind) {
-    case TokenKind_kw_static:
-    case TokenKind_kw_typedef:
-    case TokenKind_kw_const:
-    case TokenKind_kw_void:
-    case TokenKind_kw_char:
-    case TokenKind_kw_int:
-    case TokenKind_kw_struct:
-    case TokenKind_kw_enum:
-        return true;
-
-    case TokenKind_identifier:
+    if (t->kind == TokenKind_identifier) {
         return Sema_is_typedef_name(p->sema, t);
-
-    default:
-        return false;
     }
+
+    return t->kind == TokenKind_kw_static || t->kind == TokenKind_kw_typedef ||
+           t->kind == TokenKind_kw_const || t->kind == TokenKind_kw_void ||
+           t->kind == TokenKind_kw_char || t->kind == TokenKind_kw_int ||
+           t->kind == TokenKind_kw_struct || t->kind == TokenKind_kw_enum;
 }
 
 static DeclSpecNode *
@@ -236,62 +229,44 @@ Parser_parse_type_spec(Parser *p, StorageClass storage_class) {
     assert(p);
 
     // [type_specifier]
-    switch (Parser_current(p)->kind) {
-    case TokenKind_kw_const:
+    const Token *t = Parser_current(p);
+    if (t->kind == TokenKind_kw_const) {
         // 'const'
         Parser_expect(p, TokenKind_kw_const); // TODO: const
-        break;
-
-    default:
-        break;
     }
 
     // type
     Type *base_type;
 
-    switch (Parser_current(p)->kind) {
-    case TokenKind_kw_void:
+    t = Parser_current(p);
+    if (t->kind == TokenKind_kw_void) {
         // 'void'
         Parser_expect(p, TokenKind_kw_void);
 
         base_type = VoidType_new();
-        break;
-
-    case TokenKind_kw_char:
+    } else if (t->kind == TokenKind_kw_char) {
         // 'char'
         Parser_expect(p, TokenKind_kw_char);
 
         base_type = CharType_new();
-        break;
-
-    case TokenKind_kw_int:
+    } else if (t->kind == TokenKind_kw_int) {
         // 'int'
         Parser_expect(p, TokenKind_kw_int);
 
         base_type = IntType_new();
-        break;
-
-    case TokenKind_kw_struct:
+    } else if (t->kind == TokenKind_kw_struct) {
         // 'struct'
         base_type = Parser_parse_struct_type(p);
-        break;
-
-    case TokenKind_kw_enum:
+    } else if (t->kind == TokenKind_kw_enum) {
         // 'enum'
         base_type = Parser_parse_enum_type(p);
-        break;
-
-    case TokenKind_identifier: {
+    } else if (t->kind == TokenKind_identifier) {
         // identifier
         const Token *identifier = Parser_expect(p, TokenKind_identifier);
 
         base_type = Sema_act_on_typedef_name(p->sema, identifier);
-        break;
-    }
-
-    default:
-        ERROR("expected type, but got %s\n", Parser_current(p)->text);
-        break;
+    } else {
+        ERROR("expected type, but got %s\n", t->text);
     }
 
     return Sema_act_on_decl_spec(p->sema, storage_class, base_type);
@@ -309,24 +284,19 @@ static DeclSpecNode *Parser_parse_decl_spec(Parser *p) {
     // [storage_class]
     StorageClass storage_class;
 
-    switch (Parser_current(p)->kind) {
-    case TokenKind_kw_static:
+    const Token *t = Parser_current(p);
+    if (t->kind == TokenKind_kw_static) {
         // 'static'
         Parser_expect(p, TokenKind_kw_static);
 
         storage_class = StorageClass_static;
-        break;
-
-    case TokenKind_kw_typedef:
+    } else if (t->kind == TokenKind_kw_typedef) {
         // 'typedef'
         Parser_expect(p, TokenKind_kw_typedef);
 
         storage_class = StorageClass_typedef;
-        break;
-
-    default:
+    } else {
         storage_class = StorageClass_none;
-        break;
     }
 
     return Parser_parse_type_spec(p, storage_class);
@@ -403,28 +373,22 @@ static ExprNode *Parser_parse_primary_expr(Parser *p) {
     assert(p);
 
     const Token *t = Parser_current(p);
-    switch (t->kind) {
-    case TokenKind_identifier:
+    if (t->kind == TokenKind_identifier) {
         // identifier_expr
         return Parser_parse_identifier_expr(p);
-
-    case TokenKind_number:
+    } else if (t->kind == TokenKind_number) {
         // number_expr
         return Parser_parse_number_expr(p);
-
-    case TokenKind_character:
+    } else if (t->kind == TokenKind_character) {
         // character_expr
         return Parser_parse_character_expr(p);
-
-    case TokenKind_string:
+    } else if (t->kind == TokenKind_string) {
         // string_expr
         return Parser_parse_string_expr(p);
-
-    case '(':
+    } else if (t->kind == '(') {
         // paren_expr
         return Parser_parse_paren_expr(p);
-
-    default:
+    } else {
         ERROR("unexpected token %s, expected expression\n", t->text);
     }
 }
@@ -521,24 +485,16 @@ static ExprNode *Parser_parse_postfix_expr(Parser *p) {
     ExprNode *node = Parser_parse_primary_expr(p);
 
     while (true) {
-        switch (Parser_current(p)->kind) {
-        case '[':
+        const Token *t = Parser_current(p);
+        if (t->kind == '[') {
             node = Parser_parse_subscript_expr(p, node);
-            break;
-
-        case '(':
+        } else if (t->kind == '(') {
             node = Parser_parse_call_expr(p, node);
-            break;
-
-        case '.':
+        } else if (t->kind == '.') {
             node = Parser_parse_dot_expr(p, node);
-            break;
-
-        case TokenKind_arrow:
+        } else if (t->kind == TokenKind_arrow) {
             node = Parser_parse_arrow_expr(p, node);
-            break;
-
-        default:
+        } else {
             return node;
         }
     }
@@ -623,12 +579,8 @@ static ExprNode *Parser_parse_unary_expr(Parser *p) {
         return Parser_parse_cast_expr(p);
     }
 
-    switch (t->kind) {
-    case '+':
-    case '-':
-    case '!':
-    case '&':
-    case '*': {
+    if (t->kind == '+' || t->kind == '-' || t->kind == '!' || t->kind == '&' ||
+        t->kind == '*') {
         // unary_op
         const Token *operator= Parser_consume(p);
 
@@ -636,13 +588,10 @@ static ExprNode *Parser_parse_unary_expr(Parser *p) {
         ExprNode *operand = Parser_parse_unary_expr(p);
 
         return Sema_act_on_unary_expr(p->sema, operator, operand);
-    }
-
-    case TokenKind_kw_sizeof:
+    } else if (t->kind == TokenKind_kw_sizeof) {
         // sizeof_expr
         return Parser_parse_sizeof_expr(p);
-
-    default:
+    } else {
         // postfix_expr
         return Parser_parse_postfix_expr(p);
     }
@@ -1148,22 +1097,26 @@ Parser_parse_function_declarator(Parser *p, DeclaratorNode *declarator) {
         // parameter_decl
         Vec_push(DeclaratorNode)(parameters, Parser_parse_parameter_decl(p));
 
-        // (',' parameter_decl)* [',' '...']
-        while (Parser_current(p)->kind == ',') {
+        // (',' parameter_decl)*
+        while (Parser_current(p)->kind == ',' &&
+               Parser_peek(p)->kind != TokenKind_var_arg) {
             // ','
             Parser_expect(p, ',');
-
-            if (Parser_current(p)->kind == TokenKind_var_arg) {
-                // '...'
-                Parser_expect(p, TokenKind_var_arg);
-
-                is_var_arg = true;
-                break;
-            }
 
             // parameter_decl
             Vec_push(DeclaratorNode)(
                 parameters, Parser_parse_parameter_decl(p));
+        }
+
+        // [',' '...']
+        if (Parser_current(p)->kind == ',') {
+            // ','
+            Parser_expect(p, ',');
+
+            // '...'
+            Parser_expect(p, TokenKind_var_arg);
+
+            is_var_arg = true;
         }
     }
 
@@ -1186,19 +1139,15 @@ Parser_parse_postfix_declarator(Parser *p, bool may_abstract) {
     DeclaratorNode *declarator =
         Parser_parse_direct_declarator(p, may_abstract);
 
-    while (1) {
-        switch (Parser_current(p)->kind) {
-        case '[':
+    while (true) {
+        const Token *t = Parser_current(p);
+        if (t->kind == '[') {
             // array_declarator
             declarator = Parser_parse_array_declarator(p, declarator);
-            break;
-
-        case '(':
+        } else if (t->kind == '(') {
             // function_declarator
             declarator = Parser_parse_function_declarator(p, declarator);
-            break;
-
-        default:
+        } else {
             return declarator;
         }
     }
@@ -1214,19 +1163,15 @@ static DeclaratorNode *Parser_parse_postfix_abstract_declarator(Parser *p) {
     // direct_abstract_declarator
     DeclaratorNode *declarator = Parser_parse_direct_abstract_declarator(p);
 
-    while (1) {
-        switch (Parser_current(p)->kind) {
-        case '[':
+    while (true) {
+        const Token *t = Parser_current(p);
+        if (t->kind == '[') {
             // array_declarator
             declarator = Parser_parse_array_declarator(p, declarator);
-            break;
-
-        case '(':
+        } else if (t->kind == '(') {
             // function_declarator
             declarator = Parser_parse_function_declarator(p, declarator);
-            break;
-
-        default:
+        } else {
             return declarator;
         }
     }
@@ -1400,33 +1345,26 @@ static StmtNode *Parser_parse_expr_stmt(Parser *p) {
 static StmtNode *Parser_parse_stmt(Parser *p) {
     assert(p);
 
-    switch (Parser_current(p)->kind) {
-    case '{':
+    const Token *t = Parser_current(p);
+    if (t->kind == '{') {
         // compound_stmt
         return Parser_parse_compound_stmt(p);
-
-    case TokenKind_kw_if:
+    } else if (t->kind == TokenKind_kw_if) {
         // if_stmt
         return Parser_parse_if_stmt(p);
-
-    case TokenKind_kw_while:
+    } else if (t->kind == TokenKind_kw_while) {
         // while_stmt
         return Parser_parse_while_stmt(p);
-
-    case TokenKind_kw_for:
+    } else if (t->kind == TokenKind_kw_for) {
         // for_stmt
         return Parser_parse_for_stmt(p);
-
-    case TokenKind_kw_return:
+    } else if (t->kind == TokenKind_kw_return) {
         // return_stmt
         return Parser_parse_return_stmt(p);
-
-    default:
-        if (Parser_is_decl_spec(p, Parser_current(p))) {
-            // decl_stmt
-            return Parser_parse_decl_stmt(p);
-        }
-
+    } else if (Parser_is_decl_spec(p, Parser_current(p))) {
+        // decl_stmt
+        return Parser_parse_decl_stmt(p);
+    } else {
         // expr_stmt
         return Parser_parse_expr_stmt(p);
     }
@@ -1461,8 +1399,7 @@ static DeclNode *Parser_parse_top_level_decl(Parser *p) {
     Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(declarator);
 
     bool maybe_function = declarator->kind != NodeKind_InitDeclarator &&
-                          symbol->type->kind == TypeKind_function &&
-                          parameters != NULL;
+                          symbol->type->kind == TypeKind_function && parameters;
 
     if (maybe_function && Parser_current(p)->kind == '{') {
         // function_decl

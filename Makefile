@@ -44,7 +44,7 @@ SRCS2 = \
 	${BUILD_DIR}/${SRC_DIR}/Ast.s \
 	${BUILD_DIR}/${SRC_DIR}/Lexer.s \
 	${BUILD_DIR}/${SRC_DIR}/Preprocessor.s \
-	Parser.c \
+	${BUILD_DIR}/${SRC_DIR}/Parser.s \
 	Sema.c \
 	CodeGen.c \
 	${BUILD_DIR}/${SRC_DIR}/test_Vec.s \

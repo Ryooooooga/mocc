@@ -111,10 +111,11 @@ static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
     case NativeAddressType_label:
         fprintf(
             g->fp,
-            "  push [rip+%s%s%s]\n",
+            "  mov rax, %s%s%s[rip]\n",
             GLOBAL_PREFIX,
             address->label,
             GLOBAL_POSTFIX);
+        fprintf(g->fp, "  push rax\n");
         break;
 
     case NativeAddressType_stack:
@@ -214,7 +215,8 @@ static void CodeGen_gen_StringExpr(CodeGen *g, StringExprNode *p) {
 
     size_t string_label = CodeGen_add_string(g, p->value, p->length);
 
-    fprintf(g->fp, "  push [rip+.S%zu%s]\n", string_label, GLOBAL_POSTFIX);
+    fprintf(g->fp, "  mov rax, .S%zu%s[rip]\n", string_label, GLOBAL_POSTFIX);
+    fprintf(g->fp, "  push rax\n");
 }
 
 static void CodeGen_gen_SubscriptExpr(CodeGen *g, SubscriptExprNode *p) {
@@ -974,10 +976,14 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
         fprintf(g->fp, "  .global %s%s\n", GLOBAL_PREFIX, symbol->name);
     }
     fprintf(g->fp, "%s%s:\n", GLOBAL_PREFIX, symbol->name);
+    fprintf(g->fp, "  .cfi_startproc\n");
 
     // Prolog
     fprintf(g->fp, "  push rbp\n");
+    fprintf(g->fp, "  .cfi_def_cfa_offset 16\n");
+    fprintf(g->fp, "  .cfi_offset rbp, -16\n");
     fprintf(g->fp, "  mov rbp, rsp\n");
+    fprintf(g->fp, "  .cfi_def_cfa_register rbp\n");
 
     int stack_top = 0;
 
@@ -1003,6 +1009,7 @@ static void CodeGen_gen_function_decl(CodeGen *g, FunctionDeclNode *p) {
     fprintf(g->fp, "  mov rsp, rbp\n");
     fprintf(g->fp, "  pop rbp\n");
     fprintf(g->fp, "  ret\n");
+    fprintf(g->fp, "  .cfi_endproc\n");
 }
 
 static void CodeGen_gen_top_level_decl(CodeGen *g, DeclNode *p) {

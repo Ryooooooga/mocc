@@ -184,9 +184,8 @@ static void Sema_integer_promotion(Sema *s, ExprNode **expression) {
 
     Sema_decay_conversion(s, expression);
 
-    switch ((*expression)->result_type->kind) {
-    case TypeKind_char:
-    case TypeKind_enum:
+    const Type *type = (*expression)->result_type;
+    if (type->kind == TypeKind_char || type->kind == TypeKind_enum) {
         // char, short or enum -> int
         *expression = Sema_implicit_cast(
             s,
@@ -194,10 +193,6 @@ static void Sema_integer_promotion(Sema *s, ExprNode **expression) {
             ValueCategory_rvalue,
             ImplicitCastOp_integral_cast,
             *expression);
-        break;
-
-    default:
-        break;
     }
 }
 
@@ -228,18 +223,15 @@ static void Sema_assignment_conversion(
         return;
     }
 
-    switch (destination_type->kind) {
-    case TypeKind_void:
+    if (destination_type->kind == TypeKind_void) {
         // T -> void
-        break;
-
-    case TypeKind_char:
-    case TypeKind_int:
-    case TypeKind_enum:
-        switch (from_type->kind) {
-        case TypeKind_char:
-        case TypeKind_int:
-        case TypeKind_enum:
+    } else if (
+        destination_type->kind == TypeKind_char ||
+        destination_type->kind == TypeKind_int ||
+        destination_type->kind == TypeKind_enum) {
+        if (from_type->kind == TypeKind_char ||
+            from_type->kind == TypeKind_int ||
+            from_type->kind == TypeKind_enum) {
             // int -> char or short
             *expression = Sema_implicit_cast(
                 s,
@@ -247,18 +239,13 @@ static void Sema_assignment_conversion(
                 ValueCategory_rvalue,
                 ImplicitCastOp_integral_cast,
                 *expression);
-            break;
-
-        default:
+        } else {
             UNREACHABLE();
         }
-        break;
-
-    case TypeKind_pointer:
-        switch (from_type->kind) {
-        case TypeKind_char:
-        case TypeKind_int:
-        case TypeKind_enum:
+    } else if (destination_type->kind == TypeKind_pointer) {
+        if (from_type->kind == TypeKind_char ||
+            from_type->kind == TypeKind_int ||
+            from_type->kind == TypeKind_enum) {
             // int -> T*
             Sema_integer_promotion(s, expression);
 
@@ -268,9 +255,7 @@ static void Sema_assignment_conversion(
                 ValueCategory_rvalue,
                 ImplicitCastOp_integer_to_pointer_cast,
                 *expression);
-            break;
-
-        case TypeKind_pointer:
+        } else if (from_type->kind == TypeKind_pointer) {
             // T* -> U*
             *expression = Sema_implicit_cast(
                 s,
@@ -278,14 +263,10 @@ static void Sema_assignment_conversion(
                 ValueCategory_rvalue,
                 ImplicitCastOp_pointer_to_pointer_cast,
                 *expression);
-            break;
-
-        default:
+        } else {
             UNREACHABLE();
         }
-        break;
-
-    default:
+    } else {
         UNREACHABLE();
     }
 
@@ -308,7 +289,7 @@ Type *Sema_act_on_struct_type_reference(Sema *s, const Token *identifier) {
 
     Symbol *symbol = Sema_find_struct_symbol(s, identifier->text);
 
-    if (symbol == NULL) {
+    if (!symbol) {
         Type *type = StructType_new();
         type->struct_symbol = symbol =
             Symbol_new(identifier->text, StorageClass_none, type);
@@ -324,14 +305,14 @@ Type *
 Sema_act_on_struct_type_start_of_member_list(Sema *s, const Token *identifier) {
     assert(s);
 
-    if (identifier == NULL) {
+    if (!identifier) {
         UNIMPLEMENTED();
     }
 
     Type *type;
     Symbol *symbol = Sema_find_struct_symbol(s, identifier->text);
 
-    if (symbol == NULL) {
+    if (!symbol) {
         type = StructType_new();
         type->struct_symbol = symbol =
             Symbol_new(identifier->text, StorageClass_none, type);
@@ -362,11 +343,11 @@ Type *Sema_act_on_struct_type_end_of_member_list(
 
     Vec(Symbol) *member_symbols = Vec_new(Symbol)();
 
-    for (size_t i = 0; i < Vec_len(MemberDeclNode)(member_decls); i++) {
+    for (size_t i = 0; i < Vec_len(MemberDeclNode)(member_decls); i = i + 1) {
         MemberDeclNode *decl = Vec_get(MemberDeclNode)(member_decls, i);
         size_t len = Vec_len(DeclaratorNode)(decl->declarators);
 
-        for (size_t j = 0; j < len; j++) {
+        for (size_t j = 0; j < len; j = j + 1) {
             DeclaratorNode *declarator =
                 Vec_get(DeclaratorNode)(decl->declarators, j);
             Symbol *symbol = DeclaratorNode_symbol(declarator);
@@ -396,7 +377,7 @@ MemberDeclNode *Sema_act_on_struct_type_member_decl(
     (void)s;
 
     // Type check
-    for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarators); i++) {
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarators); i = i + 1) {
         DeclaratorNode *declarator = Vec_get(DeclaratorNode)(declarators, i);
         Symbol *symbol = DeclaratorNode_symbol(declarator);
 
@@ -414,7 +395,7 @@ Type *Sema_act_on_enum_type_reference(Sema *s, const Token *identifier) {
 
     Symbol *symbol = Sema_find_enum_symbol(s, identifier->text);
 
-    if (symbol == NULL) {
+    if (!symbol) {
         ERROR("enum type %s is not defined\n", identifier->text);
     }
 
@@ -424,8 +405,8 @@ Type *Sema_act_on_enum_type_reference(Sema *s, const Token *identifier) {
 void Sema_act_on_enum_type_start_of_list(Sema *s, const Token *identifier) {
     assert(s);
 
-    if (identifier != NULL) {
-        if (Sema_find_enum_symbol(s, identifier->text) != NULL) {
+    if (identifier) {
+        if (Sema_find_enum_symbol(s, identifier->text)) {
             ERROR("redifinition of enum type %s\n", identifier->text);
         }
     }
@@ -444,7 +425,7 @@ Type *Sema_act_on_enum_type_end_of_list(
 
     Type *type = EnumType_new(s->int_type, enumerators);
 
-    if (identifier != NULL) {
+    if (identifier) {
         type->enum_symbol =
             Symbol_new(identifier->text, StorageClass_none, type);
 
@@ -466,7 +447,7 @@ Sema_act_on_enumerator(Sema *s, const Token *identifier, ExprNode *value) {
 
     Sema_register_symbol(s, symbol);
 
-    if (value == NULL) {
+    if (!value) {
         symbol->enum_value = s->next_enumerator;
     } else {
         assert(value->kind == NodeKind_IntegerExpr);
@@ -484,7 +465,7 @@ static Symbol *Sema_find_typedef_name(Sema *s, const char *name) {
 
     Symbol *symbol = Sema_find_symbol(s, name);
 
-    if (symbol != NULL && symbol->storage_class == StorageClass_typedef) {
+    if (symbol && symbol->storage_class == StorageClass_typedef) {
         return symbol;
     }
 
@@ -495,7 +476,7 @@ bool Sema_is_typedef_name(Sema *s, const Token *identifier) {
     assert(s);
     assert(identifier);
 
-    return Sema_find_typedef_name(s, identifier->text) != NULL;
+    return Sema_find_typedef_name(s, identifier->text) != (Symbol *)NULL;
 }
 
 Type *Sema_act_on_typedef_name(Sema *s, const Token *identifier) {
@@ -505,7 +486,7 @@ Type *Sema_act_on_typedef_name(Sema *s, const Token *identifier) {
     // Find the symbol
     Symbol *symbol = Sema_find_typedef_name(s, identifier->text);
 
-    if (symbol == NULL) {
+    if (!symbol) {
         ERROR("identifier %s is not a type\n", identifier->text);
     }
 
@@ -520,11 +501,11 @@ ExprNode *Sema_act_on_identifier_expr(Sema *s, const Token *identifier) {
     // Look up the symbol from context
     Symbol *symbol = Sema_find_symbol(s, identifier->text);
 
-    if (symbol == NULL) {
+    if (!symbol) {
         ERROR("undeclared identifier %s\n", identifier->text);
     }
 
-    assert(symbol->type != NULL);
+    assert(symbol->type);
 
     if (symbol->storage_class == StorageClass_enum) {
         // Identifier is an enumerator
@@ -650,7 +631,7 @@ Sema_act_on_call_expr(Sema *s, ExprNode *callee, Vec(ExprNode) * arguments) {
             num_arguments);
     }
 
-    for (size_t i = 0; i < num_arguments; i++) {
+    for (size_t i = 0; i < num_arguments; i = i + 1) {
         ExprNode *argument = Vec_get(ExprNode)(arguments, i);
 
         if (i < num_parameters) {
@@ -693,7 +674,7 @@ Sema_act_on_dot_expr(Sema *s, ExprNode *parent, const Token *identifier) {
     // Find the member symbol
     Symbol *symbol = StructType_find_member(struct_type, identifier->text);
 
-    if (symbol == NULL) {
+    if (!symbol) {
         ERROR("cannot find member named %s\n", identifier->text);
     }
 
@@ -733,7 +714,7 @@ Sema_act_on_arrow_expr(Sema *s, ExprNode *parent, const Token *identifier) {
     // Find the member symbol
     Symbol *symbol = StructType_find_member(struct_type, identifier->text);
 
-    if (symbol == NULL) {
+    if (!symbol) {
         ERROR("cannot find member named %s\n", identifier->text);
     }
 
@@ -796,9 +777,7 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
     Type *type;
     ValueCategory value_category;
     UnaryOp op;
-    switch (operator->kind) {
-    case '+':
-    case '-':
+    if (operator->kind == '+' || operator->kind == '-') {
         // Conversion
         Sema_integer_promotion(s, &operand);
 
@@ -816,9 +795,7 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
         } else {
             UNREACHABLE();
         }
-        break;
-
-    case '!':
+    } else if (operator->kind == '!') {
         // Conversion
         Sema_decay_conversion(s, &operand);
 
@@ -830,9 +807,7 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
         type = s->int_type;
         value_category = ValueCategory_rvalue;
         op = UnaryOp_not;
-        break;
-
-    case '&':
+    } else if (operator->kind == '&') {
         if (operand->value_category != ValueCategory_lvalue) {
             ERROR("cannot take the address of an rvalue\n");
         }
@@ -840,9 +815,7 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
         type = PointerType_new(operand->result_type);
         value_category = ValueCategory_rvalue;
         op = UnaryOp_address_of;
-        break;
-
-    case '*':
+    } else if (operator->kind == '*') {
         // Conversion
         Sema_decay_conversion(s, &operand);
 
@@ -853,13 +826,7 @@ Sema_act_on_unary_expr(Sema *s, const Token *operator, ExprNode *operand) {
         type = PointerType_pointee_type(operand->result_type);
         value_category = ValueCategory_lvalue;
         op = UnaryOp_indirection;
-        break;
-
-    case TokenKind_kw_sizeof:
-        TODO("unary sizeof");
-        break;
-
-    default:
+    } else {
         ERROR("unknown unary operator %s\n", operator->text);
     }
 
@@ -876,8 +843,7 @@ ExprNode *Sema_act_on_binary_expr(
 
     Type *type;
     BinaryOp op;
-    switch (operator->kind) {
-    case '+':
+    if (operator->kind == '+') {
         // Promotion
         Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
 
@@ -890,9 +856,7 @@ ExprNode *Sema_act_on_binary_expr(
 
         type = s->int_type;
         op = BinaryOp_add;
-        break;
-
-    case '-':
+    } else if (operator->kind == '-') {
         // Promotion
         Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
 
@@ -905,11 +869,8 @@ ExprNode *Sema_act_on_binary_expr(
 
         type = s->int_type;
         op = BinaryOp_sub;
-        break;
-
-    case '*':
-    case '/':
-    case '%':
+    } else if (operator->kind == '*' || operator->kind == '/' ||
+               operator->kind == '%') {
         // Promotion
         Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
 
@@ -931,12 +892,10 @@ ExprNode *Sema_act_on_binary_expr(
         } else {
             UNREACHABLE();
         }
-        break;
-
-    case '<':
-    case TokenKind_lesser_equal:
-    case '>':
-    case TokenKind_greater_equal:
+    } else if (operator->kind == '<' ||
+               operator->kind == TokenKind_lesser_equal ||
+               operator->kind == '>' ||
+               operator->kind == TokenKind_greater_equal) {
         // Conversion
         Sema_integer_promotion(s, &lhs);
         Sema_integer_promotion(s, &rhs);
@@ -960,10 +919,8 @@ ExprNode *Sema_act_on_binary_expr(
         } else {
             UNREACHABLE();
         }
-        break;
-
-    case TokenKind_equal:
-    case TokenKind_not_equal:
+    } else if (operator->kind == TokenKind_equal || operator->kind ==
+               TokenKind_not_equal) {
         // Conversion
         Sema_integer_promotion(s, &lhs);
         Sema_integer_promotion(s, &rhs);
@@ -983,10 +940,8 @@ ExprNode *Sema_act_on_binary_expr(
         } else {
             UNREACHABLE();
         }
-        break;
-
-    case TokenKind_and_and:
-    case TokenKind_or_or:
+    } else if (operator->kind == TokenKind_and_and || operator->kind ==
+               TokenKind_or_or) {
         // Conversion
         Sema_integer_promotion(s, &lhs);
         Sema_integer_promotion(s, &rhs);
@@ -1006,9 +961,7 @@ ExprNode *Sema_act_on_binary_expr(
         } else {
             UNREACHABLE();
         }
-        break;
-
-    default:
+    } else {
         ERROR("unknown binary operator %s\n", operator->text);
     }
 
@@ -1028,13 +981,10 @@ ExprNode *Sema_act_on_assign_expr(
         ERROR("expression is not assignable\n");
     }
 
-    switch (operator->kind) {
-    case '=':
+    if (operator->kind == '=') {
         // Conversion
         Sema_assignment_conversion(s, lhs->result_type, &rhs);
-        break;
-
-    default:
+    } else {
         ERROR("unknown assignment operator %s\n", operator->text);
     }
 
@@ -1134,7 +1084,7 @@ StmtNode *Sema_act_on_return_stmt(Sema *s, ExprNode *return_value) {
     assert(s);
 
     // TODO: Type check
-    if (return_value != NULL) {
+    if (return_value) {
         // Conversion
         Sema_assignment_conversion(s, s->return_type, &return_value);
     }
@@ -1149,7 +1099,7 @@ StmtNode *Sema_act_on_decl_stmt(
     assert(decl_spec);
     assert(declarators);
 
-    for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarators); i++) {
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarators); i = i + 1) {
         DeclaratorNode *declarator = Vec_get(DeclaratorNode)(declarators, i);
         Symbol *symbol = DeclaratorNode_symbol(declarator);
 
@@ -1271,7 +1221,7 @@ static void Sema_complete_declarator_Direct(
         // Function
         declarator->symbol = Sema_find_symbol(s, declarator->name);
 
-        if (declarator->symbol == NULL) {
+        if (!declarator->symbol) {
             declarator->symbol =
                 Symbol_new(declarator->name, storage_class, base_type);
 
@@ -1303,7 +1253,7 @@ static void Sema_complete_declarator_Array(
     }
 
     // TODO: unsized array
-    if (declarator->array_size == NULL) {
+    if (!declarator->array_size) {
         TODO("array without size");
     }
 
@@ -1331,7 +1281,7 @@ static void Sema_complete_declarator_Function(
 
     Vec(Type) *parameter_types = Vec_new(Type)();
     for (size_t i = 0; i < Vec_len(DeclaratorNode)(declarator->parameters);
-         i++) {
+         i = i + 1) {
         DeclaratorNode *parameter =
             Vec_get(DeclaratorNode)(declarator->parameters, i);
         Symbol *symbol = DeclaratorNode_symbol(parameter);
@@ -1387,20 +1337,18 @@ static void Sema_complete_declarator(
     assert(s);
     assert(declarator);
 
-    switch (declarator->kind) {
 #define DECLARATOR_NODE(name)                                                  \
-    case NodeKind_##name##Declarator:                                          \
+    if (declarator->kind == NodeKind_##name##Declarator) {                     \
         Sema_complete_declarator_##name(                                       \
             s,                                                                 \
             name##DeclaratorNode_cast(declarator),                             \
             storage_class,                                                     \
             base_type);                                                        \
-        break;
+        return;                                                                \
+    }
 #include "Ast.def"
 
-    default:
-        UNREACHABLE();
-    }
+    UNREACHABLE();
 }
 
 DeclaratorNode *Sema_act_on_declarator_completed(
@@ -1478,7 +1426,7 @@ void Sema_act_on_function_decl_start_of_body(
     Symbol *symbol = DeclaratorNode_symbol(declarator);
     Vec(DeclaratorNode) *parameters = DeclaratorNode_parameters(declarator);
 
-    if (symbol->type->kind != TypeKind_function || parameters == NULL) {
+    if (symbol->type->kind != TypeKind_function || !parameters) {
         ERROR("declarator is not a function\n");
     }
 
@@ -1488,7 +1436,7 @@ void Sema_act_on_function_decl_start_of_body(
 
     symbol->has_body = true;
 
-    for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i++) {
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i = i + 1) {
         DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, i);
         Symbol *parameter_symbol = DeclaratorNode_symbol(parameter);
 

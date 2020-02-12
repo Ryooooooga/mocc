@@ -33,6 +33,7 @@ typedef int size_t;
 void *malloc(size_t size);
 void *realloc(void *ptr, size_t size);
 void exit(int);
+int atoi(const char *s);
 
 // <stdio.h>
 #define SEEK_SET 0

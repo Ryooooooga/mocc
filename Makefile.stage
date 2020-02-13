@@ -1,0 +1,36 @@
+SRC_DIR = ../../../
+
+SRCS = \
+	main.c \
+	Vec.c \
+	Path.c \
+	File.c \
+	Type.c \
+	Symbol.c \
+	Scope.c \
+	Ast.c \
+	Lexer.c \
+	Preprocessor.c \
+	Parser.c \
+	Sema.c \
+	CodeGen.c \
+	# -- SRCS
+
+ASMS = ${SRCS:%=%.s}
+OBJS = ${ASMS:.s=.o}
+
+all: mocc
+
+mocc: ${OBJS}
+	@echo "linking $@"
+	@${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
+
+%.c.o: %.c.s
+	${AS} ${ASFLAGS} -o $@ $<
+
+%.c.s: %.c
+	${MOCC} $< $@
+
+%.c: ${SRC_DIR}/%.c
+	@echo "precompiling $@"
+	@${CPP} -P -DMOCC -o $@ $<

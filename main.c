@@ -5,6 +5,7 @@ void display_usage(const char *program) {
 }
 
 int main(int argc, char **argv) {
+#ifndef MOCC
     if (argc == 2 && strcmp(argv[1], "--test") == 0) {
         test_Vec();
         test_Path();
@@ -15,6 +16,7 @@ int main(int argc, char **argv) {
         test_Parser();
         exit(0);
     }
+#endif
 
     if (argc != 3) {
         display_usage(argv[0]);

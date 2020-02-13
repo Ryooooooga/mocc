@@ -5,6 +5,8 @@ CFLAGS_release ?= -O2 -DNDEBUG
 CFLAGS ?= -std=c11 -Wall -Wextra -pedantic -Werror ${CFLAGS_${BUILD_TYPE}}
 LDFLAGS ?=
 
+BUILD_DIR = build
+
 SRCS = \
 	main.c \
 	Vec.c \
@@ -19,6 +21,9 @@ SRCS = \
 	Parser.c \
 	Sema.c \
 	CodeGen.c \
+	# -- SRCS
+
+TEST_SRCS = \
 	test_Vec.c \
 	test_Path.c \
 	test_File.c \
@@ -26,81 +31,47 @@ SRCS = \
 	test_Lexer.c \
 	test_Preprocessor.c \
 	test_Parser.c \
-	# -- SRCS
+	# -- TEST_SRCS
 
-SRC_DIR = src
-BUILD_DIR = build
-OBJS = ${SRCS:%=${BUILD_DIR}/${BUILD_TYPE}/%.o}
-TARGET = ${BUILD_DIR}/${BUILD_TYPE}/mocc
+STAGE1_SRCS = ${SRCS} ${TEST_SRCS}
+STAGE1_OBJS = ${STAGE1_SRCS:%=${BUILD_DIR}/${BUILD_TYPE}/stage1/%.o}
+STAGE1_TARGET = ${BUILD_DIR}/${BUILD_TYPE}/stage1/mocc
+STAGE2_TARGET = ${BUILD_DIR}/${BUILD_TYPE}/stage2/mocc
+STAGE3_TARGET = ${BUILD_DIR}/${BUILD_TYPE}/stage3/mocc
 
-SRCS2 = \
-	${BUILD_DIR}/${SRC_DIR}/main.s \
-	${BUILD_DIR}/${SRC_DIR}/Vec.s \
-	${BUILD_DIR}/${SRC_DIR}/Path.s \
-	${BUILD_DIR}/${SRC_DIR}/File.s \
-	${BUILD_DIR}/${SRC_DIR}/Type.s \
-	${BUILD_DIR}/${SRC_DIR}/Symbol.s \
-	${BUILD_DIR}/${SRC_DIR}/Scope.s \
-	${BUILD_DIR}/${SRC_DIR}/Ast.s \
-	${BUILD_DIR}/${SRC_DIR}/Lexer.s \
-	${BUILD_DIR}/${SRC_DIR}/Preprocessor.s \
-	${BUILD_DIR}/${SRC_DIR}/Parser.s \
-	${BUILD_DIR}/${SRC_DIR}/Sema.s \
-	${BUILD_DIR}/${SRC_DIR}/CodeGen.s \
-	${BUILD_DIR}/${SRC_DIR}/test_Vec.s \
-	${BUILD_DIR}/${SRC_DIR}/test_Path.s \
-	${BUILD_DIR}/${SRC_DIR}/test_File.s \
-	test_Ast.c \
-	test_Lexer.c \
-	test_Preprocessor.c \
-	test_Parser.c \
-	# -- SRCS2
+all: ${STAGE3_TARGET}
 
-.SECONDARY: ${SRCS2}
-
-OBJS2 = ${SRCS2:%=${BUILD_DIR}/${BUILD_TYPE}/%.o}
-
-all: ${TARGET} ${TARGET}_stage2
-
-test: ${TARGET} ${TARGET}_stage2
-	./${TARGET} --test
-	MOCC=${TARGET} ./test.bash
-	./${TARGET}_stage2 --test
-	MOCC=${TARGET}_stage2 ./test.bash
+test: ${STAGE3_TARGET}
+	./${STAGE1_TARGET} --test
+	MOCC=${STAGE1_TARGET} ./test.bash
+	MOCC=${STAGE2_TARGET} ./test.bash
+	MOCC=${STAGE3_TARGET} ./test.bash
+	cmp ${STAGE2_TARGET} ${STAGE3_TARGET}
 
 clean:
 	${RM} -r ${BUILD_DIR} tmp/*
 
-${TARGET}: ${OBJS}
+${STAGE1_TARGET}: ${STAGE1_OBJS}
 	@echo "linking $@"
 	@mkdir -p ${@D}
 	@${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
 
- ${TARGET}_stage2: ${OBJS2}
-	@echo "linking $@"
-	@mkdir -p ${@D}
-	@${CC} ${CFLAGS} -o $@ $^ ${LDFLAGS}
-
-${BUILD_DIR}/${BUILD_TYPE}/%.c.o: %.c
+${BUILD_DIR}/${BUILD_TYPE}/stage1/%.c.o: %.c
 	@echo "compiling $<"
 	@mkdir -p ${@D}
 	@${CC} ${CFLAGS} -MMD -MP -o $@ -c $<
 
-${BUILD_DIR}/${BUILD_TYPE}/%.s.o: %.s
-	@echo "assembling $<"
+${BUILD_DIR}/${BUILD_TYPE}/stage%/Makefile: Makefile.stage
+	@echo "generating $@"
 	@mkdir -p ${@D}
-	@${CC} -o $@ -c $<
-
-${BUILD_DIR}/${SRC_DIR}/%.c: %.c mocc.h
-	@echo "precompiling $<"
-	@mkdir -p ${@D}
-	@${CPP} -P -DMOCC -o $@ $<
-
-${BUILD_DIR}/${SRC_DIR}/%.s: ${BUILD_DIR}/${SRC_DIR}/%.c ${TARGET}
-	@echo "compiling $<"
-	@mkdir -p ${@D}
-	@${TARGET} $< $@
+	@cp $< $@
 
 .PHONY: all test clean
+
+${STAGE2_TARGET}: ${STAGE1_TARGET} ${BUILD_DIR}/${BUILD_TYPE}/stage2/Makefile
+	${MAKE} -C ${BUILD_DIR}/${BUILD_TYPE}/stage2 MOCC=${CURDIR}/${STAGE1_TARGET}
+
+${STAGE3_TARGET}: ${STAGE2_TARGET} ${BUILD_DIR}/${BUILD_TYPE}/stage3/Makefile
+	${MAKE} -C ${BUILD_DIR}/${BUILD_TYPE}/stage3 MOCC=${CURDIR}/${STAGE2_TARGET}
 
 -include ${OBJS:.o=.d}

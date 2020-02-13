@@ -19,7 +19,7 @@ try() {
 
     local exit_code
 
-    echo "$test_name"
+    echo "$MOCC $test_name.c"
 
     echo -n "$input" > "$c"
 

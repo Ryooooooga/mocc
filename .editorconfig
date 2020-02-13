@@ -13,7 +13,7 @@ indent_style = space
 indent_size = 4
 trim_trailing_whitespace = false
 
-[{Makefile,*.mk}]
+[{Makefile,*.mk,Makefile.stage}]
 indent_style = tab
 indent_size = 4
 

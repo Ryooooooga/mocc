@@ -77,6 +77,8 @@ try "c$LINENO" 'int main(void) { return 17 / 5; }' 3
 try "c$LINENO" 'int main(void) { return 17 / 12; }' 1
 try "c$LINENO" 'int main(void) { return 17 % 5; }' 2
 try "c$LINENO" 'int main(void) { return 17 % 12; }' 5
+try "c$LINENO" 'int main(void) { return 12 & 5; }' 4
+try "c$LINENO" 'int main(void) { return 15 & 5; }' 5
 
 try "c$LINENO" '
     int main(void) {

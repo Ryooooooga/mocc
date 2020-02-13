@@ -940,6 +940,24 @@ ExprNode *Sema_act_on_binary_expr(
         } else {
             UNREACHABLE();
         }
+    } else if (operator->kind == '&' || operator->kind == '^' ||
+               operator->kind == '|') {
+        // Conversion
+        Sema_usual_arithmetic_conversion(s, &lhs, &rhs);
+
+        // Type check
+        if (lhs->result_type->kind != TypeKind_int ||
+            rhs->result_type->kind != TypeKind_int) {
+            ERROR("invalid operands to binary %s\n", operator->text);
+        }
+
+        type = s->int_type;
+
+        if (operator->kind == '&') {
+            op = BinaryOp_and;
+        } else {
+            UNREACHABLE();
+        }
     } else if (operator->kind == TokenKind_and_and || operator->kind ==
                TokenKind_or_or) {
         // Conversion

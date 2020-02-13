@@ -707,6 +707,38 @@ static ExprNode *Parser_parse_equality_expr(Parser *p) {
     return lhs;
 }
 
+// and_expr:
+//  and_expr '&' equality_expr
+//  equality_expr
+static ExprNode *Parser_parse_and_expr(Parser *p) {
+    assert(p);
+
+    // equality_expr
+    ExprNode *lhs = Parser_parse_equality_expr(p);
+
+    while (Parser_current(p)->kind == '&') {
+        // '&'
+        const Token *operator= Parser_consume(p);
+
+        // equality_expr
+        ExprNode *rhs = Parser_parse_equality_expr(p);
+
+        lhs = Sema_act_on_binary_expr(p->sema, lhs, operator, rhs);
+    }
+
+    return lhs;
+}
+
+// xor_expr:
+//  xor_expr '^' and_expr
+//  and_expr
+static ExprNode *Parser_parse_xor_expr(Parser *p) {
+    assert(p);
+
+    // TODO: xor_expr
+    return Parser_parse_and_expr(p);
+}
+
 // or_expr:
 //  or_expr '|' xor_expr
 //  xor_expr
@@ -714,7 +746,7 @@ static ExprNode *Parser_parse_or_expr(Parser *p) {
     assert(p);
 
     // TODO: or_expr
-    return Parser_parse_equality_expr(p);
+    return Parser_parse_xor_expr(p);
 }
 
 // logical_and_expr:

@@ -8,15 +8,6 @@
 #define GLOBAL_POSTFIX "@GOTPCREL"
 #endif
 
-static const char *const registers_qword[6] = {
-    "rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-
-static const char *const registers_dword[6] = {
-    "edi", "esi", "edx", "ecx", "r8d", "r9d"};
-
-static const char *const registers_byte[6] = {
-    "dil", "sil", "dl", "cl", "r8b", "r9b"};
-
 enum NativeAddressType {
     NativeAddressType_label,
     NativeAddressType_stack,
@@ -54,6 +45,8 @@ static NativeAddress *NativeAddress_new_stack(int offset) {
     return a;
 }
 
+#define NUM_REGISTERS 6
+
 typedef struct CodeGen {
     FILE *fp;
     int next_label;
@@ -61,12 +54,18 @@ typedef struct CodeGen {
 
     Vec(String) * list_of_string;
     Vec(size_t) * list_of_length;
+
+    const char *registers_qword[NUM_REGISTERS];
+    const char *registers_dword[NUM_REGISTERS];
+    const char *registers_byte[NUM_REGISTERS];
 } CodeGen;
 
 static int CodeGen_next_label(CodeGen *g) {
     assert(g);
 
-    return g->next_label++;
+    int label = g->next_label;
+    g->next_label = g->next_label + 1;
+    return label;
 }
 
 static size_t
@@ -92,14 +91,14 @@ static void CodeGen_gen_constant_pool(CodeGen *g) {
     fprintf(g->fp, "  .section .rodata\n");
 #endif
 
-    for (size_t i = 0; i < Vec_len(String)(g->list_of_string); i++) {
+    for (size_t i = 0; i < Vec_len(String)(g->list_of_string); i = i + 1) {
         const char *s = Vec_get(String)(g->list_of_string, i);
         size_t len = Vec_get(size_t)(g->list_of_length, i);
 
         fprintf(g->fp, ".S%zu:\n", i);
 
-        for (size_t j = 0; j < len; j++) {
-            fprintf(g->fp, "  .byte 0x%02x\n", (unsigned char)s[j]);
+        for (size_t j = 0; j < len; j = j + 1) {
+            fprintf(g->fp, "  .byte 0x%02x\n", s[j] & 255);
         }
     }
 }
@@ -107,8 +106,7 @@ static void CodeGen_gen_constant_pool(CodeGen *g) {
 static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
     assert(address);
 
-    switch (address->type) {
-    case NativeAddressType_label:
+    if (address->type == NativeAddressType_label) {
         fprintf(
             g->fp,
             "  mov rax, %s%s%s[rip]\n",
@@ -116,14 +114,10 @@ static void CodeGen_load_address(CodeGen *g, const NativeAddress *address) {
             address->label,
             GLOBAL_POSTFIX);
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case NativeAddressType_stack:
+    } else if (address->type == NativeAddressType_stack) {
         fprintf(g->fp, "  lea rax, [rbp%+d]\n", -address->offset);
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    default:
+    } else {
         ERROR("unknown address type %d\n", address->type);
     }
 }
@@ -132,27 +126,19 @@ static void CodeGen_store(CodeGen *g, const Type *type) {
     assert(g);
     assert(type);
 
-    switch (type->kind) {
-    case TypeKind_char:
+    if (type->kind == TypeKind_char) {
         fprintf(g->fp, "  pop rdi\n");
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  mov [rdi], al\n");
-        break;
-
-    case TypeKind_int:
-    case TypeKind_enum:
+    } else if (type->kind == TypeKind_int || type->kind == TypeKind_enum) {
         fprintf(g->fp, "  pop rdi\n");
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  mov [rdi], eax\n");
-        break;
-
-    case TypeKind_pointer:
+    } else if (type->kind == TypeKind_pointer) {
         fprintf(g->fp, "  pop rdi\n");
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  mov [rdi], rax\n");
-        break;
-
-    default:
+    } else {
         ERROR("unknown type\n");
     }
 }
@@ -167,18 +153,23 @@ CodeGen_member_offset(CodeGen *g, Type *struct_type, Symbol *member_symbol) {
 
     size_t offset = 0;
 
-    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols); i++) {
+    for (size_t i = 0; i < Vec_len(Symbol)(struct_type->member_symbols);
+         i = i + 1) {
         Symbol *symbol = Vec_get(Symbol)(struct_type->member_symbols, i);
         size_t align = Type_alignof(symbol->type);
-        size_t padding = offset % align == 0 ? 0 : align - offset % align;
+        size_t padding = 0;
 
-        offset += padding;
+        if (offset % align != 0) {
+            padding = align - offset % align;
+        }
+
+        offset = offset + padding;
 
         if (symbol == member_symbol) {
             return offset;
         }
 
-        offset += Type_sizeof(symbol->type);
+        offset = offset + Type_sizeof(symbol->type);
     }
 
     UNREACHABLE();
@@ -242,19 +233,19 @@ static void CodeGen_gen_CallExpr(CodeGen *g, CallExprNode *p) {
     // Arguments
     size_t num_arguments = Vec_len(ExprNode)(p->arguments);
 
-    if (num_arguments > 6) {
+    if (num_arguments > NUM_REGISTERS) {
         ERROR("too much arguments\n");
     }
 
-    for (size_t i = 0; i < num_arguments; i++) {
+    for (size_t i = 0; i < num_arguments; i = i + 1) {
         size_t index = num_arguments - i - 1;
         ExprNode *argument = Vec_get(ExprNode)(p->arguments, index);
 
         CodeGen_gen_expr(g, argument);
     }
 
-    for (size_t i = 0; i < num_arguments; i++) {
-        fprintf(g->fp, "  pop %s\n", registers_qword[i]);
+    for (size_t i = 0; i < num_arguments; i = i + 1) {
+        fprintf(g->fp, "  pop %s\n", g->registers_qword[i]);
     }
 
     // Callee
@@ -330,31 +321,23 @@ static void CodeGen_gen_UnaryExpr(CodeGen *g, UnaryExprNode *p) {
 
     CodeGen_gen_expr(g, p->operand);
 
-    switch (p->operator) {
-    case UnaryOp_positive:
-        break;
-
-    case UnaryOp_negative:
+    if (p->operator== UnaryOp_positive) {
+        // Do nothing
+    } else if (p->operator== UnaryOp_negative) {
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  neg rax\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case UnaryOp_not:
+    } else if (p->operator== UnaryOp_not) {
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  cmp rax, 0\n");
         fprintf(g->fp, "  sete al\n");
         fprintf(g->fp, "  movsx rax, al\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case UnaryOp_address_of:
-        break;
-
-    case UnaryOp_indirection:
-        break;
-
-    default:
+    } else if (p->operator== UnaryOp_address_of) {
+        // Do nothing
+    } else if (p->operator== UnaryOp_indirection) {
+        // Do nothing
+    } else {
         ERROR("unknown unary op %d\n", p->operator);
     }
 }
@@ -363,8 +346,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
     assert(g);
     assert(p);
 
-    switch (p->operator) {
-    case BinaryOp_add:
+    if (p->operator== BinaryOp_add) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -372,9 +354,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  add rax, rdi\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_sub:
+    } else if (p->operator== BinaryOp_sub) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -382,9 +362,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  sub rax, rdi\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_mul:
+    } else if (p->operator== BinaryOp_mul) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -392,9 +370,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  pop rax\n");
         fprintf(g->fp, "  imul rax, rdi\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_div:
+    } else if (p->operator== BinaryOp_div) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -403,9 +379,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  cqo\n");
         fprintf(g->fp, "  idiv rdi\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_mod:
+    } else if (p->operator== BinaryOp_mod) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -414,9 +388,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  cqo\n");
         fprintf(g->fp, "  idiv rdi\n");
         fprintf(g->fp, "  push rdx\n");
-        break;
-
-    case BinaryOp_lesser_than:
+    } else if (p->operator== BinaryOp_lesser_than) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -426,9 +398,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  setl al\n");
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_lesser_equal:
+    } else if (p->operator== BinaryOp_lesser_equal) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -438,9 +408,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  setle al\n");
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_greater_than:
+    } else if (p->operator== BinaryOp_greater_than) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -450,9 +418,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  setg al\n");
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_greater_equal:
+    } else if (p->operator== BinaryOp_greater_equal) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -462,9 +428,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  setge al\n");
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_equal:
+    } else if (p->operator== BinaryOp_equal) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -474,9 +438,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  sete al\n");
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
-        break;
-
-    case BinaryOp_not_equal:
+    } else if (p->operator== BinaryOp_not_equal) {
         CodeGen_gen_expr(g, p->lhs);
         CodeGen_gen_expr(g, p->rhs);
 
@@ -486,9 +448,15 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  setne al\n");
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
-        break;
+    } else if (p->operator== BinaryOp_and) {
+        CodeGen_gen_expr(g, p->lhs);
+        CodeGen_gen_expr(g, p->rhs);
 
-    case BinaryOp_logical_and: {
+        fprintf(g->fp, "  pop rdi\n");
+        fprintf(g->fp, "  pop rax\n");
+        fprintf(g->fp, "  and rax, rdi\n");
+        fprintf(g->fp, "  push rax\n");
+    } else if (p->operator== BinaryOp_logical_and) {
         int end_label = CodeGen_next_label(g);
 
         CodeGen_gen_expr(g, p->lhs);
@@ -507,10 +475,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
         fprintf(g->fp, ".L%d:\n", end_label);
-        break;
-    }
-
-    case BinaryOp_logical_or: {
+    } else if (p->operator== BinaryOp_logical_or) {
         int end_label = CodeGen_next_label(g);
 
         CodeGen_gen_expr(g, p->lhs);
@@ -529,10 +494,7 @@ static void CodeGen_gen_BinaryExpr(CodeGen *g, BinaryExprNode *p) {
         fprintf(g->fp, "  movsx eax, al\n");
         fprintf(g->fp, "  push rax\n");
         fprintf(g->fp, ".L%d:\n", end_label);
-        break;
-    }
-
-    default:
+    } else {
         ERROR("unknown binary op %d\n", p->operator);
     }
 }
@@ -555,86 +517,60 @@ static void CodeGen_gen_ImplicitCastExpr(CodeGen *g, ImplicitCastExprNode *p) {
 
     CodeGen_gen_expr(g, p->expression);
 
-    switch (p->operator) {
-    case ImplicitCastOp_lvalue_to_rvalue:
-        switch (p->result_type->kind) {
-        case TypeKind_char:
+    if (p->operator== ImplicitCastOp_lvalue_to_rvalue) {
+        if (p->result_type->kind == TypeKind_char) {
             fprintf(g->fp, "  pop rax\n");
             fprintf(g->fp, "  mov al, [rax]\n");
             fprintf(g->fp, "  push rax\n");
-            break;
-
-        case TypeKind_int:
-        case TypeKind_enum:
+        } else if (
+            p->result_type->kind == TypeKind_int ||
+            p->result_type->kind == TypeKind_enum) {
             fprintf(g->fp, "  pop rax\n");
             fprintf(g->fp, "  mov eax, [rax]\n");
             fprintf(g->fp, "  push rax\n");
-            break;
-
-        case TypeKind_pointer:
+        } else if (p->result_type->kind == TypeKind_pointer) {
             fprintf(g->fp, "  pop rax\n");
             fprintf(g->fp, "  mov rax, [rax]\n");
             fprintf(g->fp, "  push rax\n");
-            break;
-
-        default:
+        } else {
             ERROR("unknown type\n");
         }
-        break;
-
-    case ImplicitCastOp_function_to_function_pointer:
-        break;
-
-    case ImplicitCastOp_array_to_pointer:
-        break;
-
-    case ImplicitCastOp_integral_cast:
-        switch (p->result_type->kind) {
-        case TypeKind_char:
-            switch (p->expression->result_type->kind) {
-            case TypeKind_int:
+    } else if (p->operator== ImplicitCastOp_function_to_function_pointer) {
+        // F -> F*
+    } else if (p->operator== ImplicitCastOp_array_to_pointer) {
+        // T[] -> T*
+    } else if (p->operator== ImplicitCastOp_integral_cast) {
+        if (p->result_type->kind == TypeKind_char) {
+            if (p->expression->result_type->kind == TypeKind_int) {
                 // int -> char
                 // Do nothing
-                break;
-
-            default:
+            } else {
                 UNREACHABLE();
             }
-            break;
-
-        case TypeKind_int:
-        case TypeKind_enum:
-            switch (p->expression->result_type->kind) {
-            case TypeKind_char:
+        } else if (
+            p->result_type->kind == TypeKind_int ||
+            p->result_type->kind == TypeKind_enum) {
+            if (p->expression->result_type->kind == TypeKind_char) {
                 // char -> int
                 fprintf(g->fp, "  pop rax\n");
                 fprintf(g->fp, "  movsx eax, al\n");
                 fprintf(g->fp, "  push rax\n");
-                break;
-
-            case TypeKind_int:
-            case TypeKind_enum:
+            } else if (
+                p->expression->result_type->kind == TypeKind_int ||
+                p->expression->result_type->kind == TypeKind_enum) {
                 // enum -> int or int -> enum
                 // Do nothing
-                break;
-
-            default:
+            } else {
                 UNREACHABLE();
             }
-            break;
-
-        default:
+        } else {
             UNREACHABLE();
         }
-        break;
-
-    case ImplicitCastOp_integer_to_pointer_cast:
-        break;
-
-    case ImplicitCastOp_pointer_to_pointer_cast:
-        break;
-
-    default:
+    } else if (p->operator== ImplicitCastOp_integer_to_pointer_cast) {
+        // int -> T*
+    } else if (p->operator== ImplicitCastOp_pointer_to_pointer_cast) {
+        // T* -> U*
+    } else {
         ERROR("unknown implicit cast operator %d\n", p->operator);
     }
 }
@@ -643,16 +579,14 @@ static void CodeGen_gen_expr(CodeGen *g, ExprNode *p) {
     assert(g);
     assert(p);
 
-    switch (p->kind) {
 #define EXPR_NODE(name)                                                        \
-    case NodeKind_##name##Expr:                                                \
+    if (p->kind == NodeKind_##name##Expr) {                                    \
         CodeGen_gen_##name##Expr(g, name##ExprNode_cast(p));                   \
-        break;
+        return;                                                                \
+    }
 #include "Ast.def"
 
-    default:
-        UNREACHABLE();
-    }
+    UNREACHABLE();
 }
 
 // Statements
@@ -660,7 +594,7 @@ static void CodeGen_gen_CompoundStmt(CodeGen *g, CompoundStmtNode *p) {
     assert(g);
     assert(p);
 
-    for (size_t i = 0; i < Vec_len(StmtNode)(p->statements); i++) {
+    for (size_t i = 0; i < Vec_len(StmtNode)(p->statements); i = i + 1) {
         CodeGen_gen_stmt(g, Vec_get(StmtNode)(p->statements, i));
     }
 }
@@ -687,7 +621,7 @@ static void CodeGen_gen_IfStmt(CodeGen *g, IfStmtNode *p) {
     // Else
     fprintf(g->fp, ".L%d:\n", else_label);
 
-    if (p->if_false != NULL) {
+    if (p->if_false) {
         CodeGen_gen_stmt(g, p->if_false);
     }
 
@@ -732,7 +666,7 @@ static void CodeGen_gen_ForStmt(CodeGen *g, ForStmtNode *p) {
     int end_label = CodeGen_next_label(g);
 
     // Initializer
-    if (p->initializer != NULL) {
+    if (p->initializer) {
         CodeGen_gen_stmt(g, p->initializer);
     }
 
@@ -746,7 +680,7 @@ static void CodeGen_gen_ForStmt(CodeGen *g, ForStmtNode *p) {
     // Step
     fprintf(g->fp, ".L%d:\n", step_label);
 
-    if (p->step != NULL) {
+    if (p->step) {
         CodeGen_gen_expr(g, p->step);
 
         fprintf(g->fp, "  pop rax\n");
@@ -755,7 +689,7 @@ static void CodeGen_gen_ForStmt(CodeGen *g, ForStmtNode *p) {
     // Condition
     fprintf(g->fp, ".L%d:\n", condition_label);
 
-    if (p->condition != NULL) {
+    if (p->condition) {
         CodeGen_gen_expr(g, p->condition);
 
         fprintf(g->fp, "  pop rax\n");
@@ -772,7 +706,7 @@ static void CodeGen_gen_ReturnStmt(CodeGen *g, ReturnStmtNode *p) {
     assert(g);
     assert(p);
 
-    if (p->return_value != NULL) {
+    if (p->return_value) {
         CodeGen_gen_expr(g, p->return_value);
 
         fprintf(g->fp, "  pop rax\n");
@@ -785,7 +719,7 @@ static void CodeGen_gen_DeclStmt(CodeGen *g, DeclStmtNode *p) {
     assert(g);
     assert(p);
 
-    for (size_t i = 0; i < Vec_len(DeclaratorNode)(p->declarators); i++) {
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(p->declarators); i = i + 1) {
         DeclaratorNode *declarator = Vec_get(DeclaratorNode)(p->declarators, i);
 
         if (declarator->kind == NodeKind_InitDeclarator) {
@@ -813,16 +747,14 @@ static void CodeGen_gen_stmt(CodeGen *g, StmtNode *p) {
     assert(g);
     assert(p);
 
-    switch (p->kind) {
 #define STMT_NODE(name)                                                        \
-    case NodeKind_##name##Stmt:                                                \
+    if (p->kind == NodeKind_##name##Stmt) {                                    \
         CodeGen_gen_##name##Stmt(g, name##StmtNode_cast(p));                   \
-        break;
+        return;                                                                \
+    }
 #include "Ast.def"
 
-    default:
-        UNREACHABLE();
-    }
+    UNREACHABLE();
 }
 
 // Declarations
@@ -838,11 +770,16 @@ CodeGen_alloca_object(CodeGen *g, Type *type, int *stack_top) {
     }
 
     size_t size = Type_sizeof(type);
-    *stack_top += size;
+    *stack_top = *stack_top + size;
 
     size_t align = Type_alignof(type);
-    size_t padding = *stack_top % align == 0 ? 0 : align - *stack_top % align;
-    *stack_top += padding;
+    size_t padding = 0;
+
+    if (*stack_top % align != 0) {
+        padding = align - *stack_top % align;
+    }
+
+    *stack_top = *stack_top + padding;
 
     return NativeAddress_new_stack(*stack_top);
 }
@@ -853,7 +790,7 @@ static void CodeGen_allocate_parameters(
     assert(parameters);
     assert(stack_top);
 
-    for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i++) {
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(parameters); i = i + 1) {
         DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, i);
         Symbol *symbol = DeclaratorNode_symbol(parameter);
 
@@ -867,7 +804,7 @@ static void CodeGen_allocate_local_variables(
     assert(local_variables);
     assert(stack_top);
 
-    for (size_t i = 0; i < Vec_len(Symbol)(local_variables); i++) {
+    for (size_t i = 0; i < Vec_len(Symbol)(local_variables); i = i + 1) {
         Symbol *symbol = Vec_get(Symbol)(local_variables, i);
 
         symbol->address = CodeGen_alloca_object(g, symbol->type, stack_top);
@@ -881,11 +818,11 @@ CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
 
     size_t len = Vec_len(DeclaratorNode)(parameters);
 
-    if (len > 6) {
+    if (len > NUM_REGISTERS) {
         ERROR("too much parameters\n");
     }
 
-    for (size_t i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i = i + 1) {
         size_t index = len - i - 1;
 
         DeclaratorNode *parameter = Vec_get(DeclaratorNode)(parameters, index);
@@ -894,33 +831,27 @@ CodeGen_store_parameters(CodeGen *g, Vec(DeclaratorNode) * parameters) {
         NativeAddress *address = symbol->address;
         assert(address->type == NativeAddressType_stack);
 
-        switch (symbol->type->kind) {
-        case TypeKind_char:
+        if (symbol->type->kind == TypeKind_char) {
             fprintf(
                 g->fp,
                 "  mov [rbp%+d], %s\n",
                 -address->offset,
-                registers_byte[index]);
-            break;
-
-        case TypeKind_int:
-        case TypeKind_enum:
+                g->registers_byte[index]);
+        } else if (
+            symbol->type->kind == TypeKind_int ||
+            symbol->type->kind == TypeKind_enum) {
             fprintf(
                 g->fp,
                 "  mov [rbp%+d], %s\n",
                 -address->offset,
-                registers_dword[index]);
-            break;
-
-        case TypeKind_pointer:
+                g->registers_dword[index]);
+        } else if (symbol->type->kind == TypeKind_pointer) {
             fprintf(
                 g->fp,
                 "  mov [rbp%+d], %s\n",
                 -address->offset,
-                registers_qword[index]);
-            break;
-
-        default:
+                g->registers_qword[index]);
+        } else {
             ERROR("unknown type\n");
         }
     }
@@ -930,37 +861,34 @@ static void CodeGen_gen_global_decl(CodeGen *g, GlobalDeclNode *p) {
     assert(g);
     assert(p);
 
-    for (size_t i = 0; i < Vec_len(DeclaratorNode)(p->declarators); i++) {
+    for (size_t i = 0; i < Vec_len(DeclaratorNode)(p->declarators); i = i + 1) {
         DeclaratorNode *declarator = Vec_get(DeclaratorNode)(p->declarators, i);
         Symbol *symbol = DeclaratorNode_symbol(declarator);
 
-        if (symbol->storage_class == StorageClass_typedef) {
-            continue;
-        }
+        if (symbol->storage_class != StorageClass_typedef) {
+            assert(symbol->name);
 
-        assert(symbol->name);
+            Type *type = symbol->type;
 
-        Type *type = symbol->type;
+            if (type->kind == TypeKind_function) {
+                if (!symbol->address) {
+                    symbol->address = NativeAddress_new_label(symbol->name);
+                }
+            } else {
+                assert(!Type_is_incomplete_type(type));
 
-        if (type->kind == TypeKind_function) {
-            if (symbol->address == NULL) {
                 symbol->address = NativeAddress_new_label(symbol->name);
+
+                // TODO: initializer
+                fprintf(
+                    g->fp,
+                    "  .comm %s%s, %zu, %zu\n",
+                    GLOBAL_PREFIX,
+                    symbol->name,
+                    Type_sizeof(type),
+                    Type_alignof(type));
             }
-            continue;
         }
-
-        assert(!Type_is_incomplete_type(type));
-
-        symbol->address = NativeAddress_new_label(symbol->name);
-
-        // TODO: initializer
-        fprintf(
-            g->fp,
-            "  .comm %s%s, %zu, %zu\n",
-            GLOBAL_PREFIX,
-            symbol->name,
-            Type_sizeof(type),
-            Type_alignof(type));
     }
 }
 
@@ -1016,16 +944,11 @@ static void CodeGen_gen_top_level_decl(CodeGen *g, DeclNode *p) {
     assert(g);
     assert(p);
 
-    switch (p->kind) {
-    case NodeKind_GlobalDecl:
+    if (p->kind == NodeKind_GlobalDecl) {
         CodeGen_gen_global_decl(g, GlobalDeclNode_cast(p));
-        break;
-
-    case NodeKind_FunctionDecl:
+    } else if (p->kind == NodeKind_FunctionDecl) {
         CodeGen_gen_function_decl(g, FunctionDeclNode_cast(p));
-        break;
-
-    default:
+    } else {
         UNREACHABLE();
     }
 }
@@ -1037,7 +960,7 @@ static void CodeGen_gen_translation_unit(CodeGen *g, TranslationUnitNode *p) {
     fprintf(g->fp, "  .intel_syntax noprefix\n");
     fprintf(g->fp, "  .text\n");
 
-    for (size_t i = 0; i < Vec_len(DeclNode)(p->declarations); i++) {
+    for (size_t i = 0; i < Vec_len(DeclNode)(p->declarations); i = i + 1) {
         CodeGen_gen_top_level_decl(g, Vec_get(DeclNode)(p->declarations, i));
     }
 
@@ -1048,13 +971,33 @@ void CodeGen_gen(TranslationUnitNode *p, FILE *fp) {
     assert(p);
     assert(fp);
 
-    CodeGen g = {
-        .fp = fp,
-        .next_label = 0,
-        .return_label = -1,
-        .list_of_string = Vec_new(String)(),
-        .list_of_length = Vec_new(size_t)(),
-    };
+    CodeGen g;
+    g.fp = fp;
+    g.next_label = 0;
+    g.return_label = -1;
+    g.list_of_string = Vec_new(String)();
+    g.list_of_length = Vec_new(size_t)();
+
+    g.registers_qword[0] = "rdi";
+    g.registers_qword[1] = "rsi";
+    g.registers_qword[2] = "rdx";
+    g.registers_qword[3] = "rcx";
+    g.registers_qword[4] = "r8";
+    g.registers_qword[5] = "r9";
+
+    g.registers_dword[0] = "edi";
+    g.registers_dword[1] = "esi";
+    g.registers_dword[2] = "edx";
+    g.registers_dword[3] = "ecx";
+    g.registers_dword[4] = "r8d";
+    g.registers_dword[5] = "r9d";
+
+    g.registers_byte[0] = "dil";
+    g.registers_byte[1] = "sil";
+    g.registers_byte[2] = "dl";
+    g.registers_byte[3] = "cl";
+    g.registers_byte[4] = "r8b";
+    g.registers_byte[5] = "r9b";
 
     CodeGen_gen_translation_unit(&g, p);
 }

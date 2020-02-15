@@ -10,4 +10,4 @@ RUN apk add --no-cache \
     make \
     && make BUILD_TYPE=release
 
-CMD [ "/app/build/release/mocc" ]
+CMD [ "/app/build/release/stage1/mocc" ]
